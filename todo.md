@@ -16,3 +16,10 @@
 - [x] Update the app shell, navigation, shipment cards, forms, rails, status chips, and support surfaces for light-mode contrast.
 - [x] Re-check active, arriving, delayed, and completed shipment states so lavender, mint, coral, and yellow retain their semantic roles.
 - [x] Run type/build checks and verify the primary mobile and desktop layouts after the transition.
+
+## White canvas refinement
+
+- [x] Make the overall application canvas, header, and desktop content background true white.
+- [x] Keep Cargo Yellow reserved for active navigation, primary actions, and shipment highlights.
+- [x] Rebalance supporting cards and controls with subtle cool-gray borders and surfaces for separation.
+- [x] Verify the white canvas across mobile and desktop, then run type/build checks.
