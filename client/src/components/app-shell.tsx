@@ -41,9 +41,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const activeHref = location === "/" ? "/" : `/${location.split("/")[1]}`;
 
   return (
-    <div className="min-h-screen bg-ink text-white">
+    <div className="nwc-light min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
-        <aside className="sticky top-0 hidden h-screen w-[236px] shrink-0 flex-col border-r border-white/8 bg-ink px-5 py-7 lg:flex">
+        <aside className="sticky top-0 hidden h-screen w-[236px] shrink-0 flex-col border-r border-white/8 bg-background px-5 py-7 lg:flex">
           <BrandMark />
           <div className="mt-14 flex flex-1 flex-col gap-1">
             <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-white/25">Workspace</p>
@@ -64,7 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </aside>
 
         <main className="min-w-0 flex-1 pb-24 lg:pb-0">
-          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/8 bg-ink/90 px-4 py-4 backdrop-blur-xl sm:px-8 lg:px-12">
+          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/8 bg-background/90 px-4 py-4 backdrop-blur-xl sm:px-8 lg:px-12">
             <div className="lg:hidden"><BrandMark compact /></div>
             <div className="hidden items-center gap-3 lg:flex"><div className="size-2 rounded-full bg-mint shadow-[0_0_0_5px_rgba(191,232,216,0.1)]" /><span className="text-xs font-medium text-white/45">All systems operational</span></div>
             <div className="ml-auto flex items-center gap-2">
@@ -96,4 +96,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

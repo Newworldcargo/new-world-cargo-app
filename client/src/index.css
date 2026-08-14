@@ -41,36 +41,69 @@
 
 :root {
   --radius: 1rem;
-  --background: oklch(0.078 0 0);
-  --foreground: oklch(0.96 0.005 95);
-  --card: oklch(0.13 0 0);
-  --card-foreground: oklch(0.96 0.005 95);
-  --popover: oklch(0.15 0 0);
-  --popover-foreground: oklch(0.96 0.005 95);
+  --background: oklch(0.965 0.012 92);
+  --foreground: oklch(0.22 0.035 255);
+  --card: oklch(0.995 0.004 92);
+  --card-foreground: oklch(0.22 0.035 255);
+  --popover: oklch(0.995 0.004 92);
+  --popover-foreground: oklch(0.22 0.035 255);
   --primary: oklch(0.84 0.16 85);
-  --primary-foreground: oklch(0.12 0 0);
-  --secondary: oklch(0.18 0 0);
-  --secondary-foreground: oklch(0.9 0.005 95);
-  --muted: oklch(0.18 0 0);
-  --muted-foreground: oklch(0.67 0.01 95);
-  --accent: oklch(0.22 0.01 95);
-  --accent-foreground: oklch(0.96 0.005 95);
+  --primary-foreground: oklch(0.22 0.035 255);
+  --secondary: oklch(0.925 0.018 92);
+  --secondary-foreground: oklch(0.3 0.035 255);
+  --muted: oklch(0.93 0.012 92);
+  --muted-foreground: oklch(0.5 0.03 255);
+  --accent: oklch(0.91 0.035 255);
+  --accent-foreground: oklch(0.22 0.035 255);
   --destructive: oklch(0.64 0.2 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 12%);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.22 0.035 255 / 14%);
+  --input: oklch(0.22 0.035 255 / 16%);
   --ring: oklch(0.84 0.16 85);
 }
 
 * { @apply border-border outline-ring/50; }
-html { @apply bg-ink; }
-body { @apply min-w-[320px] bg-ink font-sans text-foreground antialiased; }
+html { @apply bg-background; }
+body { @apply min-w-[320px] bg-background font-sans text-foreground antialiased; }
 button, a, input, select { -webkit-tap-highlight-color: transparent; }
 button { @apply cursor-pointer; }
 button:active { transform: scale(0.98); }
 ::selection { background: #ffc83d; color: #0d0d0d; }
 
+/* Light-mode compatibility layer: keeps the existing component vocabulary while
+   translating the reference's dark overlays into soft navy tints and paper-white surfaces. */
+.nwc-light .text-white { color: #16243a !important; }
+.nwc-light [class~="text-white/25"] { color: rgb(22 36 58 / 0.42) !important; }
+.nwc-light [class~="text-white/30"] { color: rgb(22 36 58 / 0.50) !important; }
+.nwc-light [class~="text-white/35"] { color: rgb(22 36 58 / 0.55) !important; }
+.nwc-light [class~="text-white/38"] { color: rgb(22 36 58 / 0.58) !important; }
+.nwc-light [class~="text-white/40"] { color: rgb(22 36 58 / 0.60) !important; }
+.nwc-light [class~="text-white/42"] { color: rgb(22 36 58 / 0.62) !important; }
+.nwc-light [class~="text-white/45"] { color: rgb(22 36 58 / 0.66) !important; }
+.nwc-light [class~="text-white/48"],
+.nwc-light [class~="text-white/50"],
+.nwc-light [class~="text-white/52"],
+.nwc-light [class~="text-white/55"] { color: rgb(22 36 58 / 0.70) !important; }
+.nwc-light [class~="text-white/60"],
+.nwc-light [class~="text-white/70"],
+.nwc-light [class~="text-white/75"],
+.nwc-light [class~="text-white/80"] { color: rgb(22 36 58 / 0.82) !important; }
+.nwc-light [class*="bg-white/"] { background-color: rgb(22 36 58 / 0.055) !important; }
+.nwc-light [class~="bg-ink/35"] { background-color: rgb(22 36 58 / 0.085) !important; }
+.nwc-light [class*="hover:bg-white/"]:hover { background-color: rgb(22 36 58 / 0.09) !important; }
+.nwc-light [class*="border-white/"] { border-color: rgb(22 36 58 / 0.13) !important; }
+.nwc-light [class*="hover:border-white/"]:hover { border-color: rgb(22 36 58 / 0.28) !important; }
+.nwc-light .brand-mark .bg-ink { background-color: #121a27 !important; }
+.nwc-light .bg-coral.text-white,
+.nwc-light .bg-route-lavender.text-white { color: #ffffff !important; }
+.nwc-light .text-mint { color: #3c8d6e !important; }
+.nwc-light .text-cargo-yellow { color: #b27600 !important; }
+.nwc-light .bg-cargo-yellow > .absolute.inset-0 { background-image: none !important; }
+.nwc-light .bg-\[\#202020\] { background-color: #fffdfa !important; }
+.nwc-light .bg-\[\#191919\]\/95 { background-color: rgb(255 255 255 / 0.96) !important; }
+.nwc-light .bg-\[\#222\]\/95,
+.nwc-light .bg-\[\#222\] { background-color: rgb(255 255 255 / 0.98) !important; }
+
 @media (prefers-reduced-motion: no-preference) {
   button, a { transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }
-

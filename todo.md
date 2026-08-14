@@ -9,3 +9,10 @@
 - [x] Keep all frontend files mobile-first, accessible, keyboard-friendly, and consistent with the reference mockup.
 - [x] Use Tailwind utilities and centralized CSS variables instead of scattered hardcoded styles.
 - [x] Verify the tracking flow, shipment detail flow, send flow, quote flow, and notification/account navigation before delivery.
+
+## Light mode revision
+
+- [x] Replace dark canvas and panel tokens with light-mode surfaces while preserving readable navy text and yellow actions.
+- [x] Update the app shell, navigation, shipment cards, forms, rails, status chips, and support surfaces for light-mode contrast.
+- [x] Re-check active, arriving, delayed, and completed shipment states so lavender, mint, coral, and yellow retain their semantic roles.
+- [x] Run type/build checks and verify the primary mobile and desktop layouts after the transition.

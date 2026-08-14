@@ -2,26 +2,26 @@
 
 ## Ground-truth reference
 
-The uploaded shipping app mockups are the visual source of truth. The product should feel like a pocket-sized control center for deliveries: dark, confident, direct, and friendly. The app should preserve the reference's high-contrast dark canvas, warm cargo yellow, lavender route/status accent, stacked shipment cards, route timelines, prominent tracking input, and persistent bottom navigation. It should simplify logistics language into plain customer actions and keep the important next step visible.
+The uploaded shipping app mockups remain the visual source of truth for interaction and composition. The product should feel like a pocket-sized control center for deliveries: bright, confident, direct, and friendly. The app keeps the reference's cargo yellow, lavender route/status accent, stacked shipment cards, route timelines, prominent tracking input, and persistent bottom navigation, translated into a warm paper-white canvas with deep navy type and soft navy-tinted surfaces. It should simplify logistics language into plain customer actions and keep the important next step visible.
 
 ## Design Movement
 
-Reference-matched **editorial utility / mobile command center**: a blend of contemporary dark-mode product UI, airport departure-board clarity, and tactile courier packaging. The interface is expressive through color blocks and motion, but every visual decision supports quick scanning and action.
+Reference-matched **editorial utility / mobile command center**: a blend of contemporary light-mode product UI, airport departure-board clarity, and tactile courier packaging. The interface is expressive through color blocks, crisp navy typography, and motion, but every visual decision supports quick scanning and action.
 
 ## Core Principles
 
 1. **Clarity before operations language.** Customers see “On the way,” “Arriving today,” and “Choose a delivery time,” never internal routing codes or warehouse jargon.
 2. **Shipment as the central object.** A shipment card carries its state, route, ETA, and the small set of actions that are valid right now.
-3. **High-contrast warmth.** Charcoal and near-black create focus; New World Cargo yellow marks action and optimism; lavender marks motion and progress; coral is reserved for exceptions.
+3. **High-contrast warmth.** Warm paper white and deep navy create focus; New World Cargo yellow marks action and optimism; lavender marks motion and progress; coral is reserved for exceptions.
 4. **Pocket-sized confidence.** Every screen should be usable one-handed, comfortable at a 375px viewport, and structured around a clear thumb-reachable action.
 
 ## Color Philosophy
 
-The dark canvas reduces visual noise and makes the customer's shipment the focus. The ownable signature color is **Cargo Yellow `#FFC83D`**, used for primary calls to action and the hero shipment card. **Route Lavender `#8178FF`** communicates movement and makes tracking feel alive. **Mint `#BFE8D8`** marks “arriving today” and positive completion. **Signal Coral `#FF6B5E`** appears only for delays, failed delivery attempts, and urgent support needs. White is soft rather than pure in most text, maintaining the calm precision of the reference.
+The warm paper-white canvas reduces visual noise and gives the customer's shipment room to lead. The ownable signature color is **Cargo Yellow `#FFC83D`**, used for primary calls to action and the hero shipment card. **Route Lavender `#8178FF`** communicates movement and makes tracking feel alive. **Mint `#BFE8D8`** marks “arriving today” and positive completion. **Signal Coral `#FF6B5E`** appears only for delays, failed delivery attempts, and urgent support needs. Deep navy replaces pure black for readable text, while navy-tinted surfaces provide calm separation without heavy panels.
 
 ## Layout Paradigm
 
-The app uses a **vertical command ribbon** rather than a centered dashboard. A compact greeting and notification affordance sit above a wide tracking rail. Quick actions form two asymmetric tiles. The main shipment card then stacks vertically with route, status, and contextual actions. On larger screens, the mobile-first app becomes a narrow, floating “phone-like” workspace anchored in a spacious dark shell with a right-side context rail for helpful shipment summary rather than stretching every card edge-to-edge.
+The app uses a **vertical command ribbon** rather than a centered dashboard. A compact greeting and notification affordance sit above a wide tracking rail. Quick actions form two asymmetric tiles. The main shipment card then stacks vertically with route, status, and contextual actions. On larger screens, the mobile-first app becomes a narrow, floating “phone-like” workspace anchored in a spacious light shell with a right-side context rail for helpful shipment summary rather than stretching every card edge-to-edge.
 
 ## Signature Elements
 
@@ -61,7 +61,7 @@ Use a compact symbol built from four offset cargo-arrow bars forming an abstract
 
 ## Signature Brand Color
 
-**Cargo Yellow `#FFC83D`** — a warm, ownable yellow that feels like a parcel label under morning light. It is bright enough to guide action on charcoal without looking like generic warning yellow.
+**Cargo Yellow `#FFC83D`** — a warm, ownable yellow that feels like a parcel label under morning light. It is bright enough to guide action against deep navy without looking like generic warning yellow.
 
 ## Initial Product Surface
 
@@ -72,3 +72,4 @@ The first frontend delivery includes Home with tracking, quick actions, active s
 - The primary header mark uses a visible four-offset-bar cargo-arrow N/W monogram, with the generated mark asset layered into the symbol treatment rather than relying on an unbranded square.
 - Route Lavender is reserved for active movement and current journey state, Mint for arriving or completed confidence, and Signal Coral only for delivery problems or urgent exceptions.
 - Every primary screen includes at least one cargo-control motif: a route rail, shipment ID label, status chip, package edge layer, or timeline marker.
+- The light-mode-first revision uses warm paper white, navy text, and soft navy-tinted panels; dark mode is not the default product direction.

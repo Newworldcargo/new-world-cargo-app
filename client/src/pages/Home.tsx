@@ -18,7 +18,7 @@ export default function Home() {
   return <div className="mx-auto max-w-6xl">
     <section className="relative overflow-hidden rounded-[32px] border border-white/8 bg-[#202020] p-5 sm:p-8 lg:p-10">
       <div className="absolute inset-0 opacity-25" style={{ backgroundImage: `url(${ASSETS.route})`, backgroundPosition: "center", backgroundSize: "cover" }} />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#202020] via-[#202020]/95 to-[#202020]/50" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#fffdfa] via-[#fffdfa]/95 to-[#fffdfa]/55" />
       <div className="relative grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
         <div><div className="mb-7 flex items-center gap-2 text-xs font-semibold text-mint"><span className="size-2 rounded-full bg-mint" /> Welcome back, Amina</div><h1 className="max-w-xl font-heading text-[clamp(2.3rem,6vw,4.7rem)] font-extrabold leading-[0.98] tracking-[-0.06em]">Move it.<br /><span className="text-cargo-yellow">Follow it.</span><br />Feel in control.</h1><p className="mt-5 max-w-md text-sm leading-6 text-white/52 sm:text-base">Your shipments, their next stop, and the fastest way forward — all in one pocket-sized view.</p></div>
         <div className="lg:justify-self-end lg:max-w-[420px]">
@@ -37,4 +37,3 @@ export default function Home() {
     </section>
   </div>;
 }
-

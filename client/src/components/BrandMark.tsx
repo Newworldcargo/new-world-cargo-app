@@ -4,7 +4,7 @@ import { ASSETS } from "@/lib/mock-data";
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="flex items-center gap-3" aria-label="New World Cargo">
+    <div className="brand-mark flex items-center gap-3" aria-label="New World Cargo">
       <div className="relative grid size-10 place-items-center rounded-2xl bg-cargo-yellow shadow-[0_8px_20px_rgba(255,200,61,0.2)]">
         <div className="absolute inset-0 grid place-items-center" aria-hidden="true">
           <div className="relative h-6 w-7">
