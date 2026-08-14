@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="nwc-light min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
-        <aside className="sticky top-0 hidden h-screen w-[236px] shrink-0 flex-col border-r border-white/8 bg-background px-5 py-7 lg:flex">
+        <aside className="sticky top-0 hidden h-screen w-[236px] shrink-0 flex-col border-r border-ink/10 bg-white px-5 py-7 lg:flex">
           <BrandMark />
           <div className="mt-14 flex flex-1 flex-col gap-1">
             <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-white/25">Workspace</p>
