@@ -15,7 +15,7 @@ const navItems: NavItem[] = [
   { label: "Invoices", href: "/invoices", icon: ReceiptText },
   { label: "Send", href: "/send", icon: Plus },
   { label: "Alerts", href: "/notifications", icon: Bell },
-  { label: "Account", href: "/account", icon: CircleUserRound },
+  { label: "Settings", href: "/settings", icon: Settings2 },
 ];
 
 function NavLink({ item, active, mobile = false }: { item: NavItem; active: boolean; mobile?: boolean }) {
@@ -81,10 +81,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
                 {profileOpen && (
                   <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-52 rounded-2xl border border-ink/10 bg-white p-2 shadow-xl" role="menu">
-                    <button onClick={() => { setProfileOpen(false); navigate("/account"); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
+                    <button onClick={() => { setProfileOpen(false); navigate("/settings/account"); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
                       <UserRound className="size-4 text-ink/55" /> Profile
                     </button>
-                    <button onClick={() => { setProfileOpen(false); navigate("/account"); toast("Settings opened."); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
+                    <button onClick={() => { setProfileOpen(false); navigate("/settings"); toast("Settings opened."); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
                       <Settings2 className="size-4 text-ink/55" /> Settings
                     </button>
                     <div className="my-1 h-px bg-ink/8" />

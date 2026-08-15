@@ -112,3 +112,20 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Open the modal from unpaid invoice payment actions and the shipment checkout step.
 - [x] Verify payment selection, inline method entry, confirmation feedback, and responsive behavior.
 - [ ] Save a new checkpoint after verification.
+
+## Navigation edit verification
+
+- [x] Resolve the stale shared-navigation target by replacing the Account destination with the requested Settings hub.
+- [x] Confirm desktop and mobile navigation remain clear and functional after the Settings replacement.
+- [ ] Save a new checkpoint after verification.
+
+## Settings hub and separate pages
+
+- [x] Rename the Account navigation destination to Settings while keeping a clear route from the hub.
+- [x] Create a minimalist Settings hub with links for account details, saved addresses, saved recipients, notifications, payment methods, security, and receipts & billing.
+- [x] Create a dedicated account details screen with profile and verified-contact management.
+- [x] Create separate saved-addresses and saved-recipients management screens.
+- [x] Create dedicated notifications, payment-methods, and security preference screens.
+- [x] Create a dedicated receipts & billing screen connected to the existing invoices destination.
+- [x] Verify every Settings link leads to its separate responsive page and that navigation remains clear.
+- [ ] Save a new checkpoint after verification.

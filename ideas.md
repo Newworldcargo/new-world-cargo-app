@@ -80,3 +80,4 @@ After sign-in, the customer home screen prioritizes existing operational needs b
 - The minimalist refinement keeps the composition unchanged and reduces broad shadows across buttons, cards, navigation, and overlays; spacing, thin borders, and tonal separation now provide the primary hierarchy.
 - Billing, payments, account, and other non-shipment screens use a compact cargo-control ribbon, with a shipment identifier, route rail, and route-lavender active marker, to keep every customer task visibly connected to the shipment journey.
 - Wide desktop space supports the narrow, stacked customer command surface rather than stretching task lists into generic administration tables.
+- Every dedicated Settings subpage carries a compact cargo-control ribbon below its title, so customer details, notification choices, payment preferences, and security controls retain a visible link to shipment readiness.
