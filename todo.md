@@ -196,3 +196,11 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Complete remaining Settings hub placeholder workflows with dedicated, actionable screens.
 - [x] Add or update Vitest coverage for the final workflow refinements.
 - [x] Verify responsive UI and save a new checkpoint after all refinements are complete.
+
+## Support and mobile homepage refinement
+
+- [x] Rename the Need a hand shortcut to Support and use a support/help icon instead of the star icon.
+- [x] Simplify the logout button copy to Log out only while preserving its existing yellow-accented design.
+- [x] Prevent horizontal overflow on the mobile homepage so all cards fit within the viewport.
+- [x] Change the mobile floating bottom navigation background to #012642 and use Cargo Yellow for the active item text/icon.
+- [x] Verify mobile and desktop responsive behavior with tests/build checks and save a new checkpoint.

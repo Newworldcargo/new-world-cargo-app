@@ -1,7 +1,7 @@
 // New World Cargo style reminder: Poppins, white canvas, Cargo Yellow actions, navy route accents, mobile-first.
 
 import type { LucideIcon } from "lucide-react";
-import { Bell, ChevronDown, House, LogOut, Package, Plus, ReceiptText, Settings2, Sparkles, UserRound, X } from "lucide-react";
+import { Bell, ChevronDown, CircleHelp, House, LogOut, Package, Plus, ReceiptText, Settings2, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -32,7 +32,7 @@ function NavLink({ item, active, mobile = false }: { item: NavItem; active: bool
     <button
       onClick={() => navigate(item.href)}
       className={mobile
-        ? `flex min-w-14 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-semibold transition duration-200 ${active ? "bg-white text-ink" : "text-white/50 hover:text-white"}`
+        ? `flex min-w-14 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-semibold transition duration-200 ${active ? "bg-brand-secondary/80 text-cargo-yellow" : "text-white/65 hover:text-white"}`
         : `group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition duration-200 ${active ? "bg-cargo-yellow text-ink shadow-[0_10px_24px_rgba(255,200,61,0.2)]" : "text-white/55 hover:bg-white/6 hover:text-white"}`}
       aria-current={active ? "page" : undefined}
     >
@@ -50,7 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const activeHref = location === "/" ? "/" : `/${location.split("/")[1]}`;
 
   return (
-    <div className="nwc-light min-h-screen bg-background text-foreground">
+    <div className="nwc-light min-h-screen overflow-x-hidden bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
         <aside className="sticky top-0 hidden h-screen w-[236px] shrink-0 flex-col border-r border-ink/10 bg-white px-5 py-7 lg:flex">
           <BrandMark />
@@ -62,12 +62,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <ReceiptText className="size-[18px]" strokeWidth={1.8} /> Get a quote
             </button>
             <button onClick={() => setSupportOpen(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-white/55 transition hover:bg-white/6 hover:text-white">
-              <Sparkles className="size-[18px]" strokeWidth={1.8} /> Need a hand?
+              <CircleHelp className="size-[18px]" strokeWidth={1.8} /> Support
             </button>
           </div>
           <button onClick={() => { navigate("/"); toast("You have been signed out."); }} className="mt-auto flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-cargo-yellow/50 hover:bg-white/8">
             <div className="grid size-9 place-items-center rounded-xl bg-cargo-yellow/15 text-cargo-yellow"><LogOut className="size-4" /></div>
-            <div><p className="text-xs font-bold">Log out</p><p className="mt-0.5 text-[11px] text-white/45">End this session</p></div>
+            <p className="text-xs font-bold">Log out</p>
           </button>
         </aside>
 
@@ -100,14 +100,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
                 )}
               </div>
-              <button onClick={() => setSupportOpen(true)} className="grid size-10 place-items-center rounded-full border border-white/10 text-white/70 transition hover:border-white/25 hover:text-white lg:hidden" aria-label="Open support"><Settings2 className="size-[18px]" strokeWidth={1.8} /></button>
+              <button onClick={() => setSupportOpen(true)} className="grid size-10 place-items-center rounded-full border border-white/10 text-white/70 transition hover:border-white/25 hover:text-white lg:hidden" aria-label="Open support"><CircleHelp className="size-[18px]" strokeWidth={1.8} /></button>
             </div>
           </header>
           <div className="px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10">{children}</div>
         </main>
       </div>
 
-      <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-[26px] border border-white/10 bg-[#191919]/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden" aria-label="Primary navigation">
+      <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-[26px] border border-white/10 bg-brand-secondary p-2 shadow-2xl backdrop-blur-xl lg:hidden" aria-label="Primary navigation">
         {mobileNavItems.map((item) => <NavLink key={item.href} item={item} active={activeHref === item.href} mobile />)}
       </nav>
 
