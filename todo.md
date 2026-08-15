@@ -137,3 +137,12 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Update the design-system documentation with the color’s intended role alongside Cargo Yellow.
 - [x] Verify contrast and visual consistency on representative desktop and mobile screens.
 - [ ] Save a new checkpoint after verification.
+
+## Navigation and shipment-label visual edits
+
+- [x] Remove Alerts from the shared desktop and mobile navigation menus.
+- [x] Identify the repeated shipment-page text selected in the stale editor and remove it across affected views.
+- [x] Replace the shipment-mode label with a concise Air cargo or Sea cargo icon and label treatment.
+- [x] Keep the shipment index at two cards per row on desktop and one card per row on mobile, without a promoted wide first card.
+- [x] Verify the updated navigation and shipment details on desktop and mobile.
+- [ ] Save a new checkpoint after verification.

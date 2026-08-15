@@ -23,7 +23,7 @@ export type Shipment = {
   id: string;
   trackingNumber: string;
   carrier: string;
-  category: string;
+  transportMode: "air" | "sea";
   packageName: string;
   origin: string;
   destination: string;
@@ -80,4 +80,3 @@ export type Invoice = {
   paymentMethod?: string;
   paidAt?: string;
 };
-

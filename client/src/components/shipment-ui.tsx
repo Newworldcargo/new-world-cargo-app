@@ -1,6 +1,7 @@
 // New World Cargo style reminder: Poppins, dark command-center canvas, Cargo Yellow action color, lavender route accents, mobile-first.
 
-import { ArrowUpRight, Check, ChevronRight, Clock3, Copy, MapPin, PackageCheck, RefreshCw, Share2, Truck, Zap } from "lucide-react";
+/* Design reminder: lead in-transit cargo uses Cargo Yellow; secondary shipment states use mint, lavender, coral, and paper-white to preserve a focused cargo-control hierarchy. */
+import { ArrowUpRight, Check, ChevronRight, Clock3, Copy, MapPin, PackageCheck, Plane, RefreshCw, Share2, Ship, Truck, Zap } from "lucide-react";
 import { toast } from "sonner";
 import type { Shipment, ShipmentStatus } from "@/lib/domain";
 
@@ -21,12 +22,25 @@ export function StatusBadge({ status, label, small = false }: { status: Shipment
   return <span className={`inline-flex items-center gap-1.5 rounded-full font-semibold ${small ? "px-2.5 py-1 text-[10px]" : "px-3 py-1.5 text-xs"} ${statusStyles[status]}`}><Icon className={small ? "size-3" : "size-3.5"} strokeWidth={2.2} />{label}</span>;
 }
 
+export function CargoModeLabel({ mode, compact = false }: { mode: Shipment["transportMode"]; compact?: boolean }) {
+  const isAir = mode === "air";
+  const Icon = isAir ? Plane : Ship;
+  return <span className={`inline-flex items-center gap-1.5 rounded-full bg-ink/8 font-bold text-ink ${compact ? "px-2 py-1 text-[10px]" : "px-2.5 py-1.5 text-xs"}`}><Icon className={compact ? "size-3" : "size-3.5"} strokeWidth={2.1} />{isAir ? "Air cargo" : "Sea cargo"}</span>;
+}
+
 export function ShipmentCard({ shipment, onOpen }: { shipment: Shipment; onOpen?: () => void }) {
+  const tone = shipment.status === "in_transit"
+    ? "bg-cargo-yellow text-ink"
+    : shipment.status === "out_for_delivery" || shipment.status === "delivered"
+      ? "bg-mint text-ink"
+      : shipment.status === "delayed" || shipment.status === "failed"
+        ? "bg-coral/15 text-ink"
+        : "bg-route-lavender/15 text-ink";
   return (
     <button onClick={onOpen} className="group w-full text-left" aria-label={`Open shipment ${shipment.trackingNumber}`}>
-      <div className="relative overflow-hidden rounded-[28px] bg-cargo-yellow p-5 text-ink transition duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_18px_40px_rgba(255,200,61,0.16)] sm:p-6">
+      <div className={`relative overflow-hidden rounded-[28px] p-5 transition duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_18px_40px_rgba(1,38,66,0.12)] sm:p-6 ${tone}`}>
         <div className="absolute -bottom-8 -right-8 size-32 rounded-full border-[18px] border-route-lavender/25" />
-        <div className="relative flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-ink/45">{shipment.category}</p><p className="mt-1 font-heading text-lg font-extrabold tracking-tight">{shipment.trackingNumber}</p></div><StatusBadge status={shipment.status} label={shipment.statusLabel} small /></div>
+        <div className="relative flex items-start justify-between gap-3"><div><CargoModeLabel mode={shipment.transportMode} compact /><p className="mt-2 font-heading text-lg font-extrabold tracking-tight">{shipment.trackingNumber}</p></div><StatusBadge status={shipment.status} label={shipment.statusLabel} small /></div>
         <div className="relative mt-7 grid grid-cols-[1fr_auto_1fr] items-end gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink/45">From</p><p className="mt-1 text-sm font-bold">{shipment.origin.split(",")[0]}</p></div><div className="mb-1 flex items-center gap-1.5"><span className="size-2 rounded-full bg-ink" /><span className="h-px w-10 bg-ink/35" /><span className="size-2 rounded-full border-2 border-ink bg-cargo-yellow" /></div><div className="text-right"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink/45">To</p><p className="mt-1 text-sm font-bold">{shipment.destination.split(",")[0]}</p></div></div>
         <div className="relative mt-5 flex items-center justify-between border-t border-ink/15 pt-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink/45">Estimated arrival</p><p className="mt-1 text-sm font-bold">{shipment.eta}</p></div><ArrowUpRight className="size-5 opacity-50 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></div>
       </div>
