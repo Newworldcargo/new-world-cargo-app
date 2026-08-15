@@ -71,3 +71,15 @@
 - [x] Replace delivery-speed choices with Air cargo and Sea cargo options, including indicative transit times.
 - [x] Add collection-from-office versus final-address-delivery selection before the review and payment step.
 - [x] Verify the completed flow on mobile and desktop, then run frontend checks.
+
+## Official brand assets
+
+- [x] Retrieve the official New World Cargo logo and favicon from the company website.
+- [x] Apply the official website favicon and a company-approved official logo to the app shell.
+- [x] Verify asset rendering, then run frontend checks.
+
+## Supplied yellow logo
+
+- [x] Upload the user-supplied official yellow logo as a stable web app asset.
+- [x] Replace the current app lockup with the supplied yellow logo while retaining the website favicon.
+- [x] Verify the supplied logo on mobile and desktop, then run frontend checks.
