@@ -27,6 +27,7 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { cargoTransportOptions, pickupOfficeSuggestions } from "@/lib/mock-data";
 import { CargoRail } from "@/components/shipment-ui";
+import { PaymentModal } from "@/components/payment-modal";
 
 const steps = ["Pickup", "Recipient", "Cargo", "Transport", "Review"];
 
@@ -39,6 +40,7 @@ export default function SendShipment() {
   const [, navigate] = useLocation();
   const [step, setStep] = useState(0);
   const [success, setSuccess] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
   const [transport, setTransport] = useState<"air" | "sea">("air");
   const [handover, setHandover] = useState<"collect" | "delivery">("collect");
   const [evidence, setEvidence] = useState<EvidenceState>({ photos: [], documents: [] });
@@ -64,7 +66,7 @@ export default function SendShipment() {
   const removeEvidence = (type: keyof EvidenceState, name: string) =>
     setEvidence((current) => ({ ...current, [type]: current[type].filter((item) => item !== name) }));
 
-  const next = () => (step < steps.length - 1 ? setStep((current) => current + 1) : setSuccess(true));
+  const next = () => (step < steps.length - 1 ? setStep((current) => current + 1) : setPaymentOpen(true));
   const selectedTransport = cargoTransportOptions.find((option) => option.id === transport)!;
 
   if (success) {
@@ -296,8 +298,8 @@ export default function SendShipment() {
             <div className="mt-4 flex items-start gap-3 rounded-2xl border border-cargo-yellow/20 bg-cargo-yellow/8 p-4">
               <FileText className="mt-0.5 size-5 shrink-0 text-cargo-yellow" />
               <div>
-                <p className="text-sm font-bold">Final charge comes later</p>
-                <p className="mt-1 text-xs text-white/40">We’ll notify you of the final service charge before release, collection, or final delivery.</p>
+                <p className="text-sm font-bold">Pay your booking deposit now</p>
+                <p className="mt-1 text-xs text-white/40">A K 320 booking deposit secures your cargo request. You can pay by mobile money or ATM/debit card; any final service charge is confirmed later.</p>
               </div>
             </div>
           </StepBlock>
@@ -308,11 +310,12 @@ export default function SendShipment() {
             Save as draft
           </button>
           <button onClick={next} className="flex items-center justify-center gap-2 rounded-2xl bg-cargo-yellow px-6 py-3 text-sm font-bold text-ink transition hover:brightness-105">
-            {step === 4 ? "Create cargo request" : "Continue"}
+            {step === 4 ? "Pay K 320 & create request" : "Continue"}
             <ArrowRight className="size-4" />
           </button>
         </div>
       </div>
+      <PaymentModal open={paymentOpen} amount="K 320" reference="Cargo request booking deposit" onClose={() => setPaymentOpen(false)} onSuccess={() => { setPaymentOpen(false); toast("Booking deposit received."); setSuccess(true); }} />
     </div>
   );
 }

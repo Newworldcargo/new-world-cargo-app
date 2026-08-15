@@ -78,3 +78,5 @@ After sign-in, the customer home screen prioritizes existing operational needs b
 - Every primary screen includes at least one cargo-control motif: a route rail, shipment ID label, status chip, package edge layer, or timeline marker.
 - The light-mode-first revision uses a true white canvas, navy text, and soft cool-gray panels; Cargo Yellow is a focused accent, and dark mode is not the default product direction.
 - The minimalist refinement keeps the composition unchanged and reduces broad shadows across buttons, cards, navigation, and overlays; spacing, thin borders, and tonal separation now provide the primary hierarchy.
+- Billing, payments, account, and other non-shipment screens use a compact cargo-control ribbon, with a shipment identifier, route rail, and route-lavender active marker, to keep every customer task visibly connected to the shipment journey.
+- Wide desktop space supports the narrow, stacked customer command surface rather than stretching task lists into generic administration tables.

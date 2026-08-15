@@ -103,3 +103,12 @@
 ## Style reminder for the billing feature
 
 Keep the established New World Cargo design: light mode, white canvas, Poppins typography, navy text, Cargo Yellow for primary actions and active states, restrained borders instead of heavy shadows, and mobile-first responsive behavior. Billing should feel operational and trustworthy rather than promotional.
+
+## Reusable online payment modal
+
+- [x] Define reusable payment-method state for saved mobile-money and card preferences.
+- [x] Build a reusable modal that supports mobile money, ATM/debit card payment, and adding a method during checkout.
+- [x] Remember and preselect the last successful payment method for future payments.
+- [x] Open the modal from unpaid invoice payment actions and the shipment checkout step.
+- [x] Verify payment selection, inline method entry, confirmation feedback, and responsive behavior.
+- [ ] Save a new checkpoint after verification.
