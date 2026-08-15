@@ -12,6 +12,7 @@ type NavItem = { label: string; href: string; icon: LucideIcon };
 const navItems: NavItem[] = [
   { label: "Home", href: "/", icon: House },
   { label: "Shipments", href: "/shipments", icon: Package },
+  { label: "Invoices", href: "/invoices", icon: ReceiptText },
   { label: "Send", href: "/send", icon: Plus },
   { label: "Alerts", href: "/notifications", icon: Bell },
   { label: "Account", href: "/account", icon: CircleUserRound },

@@ -89,3 +89,17 @@
 - [x] Remove active-navigation dots while preserving active background and text treatment.
 - [x] Add a floating profile menu with profile, settings, and logout actions using icons.
 - [x] Restyle the shipment-flow back control as a standard yellow button and verify the refined controls.
+
+## Invoices & billing
+
+- [x] Define the invoice domain model, invoice statuses, payment metadata, and receipt availability.
+- [x] Add representative recent and historical paid/unpaid invoice data for the customer-facing UI.
+- [x] Build a dedicated Invoices & Billing page with recent invoices, historical invoices, status filters, and clear totals.
+- [x] Add invoice detail interactions with invoice download for all invoices and receipt download for paid invoices.
+- [x] Add Invoices & Billing to desktop sidebar and mobile navigation without replacing Shipments.
+- [x] Verify invoice list, detail/download actions, responsive layouts, and frontend checks.
+- [ ] Save a new checkpoint after verification.
+
+## Style reminder for the billing feature
+
+Keep the established New World Cargo design: light mode, white canvas, Poppins typography, navy text, Cargo Yellow for primary actions and active states, restrained borders instead of heavy shadows, and mobile-first responsive behavior. Billing should feel operational and trustworthy rather than promotional.

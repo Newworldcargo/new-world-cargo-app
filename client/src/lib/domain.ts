@@ -62,3 +62,22 @@ export type DeliveryOption = {
   recommended?: boolean;
 };
 
+export type InvoiceStatus = "paid" | "unpaid";
+
+export type Invoice = {
+  id: string;
+  invoiceNumber: string;
+  shipmentId?: string;
+  shipmentLabel: string;
+  route: string;
+  issuedAt: string;
+  dueAt: string;
+  status: InvoiceStatus;
+  amount: string;
+  amountValue: number;
+  currency: string;
+  lineItems: { label: string; detail?: string; amount: string }[];
+  paymentMethod?: string;
+  paidAt?: string;
+};
+

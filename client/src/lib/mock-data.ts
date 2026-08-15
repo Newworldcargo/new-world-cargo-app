@@ -1,6 +1,6 @@
 // New World Cargo style reminder: Poppins, dark command-center canvas, Cargo Yellow action color, lavender route accents, mobile-first.
 
-import type { Address, DeliveryOption, Recipient, Shipment } from "./domain";
+import type { Address, DeliveryOption, Invoice, Recipient, Shipment } from "./domain";
 
 export const ASSETS = {
   hero: "/manus-storage/nwc-cargo-reference_6269971b.jpg",
@@ -107,3 +107,80 @@ export const cargoTransportOptions = [
   { id: "air", name: "Air cargo", detail: "Priority forwarding for time-sensitive cargo", eta: "5–10 working days" },
   { id: "sea", name: "Sea cargo", detail: "A lower-cost option for less urgent cargo", eta: "6–10 weeks" },
 ] as const;
+
+export const invoices: Invoice[] = [
+  {
+    id: "inv-2026-0812",
+    invoiceNumber: "NWC-INV-0812",
+    shipmentId: "shipment-48291",
+    shipmentLabel: "Home goods",
+    route: "Guangzhou, China → Lusaka, Zambia",
+    issuedAt: "12 Aug 2026",
+    dueAt: "20 Aug 2026",
+    status: "unpaid",
+    amount: "K 1,280",
+    amountValue: 1280,
+    currency: "ZMW",
+    lineItems: [
+      { label: "Air cargo forwarding", detail: "Home goods · NWC48291ZM", amount: "K 1,050" },
+      { label: "Destination handling", amount: "K 150" },
+      { label: "Local delivery", amount: "K 80" },
+    ],
+  },
+  {
+    id: "inv-2026-0809",
+    invoiceNumber: "NWC-INV-0809",
+    shipmentId: "shipment-19034",
+    shipmentLabel: "Import documents",
+    route: "Lusaka → Ndola, Zambia",
+    issuedAt: "9 Aug 2026",
+    dueAt: "14 Aug 2026",
+    status: "paid",
+    amount: "K 180",
+    amountValue: 180,
+    currency: "ZMW",
+    paymentMethod: "Mobile money · •••• 4821",
+    paidAt: "10 Aug 2026",
+    lineItems: [
+      { label: "Local delivery", detail: "Import documents · NWC19034ZM", amount: "K 160" },
+      { label: "Handling fee", amount: "K 20" },
+    ],
+  },
+  {
+    id: "inv-2026-0728",
+    invoiceNumber: "NWC-INV-0728",
+    shipmentId: "shipment-77120",
+    shipmentLabel: "Personal parcel",
+    route: "Lusaka → Kitwe, Zambia",
+    issuedAt: "28 Jul 2026",
+    dueAt: "2 Aug 2026",
+    status: "paid",
+    amount: "K 260",
+    amountValue: 260,
+    currency: "ZMW",
+    paymentMethod: "Visa ending 1042",
+    paidAt: "30 Jul 2026",
+    lineItems: [
+      { label: "Standard delivery", detail: "Personal parcel · NWC77120ZM", amount: "K 220" },
+      { label: "Handling fee", amount: "K 40" },
+    ],
+  },
+  {
+    id: "inv-2026-0615",
+    invoiceNumber: "NWC-INV-0615",
+    shipmentLabel: "Office supplies",
+    route: "Dubai, UAE → Lusaka, Zambia",
+    issuedAt: "15 Jun 2026",
+    dueAt: "22 Jun 2026",
+    status: "paid",
+    amount: "K 920",
+    amountValue: 920,
+    currency: "ZMW",
+    paymentMethod: "Mobile money · •••• 4821",
+    paidAt: "18 Jun 2026",
+    lineItems: [
+      { label: "Air cargo forwarding", detail: "Office supplies", amount: "K 760" },
+      { label: "Destination handling", amount: "K 160" },
+    ],
+  },
+];
