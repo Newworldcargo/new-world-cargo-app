@@ -57,3 +57,9 @@
 - [x] Remove expanded tracking, decorative uppercase treatments, and custom leading that fight Poppins’ natural rhythm.
 - [x] Preserve hierarchy through size, weight, color, and spacing rather than spread lettering.
 - [x] Verify natural typography spacing on both mobile and desktop, then run type/build checks.
+
+## Pickup office suggestions
+
+- [x] Define reusable New World Cargo origin-office suggestions for China, Zambia, Kitwe, and Dubai.
+- [x] Show filtered office suggestions when the pickup address is focused or typed into, while retaining custom entry.
+- [x] Support pointer and keyboard selection, then verify mobile and desktop behavior with frontend checks.

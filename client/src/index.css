@@ -103,6 +103,7 @@ button:active { transform: scale(0.98); }
 .nwc-light .bg-\[\#191919\]\/95 { background-color: rgb(255 255 255 / 0.96) !important; }
 .nwc-light .bg-\[\#222\]\/95,
 .nwc-light .bg-\[\#222\] { background-color: rgb(255 255 255 / 0.98) !important; }
+.nwc-light input::placeholder { color: rgb(22 36 58 / 0.48) !important; opacity: 1; }
 
 /* Minimalist elevation: the existing layout leads with spacing, borders, and tonal surfaces—not broad shadows. */
 .nwc-light .shadow-2xl,

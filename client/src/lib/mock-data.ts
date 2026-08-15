@@ -84,6 +84,13 @@ export const addresses: Address[] = [
   { id: "warehouse", label: "China warehouse", line: "Baiyun District, Guangzhou", landmark: "New World Cargo receiving desk" },
 ];
 
+export const pickupOfficeSuggestions = [
+  { id: "china-guangzhou", name: "China office", address: "Baiyun District, Guangzhou, China", detail: "New World Cargo receiving office" },
+  { id: "zambia-lusaka", name: "Zambia office", address: "Shop 62/A, Carousel Shopping Centre, Lusaka", detail: "New World Cargo pickup office" },
+  { id: "kitwe", name: "Kitwe office", address: "Kitwe, Zambia", detail: "New World Cargo pickup office" },
+  { id: "dubai", name: "Dubai office", address: "Dubai, United Arab Emirates", detail: "New World Cargo receiving office" },
+];
+
 export const recipients: Recipient[] = [
   { id: "jane", name: "Jane Banda", location: "Lusaka", phone: "+260 977 123 456", initials: "JB" },
   { id: "michael", name: "Michael Phiri", location: "Ndola", phone: "+260 966 456 789", initials: "MP" },
@@ -95,4 +102,3 @@ export const deliveryOptions: DeliveryOption[] = [
   { id: "express", name: "Express", detail: "Priority handling from pickup to arrival", eta: "2–3 days", price: "K 320", recommended: true },
   { id: "same-day", name: "Same day", detail: "Local Lusaka delivery when time matters", eta: "Today", price: "K 450" },
 ];
-
