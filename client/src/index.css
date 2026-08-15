@@ -104,6 +104,13 @@ button:active { transform: scale(0.98); }
 .nwc-light .bg-\[\#222\]\/95,
 .nwc-light .bg-\[\#222\] { background-color: rgb(255 255 255 / 0.98) !important; }
 
+/* Minimalist elevation: the existing layout leads with spacing, borders, and tonal surfaces—not broad shadows. */
+.nwc-light .shadow-2xl,
+.nwc-light .shadow-xl,
+.nwc-light .shadow-lg,
+.nwc-light .shadow-md,
+.nwc-light [class*="shadow-\["] { box-shadow: none !important; }
+
 @media (prefers-reduced-motion: no-preference) {
   button, a { transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }

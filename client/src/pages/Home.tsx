@@ -1,39 +1,196 @@
-// New World Cargo style reminder: Poppins, dark command-center canvas, Cargo Yellow action color, lavender route accents, mobile-first.
-
-import { ArrowRight, Camera, ChevronRight, MapPin, PackagePlus, ReceiptText, ScanLine, Search, ShieldCheck, Sparkles, Truck, WalletCards } from "lucide-react";
+// Design reminder: This customer-first home screen leads with bookings, delivery management, payment, and support on a true-white minimalist canvas.
+import {
+  ArrowRight,
+  Camera,
+  ChevronRight,
+  CircleHelp,
+  CreditCard,
+  MapPin,
+  PackageCheck,
+  PackagePlus,
+  ReceiptText,
+  ScanLine,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Truck,
+  WalletCards,
+} from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { ASSETS, shipments } from "@/lib/mock-data";
-import { ShipmentCard } from "@/components/shipment-ui";
+import { shipments } from "@/lib/mock-data";
+import { ShipmentCard, StatusBadge } from "@/components/shipment-ui";
 
 export default function Home() {
   const [, navigate] = useLocation();
   const [tracking, setTracking] = useState("");
-  const active = shipments[0];
+  const arriving = shipments[1];
+  const inTransit = shipments[0];
+
   const track = () => {
-    if (!tracking.trim()) { toast.error("Enter a tracking number to continue"); return; }
-    navigate("/shipments/" + (tracking.toUpperCase().includes("19034") ? "shipment-19034" : "shipment-48291"));
+    if (!tracking.trim()) {
+      toast.error("Enter a tracking number to continue");
+      return;
+    }
+    navigate(`/shipments/${tracking.toUpperCase().includes("19034") ? "shipment-19034" : "shipment-48291"}`);
   };
-  return <div className="mx-auto max-w-6xl">
-    <section className="relative overflow-hidden rounded-[32px] border border-white/8 bg-[#202020] p-5 sm:p-8 lg:p-10">
-      <div className="absolute inset-0 opacity-25" style={{ backgroundImage: `url(${ASSETS.route})`, backgroundPosition: "center", backgroundSize: "cover" }} />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#fffdfa] via-[#fffdfa]/95 to-[#fffdfa]/55" />
-      <div className="relative grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
-        <div><div className="mb-7 flex items-center gap-2 text-xs font-semibold text-mint"><span className="size-2 rounded-full bg-mint" /> Welcome back, Amina</div><h1 className="max-w-xl font-heading text-[clamp(2.3rem,6vw,4.7rem)] font-extrabold leading-[0.98] tracking-[-0.06em]">Move it.<br /><span className="text-cargo-yellow">Follow it.</span><br />Feel in control.</h1><p className="mt-5 max-w-md text-sm leading-6 text-white/52 sm:text-base">Your shipments, their next stop, and the fastest way forward — all in one pocket-sized view.</p></div>
-        <div className="lg:justify-self-end lg:max-w-[420px]">
-          <div className="rounded-[24px] bg-white p-2 shadow-2xl"><div className="flex items-center gap-2 px-3"><Search className="size-5 text-ink/45" /><input value={tracking} onChange={(e) => setTracking(e.target.value)} onKeyDown={(e) => e.key === "Enter" && track()} placeholder="Track a package" className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-ink/40" aria-label="Tracking number" /><button onClick={track} className="grid size-10 place-items-center rounded-full bg-ink text-white transition hover:bg-ink/80" aria-label="Track package"><ScanLine className="size-5" /></button></div></div><div className="mt-3 flex items-center justify-between px-2 text-[11px] text-white/40"><span>Try NWC48291ZM</span><button onClick={() => toast("Camera scanning will be available in the installed app.")} className="flex items-center gap-1.5 font-semibold text-cargo-yellow"><Camera className="size-3.5" />Scan QR</button></div>
+
+  const primaryActions = [
+    {
+      label: "Track another package",
+      detail: "Search by tracking number",
+      icon: Search,
+      onClick: () => document.getElementById("tracking-rail")?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      accent: "bg-cargo-yellow text-ink border-cargo-yellow",
+    },
+    {
+      label: "Pay balance",
+      detail: "K 1,280 due for China cargo",
+      icon: WalletCards,
+      onClick: () => navigate("/account"),
+      accent: "bg-white text-foreground border-ink/10",
+    },
+    {
+      label: "Add delivery note",
+      detail: "For your arriving parcel",
+      icon: PackageCheck,
+      onClick: () => navigate(`/shipments/${arriving.id}`),
+      accent: "bg-white text-foreground border-ink/10",
+    },
+    {
+      label: "Get help",
+      detail: "Talk to cargo support",
+      icon: CircleHelp,
+      onClick: () => toast("New World Cargo support is online 24/7."),
+      accent: "bg-white text-foreground border-ink/10",
+    },
+  ];
+
+  return (
+    <div className="mx-auto max-w-6xl">
+      <section className="border-b border-ink/10 pb-6 sm:pb-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-mint">
+              <span className="size-2 rounded-full bg-mint" /> Your cargo desk
+            </p>
+            <h1 className="mt-3 font-heading text-3xl font-extrabold tracking-[-0.05em] text-foreground sm:text-4xl">
+              Good afternoon, Amina.
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/55">
+              Your bookings, deliveries, and next actions are all here.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/send")}
+            className="inline-flex items-center gap-2 rounded-2xl border border-cargo-yellow bg-cargo-yellow px-4 py-3 text-xs font-bold text-ink transition hover:brightness-[1.02]"
+          >
+            <PackagePlus className="size-4" /> Start a shipment
+          </button>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {[{ label: "Send package", icon: PackagePlus, href: "/send", accent: "bg-cargo-yellow text-ink" }, { label: "Get a quote", icon: ReceiptText, href: "/quote", accent: "bg-white/8 text-white" }, { label: "Pickup locations", icon: MapPin, href: "/shipments", accent: "bg-white/8 text-white" }, { label: "Pay balance", icon: WalletCards, href: "/account", accent: "bg-white/8 text-white" }].map((action) => { const Icon = action.icon; return <button key={action.label} onClick={() => action.href === "/shipments" ? toast("Pickup locations are ready to browse.") : navigate(action.href)} className={`group flex min-h-[100px] flex-col justify-between rounded-[22px] p-4 text-left transition hover:-translate-y-0.5 ${action.accent}`}><Icon className="size-5 opacity-80" strokeWidth={1.8} /><span className="flex items-center justify-between gap-2 text-xs font-bold leading-4">{action.label}<ArrowRight className="size-4 opacity-40 transition group-hover:translate-x-0.5" /></span></button>; })}
-    </section>
+      <section className="mt-6 grid gap-5 lg:grid-cols-[1.18fr_0.82fr]">
+        <button
+          onClick={() => navigate(`/shipments/${arriving.id}`)}
+          className="group rounded-[28px] border border-ink/10 bg-white p-5 text-left transition hover:border-route-lavender/45 sm:p-6"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Your next delivery</p>
+              <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground">{arriving.eta}</h2>
+              <p className="mt-2 text-sm font-semibold text-white/60">{arriving.packageName} · {arriving.trackingNumber}</p>
+            </div>
+            <StatusBadge status={arriving.status} label={arriving.statusLabel} />
+          </div>
+          <div className="mt-7 flex items-center gap-3">
+            <div className="grid size-10 place-items-center rounded-2xl bg-mint/30 text-[#32795d]"><Truck className="size-5" /></div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-foreground">Courier is nearby</p>
+              <p className="mt-1 truncate text-xs text-white/55">{arriving.destination} · Add instructions if needed</p>
+            </div>
+            <ChevronRight className="size-5 text-route-lavender transition group-hover:translate-x-0.5" />
+          </div>
+        </button>
 
-    <section className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-      <div><div className="mb-4 flex items-end justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-white/30">Your active shipments</p><h2 className="mt-2 font-heading text-2xl font-bold tracking-tight">Keep an eye on it</h2></div><button onClick={() => navigate("/shipments")} className="flex items-center gap-1 text-xs font-bold text-cargo-yellow">View all <ChevronRight className="size-4" /></button></div><ShipmentCard shipment={active} onOpen={() => navigate(`/shipments/${active.id}`)} /></div>
-      <div className="lg:pt-[52px]"><div className="rounded-[28px] border border-white/8 bg-white/[0.035] p-5 sm:p-6"><div className="flex items-start justify-between"><div><div className="grid size-10 place-items-center rounded-2xl bg-mint/15 text-mint"><ShieldCheck className="size-5" /></div><h3 className="mt-5 font-heading text-xl font-bold">Shipping made clear.</h3><p className="mt-2 text-sm leading-6 text-white/48">From local deliveries to China imports, we keep every handoff visible.</p></div><Sparkles className="size-5 text-cargo-yellow" /></div><div className="mt-6 grid grid-cols-3 gap-2 border-t border-white/8 pt-5"><div><p className="font-heading text-xl font-extrabold">5k+</p><p className="mt-1 text-[10px] uppercase tracking-wider text-white/35">Delivered</p></div><div><p className="font-heading text-xl font-extrabold">98%</p><p className="mt-1 text-[10px] uppercase tracking-wider text-white/35">On-time</p></div><div><p className="font-heading text-xl font-extrabold">24/7</p><p className="mt-1 text-[10px] uppercase tracking-wider text-white/35">Support</p></div></div></div><div className="mt-3 flex items-center justify-between rounded-2xl border border-cargo-yellow/15 bg-cargo-yellow/8 px-4 py-3"><div className="flex items-center gap-3"><Truck className="size-4 text-cargo-yellow" /><span className="text-xs font-semibold text-white/70">Need help with a shipment?</span></div><button onClick={() => toast("Support is online 24/7.")} className="text-xs font-bold text-cargo-yellow">Talk to us</button></div></div>
-    </section>
-  </div>;
+        <div className="rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Wallet & payments</p>
+              <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground">K 1,280 due</h2>
+              <p className="mt-2 text-sm leading-6 text-white/55">For your Guangzhou to Lusaka order.</p>
+            </div>
+            <div className="grid size-10 place-items-center rounded-2xl bg-route-lavender/15 text-route-lavender"><CreditCard className="size-5" /></div>
+          </div>
+          <button
+            onClick={() => navigate("/account")}
+            className="mt-6 flex w-full items-center justify-between rounded-2xl border border-ink/10 bg-white px-4 py-3 text-left text-xs font-bold text-foreground transition hover:border-cargo-yellow/70"
+          >
+            Review payment <ArrowRight className="size-4 text-cargo-yellow" />
+          </button>
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <div className="mb-3 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">What would you like to do?</p>
+            <h2 className="mt-1 font-heading text-xl font-bold tracking-tight text-foreground">Manage your order</h2>
+          </div>
+          <button onClick={() => navigate("/shipments")} className="flex items-center gap-1 text-xs font-bold text-cargo-yellow">All bookings <ChevronRight className="size-4" /></button>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {primaryActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.label}
+                onClick={action.onClick}
+                className={`group min-h-[128px] rounded-[22px] border p-4 text-left transition hover:border-route-lavender/55 ${action.accent}`}
+              >
+                <Icon className="size-5 opacity-80" strokeWidth={1.8} />
+                <div className="mt-6 flex items-end justify-between gap-2">
+                  <div><p className="text-xs font-bold leading-4">{action.label}</p><p className="mt-1 text-[10px] font-medium leading-4 opacity-65">{action.detail}</p></div>
+                  <ArrowRight className="size-4 shrink-0 opacity-45 transition group-hover:translate-x-0.5" />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mt-9 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <div>
+          <div className="mb-4 flex items-end justify-between">
+            <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Open bookings</p><h2 className="mt-1 font-heading text-2xl font-bold tracking-tight text-foreground">Keep an eye on it</h2></div>
+            <button onClick={() => navigate("/shipments")} className="flex items-center gap-1 text-xs font-bold text-cargo-yellow">View all <ChevronRight className="size-4" /></button>
+          </div>
+          <ShipmentCard shipment={inTransit} onOpen={() => navigate(`/shipments/${inTransit.id}`)} />
+        </div>
+
+        <div id="tracking-rail" className="rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Find a booking</p><h2 className="mt-1 font-heading text-xl font-bold tracking-tight text-foreground">Track another package</h2></div><MapPin className="size-5 text-route-lavender" /></div>
+          <div className="mt-5 rounded-2xl border border-ink/10 bg-white p-2"><div className="flex items-center gap-2 px-3"><Search className="size-5 text-ink/45" /><input value={tracking} onChange={(event) => setTracking(event.target.value)} onKeyDown={(event) => event.key === "Enter" && track()} placeholder="Enter tracking number" className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-ink/40" aria-label="Tracking number" /><button onClick={track} className="grid size-10 place-items-center rounded-full bg-ink text-white transition hover:bg-ink/80" aria-label="Track package"><ScanLine className="size-5" /></button></div></div>
+          <div className="mt-3 flex items-center justify-between px-1 text-[11px] text-white/55"><span>Try NWC48291ZM</span><button onClick={() => toast("Camera scanning will be available in the installed app.")} className="flex items-center gap-1.5 font-semibold text-cargo-yellow"><Camera className="size-3.5" />Scan QR</button></div>
+        </div>
+      </section>
+
+      <section className="mt-10 rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-7">
+        <div className="grid gap-6 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-cargo-yellow"><Sparkles className="size-4" /> More with New World Cargo</div>
+            <h2 className="mt-3 font-heading text-2xl font-bold tracking-tight text-foreground">Need to send something new?</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/55">Create a local delivery or arrange a China shipment when you are ready.</p>
+          </div>
+          <div className="flex flex-wrap gap-2"><button onClick={() => navigate("/quote")} className="inline-flex items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 py-3 text-xs font-bold text-foreground transition hover:border-cargo-yellow/70"><ReceiptText className="size-4" /> Get a quote</button><button onClick={() => navigate("/send")} className="inline-flex items-center gap-2 rounded-2xl border border-cargo-yellow bg-cargo-yellow px-4 py-3 text-xs font-bold text-ink transition hover:brightness-[1.02]"><PackagePlus className="size-4" /> New shipment</button></div>
+        </div>
+      </section>
+
+      <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink/10 bg-white px-4 py-3">
+        <div className="flex items-center gap-3"><div className="grid size-8 place-items-center rounded-xl bg-mint/25 text-[#32795d]"><ShieldCheck className="size-4" /></div><span className="text-xs font-semibold text-white/70">Need help with a booking or delivery?</span></div>
+        <button onClick={() => toast("New World Cargo support is online 24/7.")} className="text-xs font-bold text-cargo-yellow">Talk to support</button>
+      </section>
+    </div>
+  );
 }

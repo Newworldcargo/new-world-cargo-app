@@ -23,3 +23,17 @@
 - [x] Keep Cargo Yellow reserved for active navigation, primary actions, and shipment highlights.
 - [x] Rebalance supporting cards and controls with subtle cool-gray borders and surfaces for separation.
 - [x] Verify the white canvas across mobile and desktop, then run type/build checks.
+
+## Minimalist refinement
+
+- [x] Preserve all existing layout and information hierarchy while reducing elevation effects.
+- [x] Replace broad button and card shadows with thin borders, tonal contrast, and restrained interaction states.
+- [x] Keep emphasis only where it supports a primary action or shipment state.
+- [x] Verify desktop and mobile visuals, then run type/build checks.
+
+## Customer-first post-login home
+
+- [x] Define the first actions for signed-in customers with existing bookings or orders.
+- [x] Place active booking status, tracking, payment or wallet status, delivery management, and support ahead of promotional content.
+- [x] Move banners and secondary discovery content lower in the home screen without disturbing the established visual system.
+- [x] Verify the revised action hierarchy across mobile and desktop, then run type/build checks.

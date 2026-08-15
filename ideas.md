@@ -67,9 +67,14 @@ Use a compact symbol built from four offset cargo-arrow bars forming an abstract
 
 The first frontend delivery includes Home with tracking, quick actions, active shipments, Shipments with filters, a shipment detail view with journey and contextual actions, Send Shipment with a multi-step flow, a quote preview, pickup scheduling, notifications, Account, saved addresses, recipients, payment methods, and support/problem states. The frontend uses thoughtfully chosen sample content only for demonstrating UI states; no customer reviews or testimonials are fabricated.
 
+## Signed-in Customer Priority
+
+After sign-in, the customer home screen prioritizes existing operational needs before discovery or marketing: first the nearest delivery or active booking, then any wallet/payment action, then order-management actions such as tracking, delivery instructions, and support. The active booking list and a tracking rail follow. Educational or promotional messaging, including creating a new shipment or requesting a quote, is positioned later on the screen as an optional next step.
+
 ## Style Decisions
 
 - The primary header mark uses a visible four-offset-bar cargo-arrow N/W monogram, with the generated mark asset layered into the symbol treatment rather than relying on an unbranded square.
 - Route Lavender is reserved for active movement and current journey state, Mint for arriving or completed confidence, and Signal Coral only for delivery problems or urgent exceptions.
 - Every primary screen includes at least one cargo-control motif: a route rail, shipment ID label, status chip, package edge layer, or timeline marker.
 - The light-mode-first revision uses a true white canvas, navy text, and soft cool-gray panels; Cargo Yellow is a focused accent, and dark mode is not the default product direction.
+- The minimalist refinement keeps the composition unchanged and reduces broad shadows across buttons, cards, navigation, and overlays; spacing, thin borders, and tonal separation now provide the primary hierarchy.
