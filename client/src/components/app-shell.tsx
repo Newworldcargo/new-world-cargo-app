@@ -65,10 +65,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <CircleHelp className="size-[18px]" strokeWidth={1.8} /> Support
             </button>
           </div>
-          <button onClick={() => { navigate("/"); toast("You have been signed out."); }} className="mt-auto flex items-center gap-3 rounded-2xl border border-ink/10 bg-white p-3 text-left text-ink transition hover:border-cargo-yellow hover:bg-cargo-yellow/10">
-            <div className="grid size-9 place-items-center rounded-xl bg-cargo-yellow text-ink"><LogOut className="size-4" /></div>
-            <p className="text-xs font-bold">Log out</p>
-          </button>
+          <div className="mt-8">
+            <button onClick={() => { navigate("/"); toast("You have been signed out."); }} className="flex w-full items-center gap-3 rounded-2xl border border-ink/10 bg-white p-3 text-left text-ink transition hover:border-cargo-yellow hover:bg-cargo-yellow/10">
+              <div className="grid size-9 place-items-center rounded-xl bg-cargo-yellow text-ink"><LogOut className="size-4" /></div>
+              <p className="text-xs font-bold">Log out</p>
+            </button>
+          </div>
         </aside>
 
         <main className="min-w-0 flex-1 pb-24 lg:pb-0">

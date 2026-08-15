@@ -209,3 +209,14 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 
 - [x] Keep the bottom-left shell surface white and make the Log out button’s Cargo Yellow accent stronger and clearly visible.
 - [x] Verify the updated treatment on desktop and mobile, then save a new checkpoint.
+
+## Homepage card responsiveness correction
+
+- [x] Make the Next delivery and Wallet & payments cards fit the mobile viewport without clipped content.
+- [x] Reflow card headers, status badges, route details, and payment controls responsively while preserving desktop layout.
+- [x] Verify the corrected homepage at mobile and desktop widths, then save a new checkpoint.
+
+## Sidebar spacing refinement
+
+- [x] Add clear vertical spacing between the Support shortcut and the Log out button in the desktop left menu.
+- [x] Verify the sidebar spacing and save a new checkpoint.

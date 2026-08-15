@@ -96,13 +96,13 @@ export default function Home() {
           onClick={() => navigate(`/shipments/${arriving.id}`)}
           className="group rounded-[28px] border border-ink/10 bg-white p-5 text-left transition hover:border-cargo-yellow/45 sm:p-6"
         >
-          <div className="flex items-start justify-between gap-4">
-            <div>
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Your next delivery</p>
-              <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground">{arriving.eta}</h2>
-              <p className="mt-2 text-sm font-semibold text-white/60">{arriving.packageName} · {arriving.trackingNumber}</p>
+              <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">{arriving.eta}</h2>
+              <p className="mt-2 break-words text-sm font-semibold text-white/60">{arriving.packageName} · {arriving.trackingNumber}</p>
             </div>
-            <StatusBadge status={arriving.status} label={arriving.statusLabel} />
+            <div className="self-start"><StatusBadge status={arriving.status} label={arriving.statusLabel} /></div>
           </div>
           <div className="mt-7 flex items-center gap-3">
             <div className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow/30 text-ink"><Truck className="size-5" /></div>
@@ -115,17 +115,17 @@ export default function Home() {
         </button>
 
         <div className="rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Wallet & payments</p>
-              <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground">K 1,280 due</h2>
-              <p className="mt-2 text-sm leading-6 text-white/55">For your Guangzhou to Lusaka order.</p>
+              <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">K 1,280 due</h2>
+              <p className="mt-2 break-words text-sm leading-6 text-white/55">For your Guangzhou to Lusaka order.</p>
             </div>
-            <div className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow/15 text-cargo-yellow"><CreditCard className="size-5" /></div>
+            <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-cargo-yellow/15 text-cargo-yellow"><CreditCard className="size-5" /></div>
           </div>
           <button
             onClick={() => navigate("/account")}
-            className="mt-6 flex w-full items-center justify-between rounded-2xl border border-ink/10 bg-white px-4 py-3 text-left text-xs font-bold text-foreground transition hover:border-cargo-yellow/70"
+            className="mt-6 flex w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-white px-4 py-3 text-left text-xs font-bold text-foreground transition hover:border-cargo-yellow/70"
           >
             Review payment <ArrowRight className="size-4 text-cargo-yellow" />
           </button>
