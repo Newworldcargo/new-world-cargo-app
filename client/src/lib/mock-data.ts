@@ -102,3 +102,8 @@ export const deliveryOptions: DeliveryOption[] = [
   { id: "express", name: "Express", detail: "Priority handling from pickup to arrival", eta: "2–3 days", price: "K 320", recommended: true },
   { id: "same-day", name: "Same day", detail: "Local Lusaka delivery when time matters", eta: "Today", price: "K 450" },
 ];
+
+export const cargoTransportOptions = [
+  { id: "air", name: "Air cargo", detail: "Priority forwarding for time-sensitive cargo", eta: "5–10 working days" },
+  { id: "sea", name: "Sea cargo", detail: "A lower-cost option for less urgent cargo", eta: "6–10 weeks" },
+] as const;

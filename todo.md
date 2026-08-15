@@ -63,3 +63,11 @@
 - [x] Define reusable New World Cargo origin-office suggestions for China, Zambia, Kitwe, and Dubai.
 - [x] Show filtered office suggestions when the pickup address is focused or typed into, while retaining custom entry.
 - [x] Support pointer and keyboard selection, then verify mobile and desktop behavior with frontend checks.
+
+## Cargo-creation workflow
+
+- [x] Replace weight-first input with a description of parcel contents and optional estimated details.
+- [x] Add photo and delivery-note/debit-note upload controls with clear client-side feedback.
+- [x] Replace delivery-speed choices with Air cargo and Sea cargo options, including indicative transit times.
+- [x] Add collection-from-office versus final-address-delivery selection before the review and payment step.
+- [x] Verify the completed flow on mobile and desktop, then run frontend checks.
