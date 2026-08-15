@@ -1,7 +1,7 @@
 // New World Cargo style reminder: Poppins, dark command-center canvas, Cargo Yellow action color, lavender route accents, mobile-first.
 
 import type { LucideIcon } from "lucide-react";
-import { Bell, CircleUserRound, House, Package, Plus, ReceiptText, Settings2, Sparkles, Truck, X } from "lucide-react";
+import { Bell, ChevronDown, CircleUserRound, House, LogOut, Package, Plus, ReceiptText, Settings2, Sparkles, Truck, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -30,7 +30,7 @@ function NavLink({ item, active, mobile = false }: { item: NavItem; active: bool
     >
       <Icon className={mobile ? "size-5" : "size-[18px]"} strokeWidth={active ? 2.4 : 1.8} />
       <span>{item.label}</span>
-      {!mobile && active && <span className="ml-auto size-1.5 rounded-full bg-ink/70" />}
+
     </button>
   );
 }
@@ -38,6 +38,7 @@ function NavLink({ item, active, mobile = false }: { item: NavItem; active: bool
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const [supportOpen, setSupportOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const activeHref = location === "/" ? "/" : `/${location.split("/")[1]}`;
 
   return (
@@ -71,7 +72,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <button onClick={() => navigate("/notifications")} className="relative grid size-10 place-items-center rounded-full border border-white/10 text-white/70 transition hover:border-white/25 hover:text-white" aria-label="Open notifications">
                 <Bell className="size-[18px]" strokeWidth={1.8} /><span className="absolute right-2.5 top-2 size-1.5 rounded-full bg-coral" />
               </button>
-              <button onClick={() => navigate("/account")} className="hidden items-center gap-2.5 rounded-full border border-white/10 py-1.5 pl-1.5 pr-3 transition hover:border-white/25 sm:flex"><div className="grid size-7 place-items-center rounded-full bg-route-lavender text-xs font-bold text-white">AM</div><span className="text-xs font-semibold text-white/75">Amina</span></button>
+              <div className="relative hidden sm:block">
+                <button onClick={() => setProfileOpen((open) => !open)} className="flex items-center gap-2.5 rounded-full border border-white/10 py-1.5 pl-1.5 pr-2.5 transition hover:border-white/25" aria-haspopup="menu" aria-expanded={profileOpen}>
+                  <div className="grid size-7 place-items-center rounded-full bg-route-lavender text-xs font-bold text-white">AM</div>
+                  <span className="text-xs font-semibold text-white/75">Amina</span>
+                  <ChevronDown className={`size-3.5 text-white/45 transition ${profileOpen ? "rotate-180" : ""}`} />
+                </button>
+                {profileOpen && (
+                  <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-52 rounded-2xl border border-ink/10 bg-white p-2 shadow-xl" role="menu">
+                    <button onClick={() => { setProfileOpen(false); navigate("/account"); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
+                      <UserRound className="size-4 text-ink/55" /> Profile
+                    </button>
+                    <button onClick={() => { setProfileOpen(false); navigate("/account"); toast("Settings opened."); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
+                      <Settings2 className="size-4 text-ink/55" /> Settings
+                    </button>
+                    <div className="my-1 h-px bg-ink/8" />
+                    <button onClick={() => { setProfileOpen(false); navigate("/"); toast("You have been signed out."); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-coral transition hover:bg-coral/8" role="menuitem">
+                      <LogOut className="size-4" /> Log out
+                    </button>
+                  </div>
+                )}
+              </div>
               <button onClick={() => setSupportOpen(true)} className="grid size-10 place-items-center rounded-full border border-white/10 text-white/70 transition hover:border-white/25 hover:text-white lg:hidden" aria-label="Open support"><Settings2 className="size-[18px]" strokeWidth={1.8} /></button>
             </div>
           </header>

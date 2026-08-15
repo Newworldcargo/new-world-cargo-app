@@ -83,3 +83,9 @@
 - [x] Upload the user-supplied official yellow logo as a stable web app asset.
 - [x] Replace the current app lockup with the supplied yellow logo while retaining the website favicon.
 - [x] Verify the supplied logo on mobile and desktop, then run frontend checks.
+
+## UI refinement verification
+
+- [x] Remove active-navigation dots while preserving active background and text treatment.
+- [x] Add a floating profile menu with profile, settings, and logout actions using icons.
+- [x] Restyle the shipment-flow back control as a standard yellow button and verify the refined controls.

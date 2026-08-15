@@ -108,7 +108,7 @@ export default function SendShipment() {
     <div className="mx-auto max-w-4xl">
       <button
         onClick={() => (step ? setStep((current) => current - 1) : navigate("/"))}
-        className="mb-6 flex items-center gap-2 text-xs font-bold text-white/45 transition hover:text-white"
+        className="mb-6 inline-flex items-center gap-2 rounded-xl bg-cargo-yellow px-3.5 py-2.5 text-xs font-bold text-ink transition hover:brightness-105"
       >
         <ArrowLeft className="size-4" />
         {step ? "Previous step" : "Back home"}
