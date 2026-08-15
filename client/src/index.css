@@ -35,9 +35,6 @@
   --color-ink: #0d0d0d;
   --color-brand-secondary: #012642;
   --color-cargo-yellow: #ffc83d;
-  --color-route-lavender: #8178ff;
-  --color-mint: #bfe8d8;
-  --color-coral: #ff6b5e;
 }
 
 :root {
@@ -123,10 +120,7 @@ button:active { transform: scale(0.98); }
 .nwc-light [class*="border-white/"] { border-color: rgb(22 36 58 / 0.13) !important; }
 .nwc-light [class*="hover:border-white/"]:hover { border-color: rgb(22 36 58 / 0.28) !important; }
 .nwc-light .brand-mark .bg-ink { background-color: #121a27 !important; }
-.nwc-light .bg-coral.text-white,
-.nwc-light .bg-route-lavender.text-white { color: #ffffff !important; }
-.nwc-light .text-mint { color: #3c8d6e !important; }
-.nwc-light .text-cargo-yellow { color: #b27600 !important; }
+.nwc-light .text-cargo-yellow { color: #8a6500 !important; }
 .nwc-light .bg-cargo-yellow > .absolute.inset-0 { background-image: none !important; }
 .nwc-light .bg-\[\#202020\] { background-color: #fffdfa !important; }
 .nwc-light .bg-\[\#191919\]\/95 { background-color: rgb(255 255 255 / 0.96) !important; }

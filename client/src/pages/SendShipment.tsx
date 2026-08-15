@@ -14,6 +14,7 @@ import {
   MapPin,
   Package,
   Phone,
+  Plus,
   Plane,
   ShipWheel,
   Upload,
@@ -35,6 +36,12 @@ type EvidenceState = {
   documents: string[];
 };
 
+type CargoRow = {
+  id: number;
+  name: string;
+  quantity: string;
+};
+
 export default function SendShipment() {
   const [, navigate] = useLocation();
   const [step, setStep] = useState(0);
@@ -43,10 +50,16 @@ export default function SendShipment() {
   const [transport, setTransport] = useState<"air" | "sea">("air");
   const [handover, setHandover] = useState<"collect" | "delivery">("collect");
   const [evidence, setEvidence] = useState<EvidenceState>({ photos: [], documents: [] });
+  const [cargoRows, setCargoRows] = useState<CargoRow[]>([
+    { id: 1, name: "", quantity: "1" },
+    { id: 2, name: "", quantity: "1" },
+  ]);
+  const [nextCargoId, setNextCargoId] = useState(3);
   const [form, setForm] = useState({
     pickup: "",
     recipient: "Amina Banda",
     phone: "+260 977 123 456",
+    recipientNotes: "",
     destination: "",
     contents: "",
     packages: "",
@@ -54,6 +67,18 @@ export default function SendShipment() {
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
+
+  const updateCargoRow = (id: number, key: "name" | "quantity", value: string) =>
+    setCargoRows((current) => current.map((row) => (row.id === id ? { ...row, [key]: value } : row)));
+
+  const addCargoRow = () => {
+    setCargoRows((current) => [...current, { id: nextCargoId, name: "", quantity: "1" }]);
+    setNextCargoId((current) => current + 1);
+  };
+
+  const removeCargoRow = (id: number) => {
+    setCargoRows((current) => current.length > 1 ? current.filter((row) => row.id !== id) : current);
+  };
 
   const addEvidence = (type: keyof EvidenceState, files: FileList | null) => {
     if (!files?.length) return;
@@ -72,10 +97,10 @@ export default function SendShipment() {
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-xl items-center justify-center">
         <div className="w-full rounded-[32px] border border-white/8 bg-white/[0.035] p-7 text-center sm:p-10">
-          <div className="mx-auto grid size-16 place-items-center rounded-3xl bg-mint text-ink">
+          <div className="mx-auto grid size-16 place-items-center rounded-3xl bg-cargo-yellow text-ink">
             <Check className="size-8" strokeWidth={2.5} />
           </div>
-          <p className="mt-6 text-xs font-bold text-mint">Cargo request created</p>
+          <p className="mt-6 text-xs font-bold text-ink">Cargo request created</p>
           <h1 className="mt-3 font-heading text-3xl font-extrabold tracking-tight">We’re ready for it.</h1>
           <p className="mx-auto mt-3 max-w-sm text-sm text-white/48">
             We’ll register your cargo when it reaches the selected New World Cargo office and notify you at every stage.
@@ -115,7 +140,6 @@ export default function SendShipment() {
 
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold text-cargo-yellow">New cargo request</p>
           <h1 className="mt-2 font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">Send a package</h1>
           <p className="mt-2 text-sm text-white/45">Tell us what is coming, where it starts, and how you want to receive it.</p>
         </div>
@@ -158,6 +182,16 @@ export default function SendShipment() {
               <Field label="Cargo owner" icon={UserRound} value={form.recipient} onChange={(value) => update("recipient", value)} />
               <Field label="Phone number" icon={Phone} value={form.phone} onChange={(value) => update("phone", value)} />
             </div>
+            <label className="mt-5 block">
+              <span className="mb-2 block text-xs font-bold text-white/35">Notes for the cargo owner or sender (optional)</span>
+              <textarea
+                value={form.recipientNotes}
+                onChange={(event) => update("recipientNotes", event.target.value)}
+                placeholder="Add any extra information we should know about this cargo."
+                rows={3}
+                className="w-full resize-none rounded-2xl border border-white/10 bg-ink/35 px-4 py-3 text-sm font-semibold text-white outline-none placeholder:text-white/30 focus:border-cargo-yellow/60"
+              />
+            </label>
             <button onClick={() => toast("Contact saved to your address book.")} className="mt-4 text-xs font-bold text-cargo-yellow">
               + Save this contact
             </button>
@@ -170,30 +204,29 @@ export default function SendShipment() {
             title="Tell us about the cargo"
             subtitle="Describe what is in the parcel. You do not need to know the weight."
           >
-            <div className="grid grid-cols-3 gap-2">
-              {["General cargo", "Documents", "Personal items"].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => update("contents", item)}
-                  className={`rounded-2xl border p-4 text-center text-xs font-bold ${form.contents === item ? "border-cargo-yellow bg-cargo-yellow/12 text-cargo-yellow" : "border-white/8 bg-white/[0.03] text-white/45"}`}
-                >
-                  {item}
-                </button>
+            <div className="space-y-3">
+              <div className="grid grid-cols-[minmax(0,1fr)_96px_40px] gap-2 px-1 text-[11px] font-bold text-white/35">
+                <span>Cargo name</span><span>Quantity</span><span className="sr-only">Remove</span>
+              </div>
+              {cargoRows.map((row, index) => (
+                <div key={row.id} className="grid grid-cols-[minmax(0,1fr)_96px_40px] items-center gap-2">
+                  <input value={row.name} onChange={(event) => updateCargoRow(row.id, "name", event.target.value)} placeholder={index === 0 ? "e.g. Chairs" : "Another item"} className="h-12 min-w-0 rounded-2xl border border-white/10 bg-ink/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-white/30 focus:border-cargo-yellow/60" aria-label={`Cargo item ${index + 1}`} />
+                  <input type="number" min="1" value={row.quantity} onChange={(event) => updateCargoRow(row.id, "quantity", event.target.value)} className="h-12 min-w-0 rounded-2xl border border-white/10 bg-ink/35 px-3 text-center text-sm font-semibold text-white outline-none focus:border-cargo-yellow/60" aria-label={`Quantity for cargo item ${index + 1}`} />
+                  <button type="button" onClick={() => removeCargoRow(row.id)} disabled={cargoRows.length === 1} className="grid size-10 place-items-center rounded-xl border border-white/10 text-white/45 transition hover:border-cargo-yellow/50 hover:text-cargo-yellow disabled:cursor-not-allowed disabled:opacity-30" aria-label={`Remove cargo item ${index + 1}`}><X className="size-4" /></button>
+                </div>
               ))}
+              <button type="button" onClick={addCargoRow} className="inline-flex items-center gap-2 rounded-xl px-1 py-2 text-xs font-bold text-cargo-yellow"><Plus className="size-4" /> Add another cargo row</button>
             </div>
             <label className="mt-4 block">
-              <span className="mb-2 block text-xs font-bold text-white/35">What is inside?</span>
+              <span className="mb-2 block text-xs font-bold text-white/35">Additional cargo description (optional)</span>
               <textarea
                 value={form.contents}
                 onChange={(event) => update("contents", event.target.value)}
-                placeholder="For example: household goods, clothing, phone accessories, or documents"
-                rows={4}
+                placeholder="Add helpful detail about the items, condition, or packaging."
+                rows={3}
                 className="w-full resize-none rounded-2xl border border-white/10 bg-ink/35 px-4 py-3 text-sm font-semibold text-white outline-none placeholder:text-white/30 focus:border-cargo-yellow/60"
               />
             </label>
-            <div className="mt-4 max-w-xs">
-              <Field label="Estimated number of packages (optional)" icon={Package} value={form.packages} onChange={(value) => update("packages", value)} type="number" />
-            </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <EvidenceUpload
                 id="cargo-photos"
@@ -266,7 +299,7 @@ export default function SendShipment() {
             {handover === "delivery" && (
               <div className="mt-4">
                 <Field label="Final delivery address" icon={Home} value={form.destination} onChange={(value) => update("destination", value)} />
-                <p className="mt-2 text-xs text-white/40">We’ll confirm local delivery availability and the final charge when your cargo arrives.</p>
+                <p className="mt-2 text-xs font-semibold text-cargo-yellow">Home delivery may add a local delivery fee. We’ll confirm availability and the exact charge before delivery.</p>
               </div>
             )}
           </StepBlock>
@@ -278,7 +311,9 @@ export default function SendShipment() {
               {[
                 ["Pickup", form.pickup || "Not selected"],
                 ["Cargo owner", `${form.recipient} · ${form.phone}`],
-                ["Contents", form.contents || "Not described"],
+                ["Recipient notes", form.recipientNotes || "None added"],
+                ["Cargo items", cargoRows.filter((row) => row.name.trim()).map((row) => `${row.name} × ${row.quantity || "1"}`).join(", ") || "Not described"],
+                ["Description", form.contents || "None added"],
                 ["Evidence", `${evidence.photos.length} photo${evidence.photos.length === 1 ? "" : "s"} · ${evidence.documents.length} document${evidence.documents.length === 1 ? "" : "s"}`],
                 ["Transport", `${selectedTransport.name} · ${selectedTransport.eta}`],
                 ["Arrival handover", handover === "collect" ? "Collect from office" : form.destination || "Deliver to my address"],

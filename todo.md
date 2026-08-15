@@ -98,7 +98,7 @@
 - [x] Add invoice detail interactions with invoice download for all invoices and receipt download for paid invoices.
 - [x] Add Invoices & Billing to desktop sidebar and mobile navigation without replacing Shipments.
 - [x] Verify invoice list, detail/download actions, responsive layouts, and frontend checks.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
 
 ## Style reminder for the billing feature
 
@@ -111,13 +111,13 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Remember and preselect the last successful payment method for future payments.
 - [x] Open the modal from unpaid invoice payment actions and the shipment checkout step.
 - [x] Verify payment selection, inline method entry, confirmation feedback, and responsive behavior.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
 
 ## Navigation edit verification
 
 - [x] Resolve the stale shared-navigation target by replacing the Account destination with the requested Settings hub.
 - [x] Confirm desktop and mobile navigation remain clear and functional after the Settings replacement.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
 
 ## Settings hub and separate pages
 
@@ -128,7 +128,7 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Create dedicated notifications, payment-methods, and security preference screens.
 - [x] Create a dedicated receipts & billing screen connected to the existing invoices destination.
 - [x] Verify every Settings link leads to its separate responsive page and that navigation remains clear.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
 
 ## Secondary brand color
 
@@ -136,7 +136,7 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Apply the secondary brand color to bold text and high-emphasis typography throughout the app.
 - [x] Update the design-system documentation with the color’s intended role alongside Cargo Yellow.
 - [x] Verify contrast and visual consistency on representative desktop and mobile screens.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
 
 ## Navigation and shipment-label visual edits
 
@@ -145,7 +145,7 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Replace the shipment-mode label with a concise Air cargo or Sea cargo icon and label treatment.
 - [x] Keep the shipment index at two cards per row on desktop and one card per row on mobile, without a promoted wide first card.
 - [x] Verify the updated navigation and shipment details on desktop and mobile.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
 
 ## Two-color shipment palette
 
@@ -155,30 +155,44 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Use blue and yellow variation, borders, icons, and typography to preserve shipment-state clarity.
 - [x] Update the design-system documentation with the approved two-color shipment palette.
 - [x] Verify the revised shipment surfaces on desktop and mobile.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
 
 ## Responsive navigation order
 
 - [x] Place Send second in the desktop navigation menu.
 - [x] Place Send third in the mobile bottom navigation menu.
 - [x] Verify navigation order and touch target clarity across desktop and mobile.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
 
 ## Sea cargo label visibility
 
 - [x] Render the Sea cargo label and ship icon in white on #012642 shipment cards.
 - [x] Verify the Sea cargo badge remains legible on desktop and mobile.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
 
 ## Shipment control removal
 
 - [x] Remove the duplicated shipment-request route-progress banner while retaining the existing dashed tracking lines.
 - [x] Verify the shipment request remains clear and actionable after the banner removal.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
 
 ## Shared subpage back button
 
 - [x] Extract the shipment wizard’s yellow back control into a reusable component or shared pattern.
 - [x] Apply the shared back button to shipment details, settings subpages, and every other existing subpage with a back action.
 - [x] Verify back-button labels, destinations, visual consistency, and keyboard accessibility.
-- [ ] Save a new checkpoint after verification.
+- [x] Save a new checkpoint after verification.
+
+## Final customer-workflow refinements
+
+- [x] Replace the desktop Pickup locations shortcut with Need a hand support and move Log out into the bottom sidebar slot.
+- [x] Remove remaining purple, green, mint, coral, and lavender accents from customer-facing UI in favor of Cargo Yellow and #012642 blue.
+- [x] Remove the repeated New cargo request subtitle from the Send workflow.
+- [x] Add optional recipient notes to the shipment recipient step and review.
+- [x] Add repeatable cargo rows with cargo name and quantity inputs, including add and remove controls.
+- [x] Add clear possible-extra-fee messaging when home delivery is selected.
+- [x] Make the reusable payment modal vertically responsive and scrollable on mobile.
+- [x] Replace the Notifications banner with a simple Unread / Read tab switch and preserve brand colors.
+- [x] Complete remaining Settings hub placeholder workflows with dedicated, actionable screens.
+- [x] Add or update Vitest coverage for the final workflow refinements.
+- [x] Verify responsive UI and save a new checkpoint after all refinements are complete.

@@ -72,8 +72,8 @@ export default function Home() {
       <section className="border-b border-ink/10 pb-6 sm:pb-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-mint">
-              <span className="size-2 rounded-full bg-mint" /> Your cargo desk
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-cargo-yellow">
+              <span className="size-2 rounded-full bg-cargo-yellow" /> Your cargo desk
             </p>
             <h1 className="mt-3 font-heading text-3xl font-extrabold tracking-[-0.05em] text-foreground sm:text-4xl">
               Good afternoon, Amina.
@@ -94,7 +94,7 @@ export default function Home() {
       <section className="mt-6 grid gap-5 lg:grid-cols-[1.18fr_0.82fr]">
         <button
           onClick={() => navigate(`/shipments/${arriving.id}`)}
-          className="group rounded-[28px] border border-ink/10 bg-white p-5 text-left transition hover:border-route-lavender/45 sm:p-6"
+          className="group rounded-[28px] border border-ink/10 bg-white p-5 text-left transition hover:border-cargo-yellow/45 sm:p-6"
         >
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -105,12 +105,12 @@ export default function Home() {
             <StatusBadge status={arriving.status} label={arriving.statusLabel} />
           </div>
           <div className="mt-7 flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-2xl bg-mint/30 text-[#32795d]"><Truck className="size-5" /></div>
+            <div className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow/30 text-ink"><Truck className="size-5" /></div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-foreground">Courier is nearby</p>
               <p className="mt-1 truncate text-xs text-white/55">{arriving.destination} · Add instructions if needed</p>
             </div>
-            <ChevronRight className="size-5 text-route-lavender transition group-hover:translate-x-0.5" />
+            <ChevronRight className="size-5 text-cargo-yellow transition group-hover:translate-x-0.5" />
           </div>
         </button>
 
@@ -121,7 +121,7 @@ export default function Home() {
               <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground">K 1,280 due</h2>
               <p className="mt-2 text-sm leading-6 text-white/55">For your Guangzhou to Lusaka order.</p>
             </div>
-            <div className="grid size-10 place-items-center rounded-2xl bg-route-lavender/15 text-route-lavender"><CreditCard className="size-5" /></div>
+            <div className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow/15 text-cargo-yellow"><CreditCard className="size-5" /></div>
           </div>
           <button
             onClick={() => navigate("/account")}
@@ -147,7 +147,7 @@ export default function Home() {
               <button
                 key={action.label}
                 onClick={action.onClick}
-                className={`group min-h-[128px] rounded-[22px] border p-4 text-left transition hover:border-route-lavender/55 ${action.accent}`}
+                className={`group min-h-[128px] rounded-[22px] border p-4 text-left transition hover:border-cargo-yellow/55 ${action.accent}`}
               >
                 <Icon className="size-5 opacity-80" strokeWidth={1.8} />
                 <div className="mt-6 flex items-end justify-between gap-2">
@@ -170,7 +170,7 @@ export default function Home() {
         </div>
 
         <div id="tracking-rail" className="rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Find a booking</p><h2 className="mt-1 font-heading text-xl font-bold tracking-tight text-foreground">Track another package</h2></div><MapPin className="size-5 text-route-lavender" /></div>
+          <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Find a booking</p><h2 className="mt-1 font-heading text-xl font-bold tracking-tight text-foreground">Track another package</h2></div><MapPin className="size-5 text-cargo-yellow" /></div>
           <div className="mt-5 rounded-2xl border border-ink/10 bg-white p-2"><div className="flex items-center gap-2 px-3"><Search className="size-5 text-ink/45" /><input value={tracking} onChange={(event) => setTracking(event.target.value)} onKeyDown={(event) => event.key === "Enter" && track()} placeholder="Enter tracking number" className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-ink/40" aria-label="Tracking number" /><button onClick={track} className="grid size-10 place-items-center rounded-full bg-ink text-white transition hover:bg-ink/80" aria-label="Track package"><ScanLine className="size-5" /></button></div></div>
           <div className="mt-3 flex items-center justify-between px-1 text-[11px] text-white/55"><span>Try NWC48291ZM</span><button onClick={() => toast("Camera scanning will be available in the installed app.")} className="flex items-center gap-1.5 font-semibold text-cargo-yellow"><Camera className="size-3.5" />Scan QR</button></div>
         </div>
@@ -188,7 +188,7 @@ export default function Home() {
       </section>
 
       <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink/10 bg-white px-4 py-3">
-        <div className="flex items-center gap-3"><div className="grid size-8 place-items-center rounded-xl bg-mint/25 text-[#32795d]"><ShieldCheck className="size-4" /></div><span className="text-xs font-semibold text-white/70">Need help with a booking or delivery?</span></div>
+        <div className="flex items-center gap-3"><div className="grid size-8 place-items-center rounded-xl bg-cargo-yellow/25 text-ink"><ShieldCheck className="size-4" /></div><span className="text-xs font-semibold text-white/70">Need help with a booking or delivery?</span></div>
         <button onClick={() => toast("New World Cargo support is online 24/7.")} className="text-xs font-bold text-cargo-yellow">Talk to support</button>
       </section>
     </div>
