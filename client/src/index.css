@@ -111,6 +111,11 @@ button:active { transform: scale(0.98); }
 .nwc-light .shadow-md,
 .nwc-light [class*="shadow-\["] { box-shadow: none !important; }
 
+/* Typography direction: retain Poppins hierarchy but use its natural horizontal spacing and normal line rhythm. */
+.nwc-light .uppercase { text-transform: none !important; }
+.nwc-light [class*="tracking-"] { letter-spacing: normal !important; }
+.nwc-light [class*="leading-"] { line-height: normal !important; }
+
 @media (prefers-reduced-motion: no-preference) {
   button, a { transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
 }

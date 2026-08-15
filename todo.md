@@ -37,3 +37,23 @@
 - [x] Place active booking status, tracking, payment or wallet status, delivery management, and support ahead of promotional content.
 - [x] Move banners and secondary discovery content lower in the home screen without disturbing the established visual system.
 - [x] Verify the revised action hierarchy across mobile and desktop, then run type/build checks.
+
+## Customer workflow definition
+
+- [x] Identify the signed-in customer's decisive first choice and distinguish receiving from sending without duplicating the underlying shipment lifecycle.
+- [x] Define receiving, local sending, and international sending from origin/destination details through quote, booking, payment, and tracking.
+- [x] Map existing app actions and screens to each workflow stage, including wallet/payment and support touchpoints.
+- [x] Confirm the business decisions still required before wiring workflows to live services.
+
+## Cargo receiving and forwarding workflow
+
+- [x] Replace the generic sender-recipient framing with a cargo-owner journey in which a supplier sends cargo to a New World Cargo origin office.
+- [x] Define origin-office registration, debit-note capture, forwarding to Zambia or another destination, arrival warehousing, notification, and end-of-service charging.
+- [x] Map local delivery, collection, and onward cross-border delivery choices after the cargo reaches its destination warehouse.
+- [x] Revise the workflow specification and identify the minimum future logic needed while keeping the existing UI design intact.
+
+## Typography normalization
+
+- [x] Remove expanded tracking, decorative uppercase treatments, and custom leading that fight Poppins’ natural rhythm.
+- [x] Preserve hierarchy through size, weight, color, and spacing rather than spread lettering.
+- [x] Verify natural typography spacing on both mobile and desktop, then run type/build checks.
