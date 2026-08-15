@@ -4,7 +4,6 @@
  * and express hierarchy through spacing, weight, and subtle surfaces—not shadows.
  */
 import {
-  ArrowLeft,
   ArrowRight,
   Building2,
   Check,
@@ -26,8 +25,8 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { cargoTransportOptions, pickupOfficeSuggestions } from "@/lib/mock-data";
-import { CargoRail } from "@/components/shipment-ui";
 import { PaymentModal } from "@/components/payment-modal";
+import { SubpageBackButton } from "@/components/subpage-back-button";
 
 const steps = ["Pickup", "Recipient", "Cargo", "Transport", "Review"];
 
@@ -108,13 +107,11 @@ export default function SendShipment() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <button
+      <SubpageBackButton
+        className="mb-6"
         onClick={() => (step ? setStep((current) => current - 1) : navigate("/"))}
-        className="mb-6 inline-flex items-center gap-2 rounded-xl bg-cargo-yellow px-3.5 py-2.5 text-xs font-bold text-ink transition hover:brightness-105"
-      >
-        <ArrowLeft className="size-4" />
-        {step ? "Previous step" : "Back home"}
-      </button>
+        label={step ? "Previous step" : "Back home"}
+      />
 
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
@@ -125,9 +122,6 @@ export default function SendShipment() {
         <span className="text-xs font-bold text-white/35">{step + 1} of {steps.length}</span>
       </div>
 
-      <div className="mb-5">
-        <CargoRail label="Cargo request" items={steps} active={step} />
-      </div>
       <div className="mb-8 flex gap-1.5">
         {steps.map((item, index) => (
           <div key={item} className="flex-1">

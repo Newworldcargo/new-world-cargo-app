@@ -2,7 +2,7 @@
 
 ## Ground-truth reference
 
-The uploaded shipping app mockups remain the visual source of truth for interaction and composition. The product should feel like a pocket-sized control center for deliveries: bright, confident, direct, and friendly. The app keeps the reference's cargo yellow, lavender route/status accent, stacked shipment cards, route timelines, prominent tracking input, and persistent bottom navigation, translated into a warm paper-white canvas with deep navy type and soft navy-tinted surfaces. It should simplify logistics language into plain customer actions and keep the important next step visible.
+The uploaded shipping app mockups remain the visual source of truth for interaction and composition. The product should feel like a pocket-sized control center for deliveries: bright, confident, direct, and friendly. The app uses Cargo Yellow for air cargo and deep New World Blue for sea cargo, plus stacked shipment cards, route timelines, prominent tracking input, and persistent bottom navigation, translated into a warm paper-white canvas with deep navy type and soft navy-tinted surfaces. It should simplify logistics language into plain customer actions and keep the important next step visible.
 
 ## Design Movement
 
@@ -12,12 +12,12 @@ Reference-matched **editorial utility / mobile command center**: a blend of cont
 
 1. **Clarity before operations language.** Customers see “On the way,” “Arriving today,” and “Choose a delivery time,” never internal routing codes or warehouse jargon.
 2. **Shipment as the central object.** A shipment card carries its state, route, ETA, and the small set of actions that are valid right now.
-3. **High-contrast warmth.** Warm paper white and deep navy create focus; New World Cargo yellow marks action and optimism; lavender marks motion and progress; coral is reserved for exceptions.
+3. **High-contrast transport clarity.** Warm paper white and deep navy create focus; Cargo Yellow identifies air cargo and decisive actions, while New World Blue `#012642` identifies sea cargo and high-emphasis text.
 4. **Pocket-sized confidence.** Every screen should be usable one-handed, comfortable at a 375px viewport, and structured around a clear thumb-reachable action.
 
 ## Color Philosophy
 
-The white canvas keeps the product feeling open, trustworthy, and easy to use at a glance. The ownable signature color is **Cargo Yellow `#FFC83D`**, used selectively for primary calls to action, active navigation, and shipment highlights rather than filling every surface. **Route Lavender `#8178FF`** communicates movement and makes tracking feel alive. **Mint `#BFE8D8`** marks “arriving today” and positive completion. **Signal Coral `#FF6B5E`** appears only for delays, failed delivery attempts, and urgent support needs. Deep navy replaces pure black for readable text, while cool-gray borders and soft tinted cards provide calm separation from the white canvas.
+The white canvas keeps the product feeling open, trustworthy, and easy to use at a glance. The ownable signature color is **Cargo Yellow `#FFC83D`**, used for air cargo, primary calls to action, active navigation, and shipment highlights. **New World Blue `#012642`** is the only secondary color: it identifies sea cargo and anchors bold, high-emphasis text. Shipment states are communicated through iconography, labels, borders, and blue/yellow contrast rather than additional colors. Cool-gray borders and soft white panels provide calm separation from the white canvas.
 
 ## Layout Paradigm
 
@@ -26,7 +26,7 @@ The app uses a **vertical command ribbon** rather than a centered dashboard. A c
 ## Signature Elements
 
 - A white pill-shaped **Track a package** rail with a dark scan button.
-- Layered shipment cards with a bright yellow front face and subtle lavender/coral edge offsets.
+- Layered shipment cards with an Air cargo yellow or Sea cargo blue front face and matching blue/yellow edge offsets.
 - Thin route lines with solid dots for completed milestones, a ring for the current milestone, and a dashed continuation for what is next.
 
 ## Interaction Philosophy
@@ -74,11 +74,11 @@ After sign-in, the customer home screen prioritizes existing operational needs b
 ## Style Decisions
 
 - The primary header mark uses a visible four-offset-bar cargo-arrow N/W monogram, with the generated mark asset layered into the symbol treatment rather than relying on an unbranded square.
-- Route Lavender is reserved for active movement and current journey state, Mint for arriving or completed confidence, and Signal Coral only for delivery problems or urgent exceptions.
+- Shipment visuals use only Cargo Yellow and New World Blue: Air cargo is yellow, Sea cargo is blue, and status differences are expressed through labels, icons, border treatments, and the two approved brand colors.
 - Every primary screen includes at least one cargo-control motif: a route rail, shipment ID label, status chip, package edge layer, or timeline marker.
 - The light-mode-first revision uses a true white canvas, navy text, and soft cool-gray panels; Cargo Yellow is a focused accent, and dark mode is not the default product direction.
 - The minimalist refinement keeps the composition unchanged and reduces broad shadows across buttons, cards, navigation, and overlays; spacing, thin borders, and tonal separation now provide the primary hierarchy.
-- Billing, payments, account, and other non-shipment screens use a compact cargo-control ribbon, with a shipment identifier, route rail, and route-lavender active marker, to keep every customer task visibly connected to the shipment journey.
+- Billing, payments, account, and other non-shipment screens use a compact cargo-control ribbon, with a shipment identifier, route rail, and blue/yellow active marker, to keep every customer task visibly connected to the shipment journey.
 - Wide desktop space supports the narrow, stacked customer command surface rather than stretching task lists into generic administration tables.
 - Every dedicated Settings subpage carries a compact cargo-control ribbon below its title, so customer details, notification choices, payment preferences, and security controls retain a visible link to shipment readiness.
 - **Secondary brand color:** #012642 is New World Cargo’s default secondary color and is used for bold, high-emphasis typography; Cargo Yellow remains reserved for decisive actions, active states, and attention cues.

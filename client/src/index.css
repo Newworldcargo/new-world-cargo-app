@@ -74,6 +74,10 @@ button:active { transform: scale(0.98); }
 
 /* New World Cargo typography system: #012642 is the default secondary brand color for bold, operational emphasis. */
 .nwc-light :where(.font-semibold, .font-bold, .font-extrabold) { color: var(--nwc-brand-secondary); }
+.sea-cargo-surface { background-color: #012642; color: #ffffff; }
+.nwc-light .sea-cargo-surface { background-color: #012642 !important; color: #ffffff !important; }
+.nwc-light .sea-cargo-surface :where(.font-semibold, .font-bold, .font-extrabold) { color: #ffffff !important; }
+.nwc-light .sea-cargo-surface .sea-cargo-muted { color: rgb(255 255 255 / 0.64) !important; }
 
 /* Light-mode compatibility layer: keeps the existing component vocabulary while
    translating the reference's dark overlays into soft navy tints and paper-white surfaces. */
@@ -93,7 +97,27 @@ button:active { transform: scale(0.98); }
 .nwc-light [class~="text-white/70"],
 .nwc-light [class~="text-white/75"],
 .nwc-light [class~="text-white/80"] { color: rgb(22 36 58 / 0.82) !important; }
+.sea-cargo-badge { background-color: #012642; color: #ffffff; }
+.nwc-light .sea-cargo-badge { background-color: #012642 !important; color: #ffffff !important; }
+.nwc-light .sea-cargo-badge svg { color: #ffffff !important; }
+.nwc-light .sea-cargo-surface .text-white { color: #ffffff !important; }
+.nwc-light .sea-cargo-surface :where(.font-semibold, .font-bold, .font-extrabold) { color: #ffffff !important; }
 .nwc-light [class*="bg-white/"] { background-color: rgb(22 36 58 / 0.055) !important; }
+.nwc-light button:has(> svg.lucide-arrow-left) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  background-color: #ffc83d;
+  padding: 0.625rem 0.875rem;
+  color: #012642 !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: filter 160ms cubic-bezier(0.23, 1, 0.32, 1), transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.nwc-light button:has(> svg.lucide-arrow-left):hover { filter: brightness(1.05); }
+.nwc-light button:has(> svg.lucide-arrow-left):active { transform: scale(0.98); }
+.nwc-light button:has(> svg.lucide-arrow-left):focus-visible { outline: 2px solid rgb(1 38 66 / 0.35); outline-offset: 2px; }
 .nwc-light [class~="bg-ink/35"] { background-color: rgb(22 36 58 / 0.085) !important; }
 .nwc-light [class*="hover:bg-white/"]:hover { background-color: rgb(22 36 58 / 0.09) !important; }
 .nwc-light [class*="border-white/"] { border-color: rgb(22 36 58 / 0.13) !important; }

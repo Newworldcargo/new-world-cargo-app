@@ -9,11 +9,19 @@ import { BrandMark } from "./BrandMark";
 
 type NavItem = { label: string; href: string; icon: LucideIcon };
 
-const navItems: NavItem[] = [
+const desktopNavItems: NavItem[] = [
   { label: "Home", href: "/", icon: House },
+  { label: "Send", href: "/send", icon: Plus },
   { label: "Shipments", href: "/shipments", icon: Package },
   { label: "Invoices", href: "/invoices", icon: ReceiptText },
+  { label: "Settings", href: "/settings", icon: Settings2 },
+];
+
+const mobileNavItems: NavItem[] = [
+  { label: "Home", href: "/", icon: House },
+  { label: "Shipments", href: "/shipments", icon: Package },
   { label: "Send", href: "/send", icon: Plus },
+  { label: "Invoices", href: "/invoices", icon: ReceiptText },
   { label: "Settings", href: "/settings", icon: Settings2 },
 ];
 
@@ -47,7 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <aside className="sticky top-0 hidden h-screen w-[236px] shrink-0 flex-col border-r border-ink/10 bg-white px-5 py-7 lg:flex">
           <BrandMark />
           <div className="mt-14 flex flex-1 flex-col gap-1">
-            {navItems.map((item) => <NavLink key={item.href} item={item} active={activeHref === item.href} />)}
+            {desktopNavItems.map((item) => <NavLink key={item.href} item={item} active={activeHref === item.href} />)}
             <div className="my-6 h-px bg-white/8" />
             <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-white/25">Shortcuts</p>
             <button onClick={() => navigate("/quote")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-white/55 transition hover:bg-white/6 hover:text-white">
@@ -100,7 +108,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-[26px] border border-white/10 bg-[#191919]/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden" aria-label="Primary navigation">
-        {navItems.map((item) => <NavLink key={item.href} item={item} active={activeHref === item.href} mobile />)}
+        {mobileNavItems.map((item) => <NavLink key={item.href} item={item} active={activeHref === item.href} mobile />)}
       </nav>
 
       {supportOpen && (

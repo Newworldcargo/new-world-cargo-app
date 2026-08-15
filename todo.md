@@ -146,3 +146,39 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Keep the shipment index at two cards per row on desktop and one card per row on mobile, without a promoted wide first card.
 - [x] Verify the updated navigation and shipment details on desktop and mobile.
 - [ ] Save a new checkpoint after verification.
+
+## Two-color shipment palette
+
+- [x] Limit shipment cards, status treatments, route rails, and supporting accents to Cargo Yellow and #012642 blue.
+- [x] Apply Cargo Yellow to Air cargo and #012642 blue to Sea cargo wherever transport is shown.
+- [x] Remove light-blue, pink, lavender, mint, and coral accents from shipment surfaces and layers.
+- [x] Use blue and yellow variation, borders, icons, and typography to preserve shipment-state clarity.
+- [x] Update the design-system documentation with the approved two-color shipment palette.
+- [x] Verify the revised shipment surfaces on desktop and mobile.
+- [ ] Save a new checkpoint after verification.
+
+## Responsive navigation order
+
+- [x] Place Send second in the desktop navigation menu.
+- [x] Place Send third in the mobile bottom navigation menu.
+- [x] Verify navigation order and touch target clarity across desktop and mobile.
+- [ ] Save a new checkpoint after verification.
+
+## Sea cargo label visibility
+
+- [x] Render the Sea cargo label and ship icon in white on #012642 shipment cards.
+- [x] Verify the Sea cargo badge remains legible on desktop and mobile.
+- [ ] Save a new checkpoint after verification.
+
+## Shipment control removal
+
+- [x] Remove the duplicated shipment-request route-progress banner while retaining the existing dashed tracking lines.
+- [x] Verify the shipment request remains clear and actionable after the banner removal.
+- [ ] Save a new checkpoint after verification.
+
+## Shared subpage back button
+
+- [x] Extract the shipment wizard’s yellow back control into a reusable component or shared pattern.
+- [x] Apply the shared back button to shipment details, settings subpages, and every other existing subpage with a back action.
+- [x] Verify back-button labels, destinations, visual consistency, and keyboard accessibility.
+- [ ] Save a new checkpoint after verification.
