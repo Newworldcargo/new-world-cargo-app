@@ -129,3 +129,11 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Create a dedicated receipts & billing screen connected to the existing invoices destination.
 - [x] Verify every Settings link leads to its separate responsive page and that navigation remains clear.
 - [ ] Save a new checkpoint after verification.
+
+## Secondary brand color
+
+- [x] Establish #012642 as the New World Cargo secondary brand color in shared design tokens.
+- [x] Apply the secondary brand color to bold text and high-emphasis typography throughout the app.
+- [x] Update the design-system documentation with the color’s intended role alongside Cargo Yellow.
+- [x] Verify contrast and visual consistency on representative desktop and mobile screens.
+- [ ] Save a new checkpoint after verification.

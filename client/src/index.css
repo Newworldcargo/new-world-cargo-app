@@ -33,6 +33,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ink: #0d0d0d;
+  --color-brand-secondary: #012642;
   --color-cargo-yellow: #ffc83d;
   --color-route-lavender: #8178ff;
   --color-mint: #bfe8d8;
@@ -41,6 +42,7 @@
 
 :root {
   --radius: 1rem;
+  --nwc-brand-secondary: #012642;
   --background: oklch(1 0 0);
   --foreground: oklch(0.22 0.035 255);
   --card: oklch(1 0 0);
@@ -69,6 +71,9 @@ button, a, input, select { -webkit-tap-highlight-color: transparent; }
 button { @apply cursor-pointer; }
 button:active { transform: scale(0.98); }
 ::selection { background: #ffc83d; color: #0d0d0d; }
+
+/* New World Cargo typography system: #012642 is the default secondary brand color for bold, operational emphasis. */
+.nwc-light :where(.font-semibold, .font-bold, .font-extrabold) { color: var(--nwc-brand-secondary); }
 
 /* Light-mode compatibility layer: keeps the existing component vocabulary while
    translating the reference's dark overlays into soft navy tints and paper-white surfaces. */
