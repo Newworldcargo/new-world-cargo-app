@@ -204,3 +204,8 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Prevent horizontal overflow on the mobile homepage so all cards fit within the viewport.
 - [x] Change the mobile floating bottom navigation background to #012642 and use Cargo Yellow for the active item text/icon.
 - [x] Verify mobile and desktop responsive behavior with tests/build checks and save a new checkpoint.
+
+## Bottom-left logout treatment refinement
+
+- [x] Keep the bottom-left shell surface white and make the Log out button’s Cargo Yellow accent stronger and clearly visible.
+- [x] Verify the updated treatment on desktop and mobile, then save a new checkpoint.
