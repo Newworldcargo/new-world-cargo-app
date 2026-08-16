@@ -20,7 +20,7 @@ export function MobileBottomNavigation() {
   if (!isPrimaryMobileTabRoute(location)) return null;
 
   return (
-    <nav className="mobile-bottom-navigation fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-[26px] border border-white/10 bg-brand-secondary p-2 shadow-2xl backdrop-blur-xl lg:hidden" aria-label="Primary navigation">
+    <nav className="mobile-bottom-navigation fixed inset-x-3 bottom-7 z-40 flex items-center justify-around rounded-[26px] border border-white/10 bg-brand-secondary p-2 shadow-2xl backdrop-blur-xl lg:hidden" aria-label="Primary navigation">
       {primaryTabs.map((tab) => {
         const Icon = tab.icon;
         const active = pathname === tab.href;

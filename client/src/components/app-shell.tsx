@@ -69,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
-        <main className={`min-w-0 flex-1 ${showMobileNavigation ? "pb-24" : "pb-6"} lg:pb-0`}>
+        <main className={`min-w-0 flex-1 ${showMobileNavigation ? "pb-32" : "pb-6"} lg:pb-0`}>
           <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/8 bg-background/90 px-4 py-4 backdrop-blur-xl sm:px-8 lg:px-12">
             <div className="lg:hidden"><BrandMark compact /></div>
             <div className="hidden items-center gap-3 lg:flex"><div className="size-2 rounded-full bg-cargo-yellow shadow-[0_0_0_5px_rgba(255,200,61,0.12)]" /><span className="text-xs font-medium text-white/45">All systems operational</span></div>
