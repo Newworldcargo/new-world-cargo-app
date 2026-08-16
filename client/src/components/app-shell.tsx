@@ -5,6 +5,7 @@ import { Bell, ChevronDown, CircleHelp, House, LogOut, Package, Plus, ReceiptTex
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { BrandMark } from "./BrandMark";
 
 type NavItem = { label: string; href: string; icon: LucideIcon };
@@ -47,7 +48,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const [supportOpen, setSupportOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const { user, logout } = useAuth();
   const activeHref = location === "/" ? "/" : `/${location.split("/")[1]}`;
+  const handleLogout = () => { logout(); toast("Signed out successfully."); navigate("/login"); };
 
   return (
     <div className="nwc-light min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -66,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
           <div className="mt-8">
-            <button onClick={() => { navigate("/"); toast("You have been signed out."); }} className="flex w-full items-center gap-3 rounded-2xl border border-ink/10 bg-white p-3 text-left text-ink transition hover:border-cargo-yellow hover:bg-cargo-yellow/10">
+            <button onClick={() => { handleLogout(); }} className="flex w-full items-center gap-3 rounded-2xl border border-ink/10 bg-white p-3 text-left text-ink transition hover:border-cargo-yellow hover:bg-cargo-yellow/10">
               <div className="grid size-9 place-items-center rounded-xl bg-cargo-yellow text-ink"><LogOut className="size-4" /></div>
               <p className="text-xs font-bold">Log out</p>
             </button>
@@ -83,8 +86,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
               <div className="relative hidden sm:block">
                 <button onClick={() => setProfileOpen((open) => !open)} className="flex items-center gap-2.5 rounded-full border border-white/10 py-1.5 pl-1.5 pr-2.5 transition hover:border-white/25" aria-haspopup="menu" aria-expanded={profileOpen}>
-                  <div className="grid size-7 place-items-center rounded-full bg-cargo-yellow text-xs font-bold text-ink">AM</div>
-                  <span className="text-xs font-semibold text-white/75">Amina</span>
+                  <div className="grid size-7 place-items-center rounded-full bg-cargo-yellow text-xs font-bold text-ink">{`${user?.firstName?.[0] || "C"}${user?.lastName?.[0] || ""}`}</div>
+                  <span className="text-xs font-semibold text-white/75">{user?.firstName || "Customer"}</span>
                   <ChevronDown className={`size-3.5 text-white/45 transition ${profileOpen ? "rotate-180" : ""}`} />
                 </button>
                 {profileOpen && (
@@ -96,7 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <Settings2 className="size-4 text-ink/55" /> Settings
                     </button>
                     <div className="my-1 h-px bg-ink/8" />
-                    <button onClick={() => { setProfileOpen(false); navigate("/"); toast("You have been signed out."); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-cargo-yellow/15" role="menuitem">
+                    <button onClick={() => { setProfileOpen(false); handleLogout(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-cargo-yellow/15" role="menuitem">
                       <LogOut className="size-4" /> Log out
                     </button>
                   </div>

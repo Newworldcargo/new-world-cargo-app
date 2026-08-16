@@ -242,3 +242,15 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Document workflows, local/mock data, persistence boundaries, tests, and build status.
 - [x] Identify known limitations, placeholders, and prioritized missing features.
 - [x] Deliver a complete current-state audit report for planning the next product phase.
+
+## Authentication and account-access frontend
+
+- [x] Add a reusable signed-out AuthLayout that preserves the New World Cargo brand system and excludes the authenticated AppShell.
+- [x] Add public routes for Login, Register, Verify, Forgot Password, Reset Password, Complete Profile, and Session Expired.
+- [x] Add shared password visibility and password-requirements components with reusable validation.
+- [x] Add mocked login/register/Google-auth states, inline validation, loading, account-disabled, unverified, and recoverable error states.
+- [x] Add OTP verification states including incomplete/incorrect/expired/resend/attempt-limit/success handling.
+- [x] Add mocked auth session state so signed-out routes do not show AppShell and successful auth enters the existing app.
+- [x] Connect Settings security/profile actions to the new auth routes or appropriate inline dialogs without redesigning completed screens.
+- [x] Add regression tests for auth validation, route/session behavior, and password/OTP helpers.
+- [x] Verify responsive auth screens and preserve existing customer pages, then save a new checkpoint.
