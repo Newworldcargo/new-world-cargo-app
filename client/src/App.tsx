@@ -14,9 +14,10 @@ import Quote from "./pages/Quote";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import SettingsDetail from "./pages/SettingsDetail";
+import Legal from "./pages/Legal";
 import Invoices from "./pages/Invoices";
 import NotFound from "./pages/NotFound";
 
-function Router() { return <Switch><Route path="/" component={Home} /><Route path="/shipments" component={Shipments} /><Route path="/shipments/:id" component={ShipmentDetail} /><Route path="/send" component={SendShipment} /><Route path="/quote" component={Quote} /><Route path="/notifications" component={Notifications} /><Route path="/settings/:section" component={SettingsDetail} /><Route path="/settings" component={Settings} /><Route path="/account" component={Settings} /><Route path="/invoices" component={Invoices} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>; }
+function Router() { return <Switch><Route path="/" component={Home} /><Route path="/shipments" component={Shipments} /><Route path="/shipments/:id" component={ShipmentDetail} /><Route path="/send" component={SendShipment} /><Route path="/quote" component={Quote} /><Route path="/notifications" component={Notifications} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route path="/settings/:section" component={SettingsDetail} /><Route path="/settings" component={Settings} /><Route path="/account" component={Settings} /><Route path="/invoices" component={Invoices} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>; }
 
 export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="dark"><TooltipProvider><Toaster theme="dark" position="top-center" /><AppShell><Router /></AppShell></TooltipProvider></ThemeProvider></ErrorBoundary>; }

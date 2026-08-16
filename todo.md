@@ -220,3 +220,11 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 
 - [x] Add clear vertical spacing between the Support shortcut and the Log out button in the desktop left menu.
 - [x] Verify the sidebar spacing and save a new checkpoint.
+
+## Settings legal section
+
+- [x] Add a Legal section after Preferences and Payments in the Settings hub.
+- [x] Add dedicated Privacy Policy and Terms of Use workflows.
+- [x] Add dedicated Returns and Refunds, Shipping Policy, Payment Terms, and Acceptable Use / Customer Responsibilities workflows.
+- [x] Add legal contact and policy-version presentation without fabricating company-specific legal facts.
+- [x] Verify legal routes and responsive presentation, add regression coverage where appropriate, and save a new checkpoint.
