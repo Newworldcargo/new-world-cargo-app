@@ -268,3 +268,22 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Require the current password before accepting a new password for an already signed-in customer.
 - [x] Add current-password missing/incorrect, new-password mismatch, and successful-change states to the existing Security flow.
 - [x] Add regression coverage for the current-password gate and verify the responsive flow before saving a checkpoint.
+
+## Comprehensive customer workflow completion
+
+- [x] Complete profile management: editable personal details, verified email/phone changes, profile photo, preferences, and account deletion.
+- [x] Complete saved-recipient workflows: modal add/edit/delete, search, and reuse in the Send Shipment flow.
+- [x] Add shipment drafts with resume, delete, and current-draft visibility.
+- [x] Add shipment-management actions where status permits: edit, cancel, duplicate/send again, and shipment-not-found states.
+- [x] Add full pickup workflow: schedule, date/time selection, reschedule, cancel, confirmation, and failed-pickup resolution.
+- [x] Add delivery-management workflow: instructions, recipient/address changes where allowed, rescheduling, failed attempts, depot collection, and return-to-sender state.
+- [x] Complete tracking: public tracking, tracking-number states, invalid/not-found states, QR scan permission state, sharing, timeline variants, and proof of delivery.
+- [x] Complete support: help hub, shipment-specific help, issue reporting with attachments, case confirmation, case list, and case detail/status.
+- [x] Add returns workflow: eligibility, reason, pickup/drop-off, review, confirmation, tracking, and completion states.
+- [x] Connect Quote success and expiration states to editable Send Shipment prefill.
+- [x] Complete mock payment and invoice states: pending, failed, retry, method change, success, refund, receipt, and history.
+- [x] Complete notification actions and states: mark one/all read, deep links, preferences, empty/loading/error states.
+- [ ] Add consistent loading, error, empty, and offline states across all customer routes.
+- [ ] Refactor completed frontend flows around reusable form fields, centralized mock repositories, action/status rules, and smaller page modules.
+- [ ] Perform systematic responsive workflow QA across mobile, tablet, and desktop; remove dead buttons and placeholder-only interactions.
+- [ ] Add regression tests and save a checkpoint for each completed workflow phase.

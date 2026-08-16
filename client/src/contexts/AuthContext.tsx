@@ -6,6 +6,7 @@ export type AuthUser = {
   lastName: string;
   email: string;
   phone: string;
+  avatar?: string;
   provider: "password" | "google";
   verified: boolean;
 };
@@ -22,7 +23,7 @@ type AuthContextValue = {
   verifyCurrentPassword: (password: string) => Promise<{ ok: boolean }>;
   changePassword: (currentPassword: string, nextPassword: string) => Promise<{ ok: boolean; reason?: "current" | "new" }>;
   logout: () => void;
-  updateUser: (input: Partial<Pick<AuthUser, "firstName" | "lastName" | "email" | "phone">>) => void;
+  updateUser: (input: Partial<Pick<AuthUser, "firstName" | "lastName" | "email" | "phone" | "avatar">>) => void;
   deleteAccount: () => Promise<{ ok: boolean }>;
 };
 

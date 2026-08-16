@@ -1,6 +1,6 @@
 // New World Cargo style reminder: light, mobile-first command center with compact task cards, Cargo Yellow actions, and a visible route-control motif.
 
-import { Bell, ChevronRight, CircleUserRound, CreditCard, FileText, MapPin, ReceiptText, ShieldCheck, UsersRound, WalletCards } from "lucide-react";
+import { Bell, Camera, ChevronRight, CircleUserRound, CreditCard, FileText, MapPin, ReceiptText, ShieldCheck, UsersRound, WalletCards } from "lucide-react";
 import { useLocation } from "wouter";
 
 type SettingsLink = { title: string; detail: string; href: string; icon: typeof CircleUserRound; accent: string };
@@ -8,6 +8,7 @@ type SettingsLink = { title: string; detail: string; href: string; icon: typeof 
 const groups: { label: string; links: SettingsLink[] }[] = [
   { label: "Your details", links: [
     { title: "Account details", detail: "Profile, contact, and account information", href: "/settings/account", icon: CircleUserRound, accent: "bg-cargo-yellow/15 text-ink" },
+    { title: "Profile photo", detail: "Choose or update your account photo", href: "/settings/profile-photo", icon: Camera, accent: "bg-cargo-yellow/18 text-ink" },
     { title: "Saved addresses", detail: "Pickup and delivery locations", href: "/settings/addresses", icon: MapPin, accent: "bg-cargo-yellow/18 text-ink" },
     { title: "Saved recipients", detail: "People you send to often", href: "/settings/recipients", icon: UsersRound, accent: "bg-cargo-yellow/15 text-ink" },
   ] },

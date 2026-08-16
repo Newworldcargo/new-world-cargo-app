@@ -15,22 +15,30 @@ import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import SettingsDetail from "./pages/SettingsDetail";
 import SignInActivity from "./pages/SignInActivity";
+import Recipients from "./pages/Recipients";
+import Drafts from "./pages/Drafts";
+import Tracking from "./pages/Tracking";
+import Support from "./pages/Support";
+import Returns from "./pages/Returns";
+import Pickup from "./pages/Pickup";
+import ProofOfDelivery from "./pages/ProofOfDelivery";
+import ProfilePhoto from "./pages/ProfilePhoto";
 import Legal from "./pages/Legal";
 import Invoices from "./pages/Invoices";
 import NotFound from "./pages/NotFound";
 import { CompleteProfile, ForgotPassword, Login, Register, ResetPassword, SessionExpired, Verify } from "./pages/AuthPages";
 
 function CustomerRouter() {
-  return <Switch><Route path="/" component={Home} /><Route path="/shipments" component={Shipments} /><Route path="/shipments/:id" component={ShipmentDetail} /><Route path="/send" component={SendShipment} /><Route path="/quote" component={Quote} /><Route path="/notifications" component={Notifications} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route path="/settings/security/activity" component={SignInActivity} /><Route path="/settings/:section" component={SettingsDetail} /><Route path="/settings" component={Settings} /><Route path="/account" component={Settings} /><Route path="/invoices" component={Invoices} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/" component={Home} /><Route path="/track" component={Tracking} /><Route path="/support" component={Support} /><Route path="/returns" component={Returns} /><Route path="/pickups" component={Pickup} /><Route path="/shipments/drafts" component={Drafts} /><Route path="/shipments" component={Shipments} /><Route path="/shipments/:id/proof" component={ProofOfDelivery} /><Route path="/shipments/:id" component={ShipmentDetail} /><Route path="/send" component={SendShipment} /><Route path="/quote" component={Quote} /><Route path="/notifications" component={Notifications} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route path="/settings/security/activity" component={SignInActivity} /><Route path="/settings/profile-photo" component={ProfilePhoto} /><Route path="/settings/recipients" component={Recipients} /><Route path="/settings/:section" component={SettingsDetail} /><Route path="/settings" component={Settings} /><Route path="/account" component={Settings} /><Route path="/invoices" component={Invoices} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 
 function PublicRouter() {
-  return <Switch><Route path="/login" component={Login} /><Route path="/register" component={Register} /><Route path="/verify" component={Verify} /><Route path="/forgot-password" component={ForgotPassword} /><Route path="/reset-password" component={ResetPassword} /><Route path="/auth/complete-profile" component={CompleteProfile} /><Route path="/session-expired" component={SessionExpired} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/login" component={Login} /><Route path="/register" component={Register} /><Route path="/verify" component={Verify} /><Route path="/forgot-password" component={ForgotPassword} /><Route path="/reset-password" component={ResetPassword} /><Route path="/auth/complete-profile" component={CompleteProfile} /><Route path="/session-expired" component={SessionExpired} /><Route path="/track" component={Tracking} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route component={NotFound} /></Switch>;
 }
 
 function RoutedApp() {
   const [location, navigate] = useLocation(); const { isAuthenticated } = useAuth();
-  const isPublic = ["/login", "/register", "/verify", "/forgot-password", "/reset-password", "/auth/complete-profile", "/session-expired"].some(path => location.startsWith(path)) || location.startsWith("/settings/legal");
+  const isPublic = ["/login", "/register", "/verify", "/forgot-password", "/reset-password", "/auth/complete-profile", "/session-expired", "/track"].some(path => location.startsWith(path)) || location.startsWith("/settings/legal");
   useEffect(() => { if (!isAuthenticated && !isPublic) navigate(`/login?returnTo=${encodeURIComponent(location)}`); }, [isAuthenticated, isPublic, location, navigate]);
   if (isPublic) return <PublicRouter />;
   if (!isAuthenticated) return null;

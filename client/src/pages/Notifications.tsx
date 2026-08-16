@@ -15,7 +15,10 @@ type Filter = "unread" | "read";
 export default function Notifications() {
   const [, navigate] = useLocation();
   const [filter, setFilter] = useState<Filter>("unread");
-  const filteredNotifications = filterNotifications(notifications, filter);
+  const [items, setItems] = useState(notifications);
+  const filteredNotifications = filterNotifications(items, filter);
+  const markAllRead = () => setItems((current) => current.map((item) => ({ ...item, unread: false })));
+  const openNotification = (id: number, shipment: string) => { setItems((current) => current.map((item) => item.id === id ? { ...item, unread: false } : item)); navigate(`/shipments/${shipment}`); };
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -25,7 +28,7 @@ export default function Notifications() {
           <h1 className="mt-2 font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">Notifications</h1>
           <p className="mt-2 text-sm text-white/45">The next useful thing, right when you need it.</p>
         </div>
-        <button className="hidden text-xs font-bold text-white/40 hover:text-white sm:block">Mark all read</button>
+        <button onClick={markAllRead} className="hidden text-xs font-bold text-white/40 hover:text-white sm:block">Mark all read</button>
       </div>
 
       <div className="mt-7 inline-flex rounded-2xl border border-white/10 bg-white/[0.03] p-1" role="tablist" aria-label="Notification filter">
@@ -38,7 +41,7 @@ export default function Notifications() {
             onClick={() => setFilter(item)}
             className={`rounded-xl px-5 py-2.5 text-xs font-bold capitalize transition ${filter === item ? "bg-cargo-yellow text-ink" : "text-white/45 hover:text-white"}`}
           >
-            {item} <span className="ml-1 opacity-60">{filterNotifications(notifications, item).length}</span>
+            {item} <span className="ml-1 opacity-60">{filterNotifications(items, item).length}</span>
           </button>
         ))}
       </div>
@@ -47,7 +50,7 @@ export default function Notifications() {
         {filteredNotifications.length ? filteredNotifications.map((item) => {
           const Icon = item.icon;
           return (
-            <button key={item.id} onClick={() => navigate(`/shipments/${item.shipment}`)} className={`flex w-full gap-4 rounded-[24px] border p-4 text-left transition hover:border-cargo-yellow/50 sm:p-5 ${item.unread ? "border-white/12 bg-white/[0.045]" : "border-white/7 bg-white/[0.02]"}`}>
+            <button key={item.id} onClick={() => openNotification(item.id, item.shipment)} className={`flex w-full gap-4 rounded-[24px] border p-4 text-left transition hover:border-cargo-yellow/50 sm:p-5 ${item.unread ? "border-white/12 bg-white/[0.045]" : "border-white/7 bg-white/[0.02]"}`}>
               <div className={`grid size-11 shrink-0 place-items-center rounded-2xl ${item.bg} ${item.color}`}><Icon className="size-5" /></div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3"><p className="text-sm font-bold">{item.title}</p>{item.unread && <span className="mt-1 size-2 shrink-0 rounded-full bg-cargo-yellow" />}</div>
@@ -61,7 +64,7 @@ export default function Notifications() {
         )}
       </div>
 
-      <div className="mt-8 flex items-center gap-3 rounded-2xl border border-cargo-yellow/15 bg-cargo-yellow/6 p-4 text-xs text-white/45"><Bell className="size-4 text-cargo-yellow" />We’ll notify you when something changes.</div>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cargo-yellow/15 bg-cargo-yellow/6 p-4 text-xs text-white/45"><span className="flex items-center gap-3"><Bell className="size-4 text-cargo-yellow" />We’ll notify you when something changes.</span><button onClick={() => navigate("/settings/notifications")} className="font-bold text-cargo-yellow hover:text-white">Notification preferences</button></div>
     </div>
   );
 }

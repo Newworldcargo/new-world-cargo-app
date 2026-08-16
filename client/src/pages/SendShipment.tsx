@@ -23,10 +23,10 @@ import {
   Warehouse,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { cargoTransportOptions, pickupOfficeSuggestions } from "@/lib/mock-data";
+import { cargoTransportOptions, pickupOfficeSuggestions, recipients as seedRecipients } from "@/lib/mock-data";
 import { PaymentModal } from "@/components/payment-modal";
 import { SubpageBackButton } from "@/components/subpage-back-button";
 
@@ -44,7 +44,7 @@ type CargoRow = {
 };
 
 export default function SendShipment() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [step, setStep] = useState(0);
   const [success, setSuccess] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -65,6 +65,15 @@ export default function SendShipment() {
     contents: "",
     packages: "",
   });
+  const [savedRecipients] = useState(() => {
+    try {
+      const saved = localStorage.getItem("new-world-cargo-recipients");
+      return saved ? JSON.parse(saved) : seedRecipients;
+    } catch {
+      return seedRecipients;
+    }
+  });
+  useEffect(() => { try { if (location.includes("draft=latest")) { const raw = localStorage.getItem("new-world-cargo-draft"); if (!raw) return; const saved = JSON.parse(raw); if (saved.form) setForm(saved.form); if (saved.cargoRows) setCargoRows(saved.cargoRows); if (saved.transport) setTransport(saved.transport); if (saved.handover) setHandover(saved.handover); if (saved.evidence) setEvidence(saved.evidence); if (typeof saved.step === "number") setStep(saved.step); toast("Your saved draft is ready to continue."); } if (location.includes("quote=latest")) { const raw = localStorage.getItem("new-world-cargo-quote"); if (!raw) return; const quote = JSON.parse(raw); if (quote.expiresAt && Date.now() > quote.expiresAt) { toast("This quote has expired. Please request a fresh estimate."); return; } setForm((current) => ({ ...current, pickup: quote.from || current.pickup, destination: quote.to || current.destination, packages: quote.weight || current.packages })); toast(`Your ${quote.serviceName || ""} quote has been added. You can edit all details.`); } } catch { toast("This saved request could not be opened."); } }, [location]);
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -184,6 +193,21 @@ export default function SendShipment() {
 
         {step === 1 && (
           <StepBlock icon={UserRound} title="Who should we contact?" subtitle="We’ll use these details for cargo updates and arrival notifications.">
+            <label className="mb-4 block">
+              <span className="mb-2 block text-xs font-bold text-white/35">Use a saved recipient</span>
+              <select
+                defaultValue=""
+                onChange={(event) => {
+                  const saved = savedRecipients.find((recipient: { id: string }) => recipient.id === event.target.value);
+                  if (!saved) return;
+                  setForm((current) => ({ ...current, recipient: saved.name, phone: saved.phone, destination: current.destination || saved.location }));
+                }}
+                className="h-12 w-full rounded-2xl border border-white/10 bg-ink/35 px-4 text-sm font-semibold text-white outline-none focus:border-cargo-yellow/60"
+              >
+                <option value="" className="text-ink">Choose a saved recipient</option>
+                {savedRecipients.map((recipient: { id: string; name: string; location: string }) => <option key={recipient.id} value={recipient.id} className="text-ink">{recipient.name} · {recipient.location}</option>)}
+              </select>
+            </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Cargo owner" icon={UserRound} value={form.recipient} onChange={(value) => update("recipient", value)} />
               <Field label="Phone number" icon={Phone} value={form.phone} onChange={(value) => update("phone", value)} />
