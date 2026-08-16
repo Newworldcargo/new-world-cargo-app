@@ -6,8 +6,9 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { mobileNavigationItemClass } from "@/lib/navigation-style";
+import { isPrimaryMobileTabRoute } from "@/lib/primary-mobile-navigation";
 import { BrandMark } from "./BrandMark";
+import { MobileBottomNavigation } from "./mobile-bottom-navigation";
 
 type NavItem = { label: string; href: string; icon: LucideIcon };
 
@@ -19,26 +20,16 @@ const desktopNavItems: NavItem[] = [
   { label: "Settings", href: "/settings", icon: Settings2 },
 ];
 
-const mobileNavItems: NavItem[] = [
-  { label: "Home", href: "/", icon: House },
-  { label: "Shipments", href: "/shipments", icon: Package },
-  { label: "Send", href: "/send", icon: Plus },
-  { label: "Invoices", href: "/invoices", icon: ReceiptText },
-  { label: "Settings", href: "/settings", icon: Settings2 },
-];
-
-function NavLink({ item, active, mobile = false }: { item: NavItem; active: boolean; mobile?: boolean }) {
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   const [, navigate] = useLocation();
   const Icon = item.icon;
   return (
     <button
       onClick={() => navigate(item.href)}
-      className={mobile
-        ? mobileNavigationItemClass(active)
-        : `group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition duration-200 ${active ? "bg-cargo-yellow text-ink shadow-[0_10px_24px_rgba(255,200,61,0.2)]" : "text-white/55 hover:bg-white/6 hover:text-white"}`}
+      className={`group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition duration-200 ${active ? "bg-cargo-yellow text-ink shadow-[0_10px_24px_rgba(255,200,61,0.2)]" : "text-white/55 hover:bg-white/6 hover:text-white"}`}
       aria-current={active ? "page" : undefined}
     >
-      <Icon className={mobile ? "size-5" : "size-[18px]"} strokeWidth={active ? 2.4 : 1.8} />
+      <Icon className="size-[18px]" strokeWidth={active ? 2.4 : 1.8} />
       <span>{item.label}</span>
 
     </button>
@@ -51,6 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const { user, logout } = useAuth();
   const activeHref = location === "/" ? "/" : `/${location.split("/")[1]}`;
+  const showMobileNavigation = isPrimaryMobileTabRoute(location);
   const handleLogout = () => { logout(); toast("Signed out successfully."); navigate("/login"); };
 
   return (
@@ -77,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 pb-24 lg:pb-0">
+        <main className={`min-w-0 flex-1 ${showMobileNavigation ? "pb-24" : "pb-6"} lg:pb-0`}>
           <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/8 bg-background/90 px-4 py-4 backdrop-blur-xl sm:px-8 lg:px-12">
             <div className="lg:hidden"><BrandMark compact /></div>
             <div className="hidden items-center gap-3 lg:flex"><div className="size-2 rounded-full bg-cargo-yellow shadow-[0_0_0_5px_rgba(255,200,61,0.12)]" /><span className="text-xs font-medium text-white/45">All systems operational</span></div>
@@ -113,9 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-[26px] border border-white/10 bg-brand-secondary p-2 shadow-2xl backdrop-blur-xl lg:hidden" aria-label="Primary navigation">
-        {mobileNavItems.map((item) => <NavLink key={item.href} item={item} active={activeHref === item.href} mobile />)}
-      </nav>
+      <MobileBottomNavigation />
 
       {supportOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-3 backdrop-blur-sm sm:items-center" role="dialog" aria-modal="true" aria-label="Customer support">
