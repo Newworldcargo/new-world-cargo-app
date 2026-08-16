@@ -297,3 +297,5 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Complete an end-to-end infrastructure audit covering deployment, client, server, database, authentication, storage, observability, and API readiness.
 - [x] Synchronize the completed infrastructure audit and current project revision to GitHub before the API-readiness planning phase.
 - [x] Produce an API-readiness implementation plan covering contracts, TanStack Query server state, Zustand client workflow state, mock migration, and rollout safeguards.
+- [ ] Add an app-wide white-screen Cargo Yellow line-spinner preloader for app initialization and protected-route loading.
+- [ ] Prepare the frontend project for Vercel-compatible deployment with fallback routing guidance and deployment checks.
