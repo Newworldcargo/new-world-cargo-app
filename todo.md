@@ -290,3 +290,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Push the completed customer frontend source code to the connected GitHub account.
 - [x] Make inactive mobile bottom-navigation links clearly white while retaining Cargo Yellow for the active link.
 - [x] Extract the mobile bottom navigation into one reusable component and show it only on the primary customer tab routes.
+- [x] Make all inactive mobile bottom-navigation labels and icons visibly solid white in the rendered interface.
