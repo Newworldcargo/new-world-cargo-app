@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { mobileNavigationItemClass } from "@/lib/navigation-style";
 import { BrandMark } from "./BrandMark";
 
 type NavItem = { label: string; href: string; icon: LucideIcon };
@@ -33,7 +34,7 @@ function NavLink({ item, active, mobile = false }: { item: NavItem; active: bool
     <button
       onClick={() => navigate(item.href)}
       className={mobile
-        ? `flex min-w-14 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-semibold transition duration-200 ${active ? "bg-brand-secondary/80 text-cargo-yellow" : "text-white/65 hover:text-white"}`
+        ? mobileNavigationItemClass(active)
         : `group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition duration-200 ${active ? "bg-cargo-yellow text-ink shadow-[0_10px_24px_rgba(255,200,61,0.2)]" : "text-white/55 hover:bg-white/6 hover:text-white"}`}
       aria-current={active ? "page" : undefined}
     >
