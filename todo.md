@@ -293,3 +293,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Make all inactive mobile bottom-navigation labels and icons visibly solid white in the rendered interface.
 - [x] Raise the reusable floating mobile navigation and simplify Settings by removing the account-ready badge, account control rail banner, and customer-settings subtitle.
 - [x] Remove the redundant cargo-billing banner from Invoices while retaining the outstanding balance, and add its yellow icon treatment beside shipment contents in opened invoice details.
+- [x] Simplify Send Shipment by removing the numeric step count and per-step descriptions while preserving its existing progress line and workflow controls.

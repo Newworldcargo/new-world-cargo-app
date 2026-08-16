@@ -163,12 +163,8 @@ export default function SendShipment() {
         label={step ? "Previous step" : "Back home"}
       />
 
-      <div className="mb-8 flex items-end justify-between gap-4">
-        <div>
-          <h1 className="mt-2 font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">Send a package</h1>
-          <p className="mt-2 text-sm text-white/45">Tell us what is coming, where it starts, and how you want to receive it.</p>
-        </div>
-        <span className="text-xs font-bold text-white/35">{step + 1} of {steps.length}</span>
+      <div className="mb-8">
+        <h1 className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">Send a package</h1>
       </div>
 
       <div className="mb-8 flex gap-1.5">
@@ -182,11 +178,7 @@ export default function SendShipment() {
 
       <div className="rounded-[30px] border border-white/8 bg-white/[0.035] p-5 sm:p-8">
         {step === 0 && (
-          <StepBlock
-            icon={MapPin}
-            title="Where should we collect it?"
-            subtitle="Choose a New World Cargo office or enter another pickup address."
-          >
+          <StepBlock icon={MapPin} title="Where should we collect it?">
             <PickupAddressField value={form.pickup} onChange={(value) => update("pickup", value)} />
             <div className="mt-3 grid grid-cols-2 gap-3">
               <button onClick={useCurrentLocation} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left text-xs font-bold text-white/70">
@@ -202,7 +194,7 @@ export default function SendShipment() {
         )}
 
         {step === 1 && (
-          <StepBlock icon={UserRound} title="Who should we contact?" subtitle="We’ll use these details for cargo updates and arrival notifications.">
+          <StepBlock icon={UserRound} title="Who should we contact?">
             <label className="mb-4 block">
               <span className="mb-2 block text-xs font-bold text-white/35">Use a saved recipient</span>
               <select
@@ -239,11 +231,7 @@ export default function SendShipment() {
         )}
 
         {step === 2 && (
-          <StepBlock
-            icon={Package}
-            title="Tell us about the cargo"
-            subtitle="Describe what is in the parcel. You do not need to know the weight."
-          >
+          <StepBlock icon={Package} title="Tell us about the cargo">
             <div className="space-y-3">
               <div className="grid grid-cols-[minmax(0,1fr)_96px_40px] gap-2 px-1 text-[11px] font-bold text-white/35">
                 <span>Cargo name</span><span>Quantity</span><span className="sr-only">Remove</span>
@@ -292,7 +280,7 @@ export default function SendShipment() {
         )}
 
         {step === 3 && (
-          <StepBlock icon={Plane} title="Choose transport and arrival" subtitle="Select how the cargo travels, then tell us how you want to receive it.">
+          <StepBlock icon={Plane} title="Choose transport and arrival">
             <p className="mb-3 text-xs font-bold text-white/40">How should the cargo travel?</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {cargoTransportOptions.map((option) => {
@@ -346,7 +334,7 @@ export default function SendShipment() {
         )}
 
         {step === 4 && (
-          <StepBlock icon={FileText} title="Review cargo request" subtitle="Check the information before we create a reference for your cargo.">
+          <StepBlock icon={FileText} title="Review cargo request">
             <div className="divide-y divide-white/8 rounded-2xl bg-white/[0.035]">
               {[
                 ["Pickup", form.pickup || "Not selected"],
@@ -395,8 +383,8 @@ export default function SendShipment() {
   );
 }
 
-function StepBlock({ icon: Icon, title, subtitle, children }: { icon: typeof MapPin; title: string; subtitle: string; children: React.ReactNode }) {
-  return <div><div className="flex items-start gap-4"><div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-cargo-yellow/12 text-cargo-yellow"><Icon className="size-5" /></div><div><h2 className="font-heading text-xl font-bold">{title}</h2><p className="mt-1 text-sm text-white/42">{subtitle}</p></div></div><div className="mt-8">{children}</div></div>;
+function StepBlock({ icon: Icon, title, children }: { icon: typeof MapPin; title: string; children: React.ReactNode }) {
+  return <div><div className="flex items-center gap-4"><div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-cargo-yellow/12 text-cargo-yellow"><Icon className="size-5" /></div><h2 className="font-heading text-xl font-bold">{title}</h2></div><div className="mt-8">{children}</div></div>;
 }
 
 function Field({ label, icon: Icon, value, onChange, type = "text" }: { label: string; icon: typeof MapPin; value: string; onChange: (value: string) => void; type?: string }) {
