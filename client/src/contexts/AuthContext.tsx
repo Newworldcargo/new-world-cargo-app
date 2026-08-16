@@ -19,6 +19,8 @@ type AuthContextValue = {
   verify: (code: string) => Promise<{ ok: boolean; reason?: "incomplete" | "incorrect" | "expired" | "attempts" }>;
   resendVerification: () => Promise<{ ok: boolean }>;
   resetPassword: (password: string) => Promise<{ ok: boolean }>;
+  verifyCurrentPassword: (password: string) => Promise<{ ok: boolean }>;
+  changePassword: (currentPassword: string, nextPassword: string) => Promise<{ ok: boolean; reason?: "current" | "new" }>;
   logout: () => void;
   updateUser: (input: Partial<Pick<AuthUser, "firstName" | "lastName" | "email" | "phone">>) => void;
   deleteAccount: () => Promise<{ ok: boolean }>;
@@ -78,6 +80,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { ok: true };
     },
     async resetPassword(password) { await new Promise(resolve => setTimeout(resolve, 250)); return { ok: password.length >= 8 }; },
+    async verifyCurrentPassword(password) { await new Promise(resolve => setTimeout(resolve, 250)); return { ok: password === "password123" }; },
+    async changePassword(currentPassword, nextPassword) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      if (currentPassword !== "password123") return { ok: false, reason: "current" };
+      if (nextPassword.length < 8 || nextPassword === currentPassword) return { ok: false, reason: "new" };
+      return { ok: true };
+    },
     logout() { persist(null); },
     updateUser(input) { if (user) persist({ ...user, ...input }); },
     async deleteAccount() { await new Promise(resolve => setTimeout(resolve, 350)); persist(null); return { ok: true }; },

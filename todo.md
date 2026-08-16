@@ -262,3 +262,9 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Add a dedicated sign-in activity page with a complete activity list, device/session details, and security actions.
 - [x] Review every remaining Settings hub link for dead ends, placeholder-only actions, or missing detail pages and complete them.
 - [x] Add regression coverage for address CRUD and sign-in activity, verify responsive workflows, and save a new checkpoint.
+
+## Signed-in password-change security refinement
+
+- [x] Require the current password before accepting a new password for an already signed-in customer.
+- [x] Add current-password missing/incorrect, new-password mismatch, and successful-change states to the existing Security flow.
+- [x] Add regression coverage for the current-password gate and verify the responsive flow before saving a checkpoint.

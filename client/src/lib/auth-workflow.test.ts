@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isProtectedRoute, isPublicAuthPath, isStrongPassword, otpAttemptResult, passwordRequirements, validateOtp } from "./auth-workflow";
+import { isProtectedRoute, isPublicAuthPath, isStrongPassword, otpAttemptResult, passwordRequirements, validateOtp, validateSignedInPasswordChange } from "./auth-workflow";
 
 describe("auth workflow helpers", () => {
   it("evaluates password requirements", () => {
@@ -22,6 +22,15 @@ describe("auth workflow helpers", () => {
     expect(otpAttemptResult("123456", 0)).toEqual({ status: null, attempts: 0 });
     expect(otpAttemptResult("123456", 3)).toEqual({ status: "attempts", attempts: 3 });
     expect(otpAttemptResult("654321", 0).attempts).toBe(1);
+  });
+
+  it("requires the current password before accepting a new password", () => {
+    expect(validateSignedInPasswordChange("", "NewCargo123", "NewCargo123")).toBe("current-required");
+    expect(validateSignedInPasswordChange("wrong", "NewCargo123", "NewCargo123")).toBe("current-incorrect");
+    expect(validateSignedInPasswordChange("password123", "short", "short")).toBe("next-too-short");
+    expect(validateSignedInPasswordChange("password123", "password123", "password123")).toBe("next-must-differ");
+    expect(validateSignedInPasswordChange("password123", "NewCargo123", "Different123")).toBe("confirmation-mismatch");
+    expect(validateSignedInPasswordChange("password123", "NewCargo123", "NewCargo123")).toBeNull();
   });
 
   it("recognizes public auth and legal routes", () => {

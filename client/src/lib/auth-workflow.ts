@@ -33,3 +33,12 @@ export function isProtectedRoute(pathname: string) {
 export function isPublicAuthPath(pathname: string) {
   return AUTH_PUBLIC_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`)) || pathname.startsWith("/settings/legal");
 }
+
+export function validateSignedInPasswordChange(currentPassword: string, nextPassword: string, confirmation: string, expectedCurrentPassword = "password123") {
+  if (!currentPassword) return "current-required" as const;
+  if (currentPassword !== expectedCurrentPassword) return "current-incorrect" as const;
+  if (nextPassword.length < 8) return "next-too-short" as const;
+  if (nextPassword === currentPassword) return "next-must-differ" as const;
+  if (nextPassword !== confirmation) return "confirmation-mismatch" as const;
+  return null;
+}
