@@ -295,4 +295,5 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Remove the redundant cargo-billing banner from Invoices while retaining the outstanding balance, and add its yellow icon treatment beside shipment contents in opened invoice details.
 - [x] Simplify Send Shipment by removing the numeric step count and per-step descriptions while preserving its existing progress line and workflow controls.
 - [x] Complete an end-to-end infrastructure audit covering deployment, client, server, database, authentication, storage, observability, and API readiness.
-- [ ] Synchronize the completed infrastructure audit and current project revision to GitHub before the API-readiness planning phase.
+- [x] Synchronize the completed infrastructure audit and current project revision to GitHub before the API-readiness planning phase.
+- [x] Produce an API-readiness implementation plan covering contracts, TanStack Query server state, Zustand client workflow state, mock migration, and rollout safeguards.
