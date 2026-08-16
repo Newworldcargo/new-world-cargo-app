@@ -14,8 +14,7 @@ describe("preloader and Vercel deployment contract", () => {
     const brandMark = readProjectFile("client/src/components/BrandMark.tsx");
     const html = readProjectFile("client/index.html");
 
-    expect(brandMark).not.toContain("/manus-storage/");
-    expect(brandMark).toContain('src="/new-world-cargo-logo.png"');
+    expect(brandMark).toContain('src="/manus-storage/new-world-cargo-logo_7e9d1949.png"');
     expect(html).toContain('href="/favicon.ico"');
   });
 

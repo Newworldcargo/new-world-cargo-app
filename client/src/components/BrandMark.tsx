@@ -12,9 +12,9 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
       aria-label="New World Cargo"
     >
       <img
-        src="/new-world-cargo-logo.png"
+        src="/manus-storage/new-world-cargo-logo_7e9d1949.png"
         alt="New World Cargo"
-        className={`block w-auto object-contain ${compact ? "h-9 max-w-[142px]" : "h-12 max-w-[190px]"}`}
+        className={`block h-auto object-contain ${compact ? "w-[142px] max-w-full" : "w-[190px] max-w-full"}`}
       />
     </div>
   );

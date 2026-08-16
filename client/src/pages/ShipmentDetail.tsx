@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, CheckCircle2, CircleHelp, CreditCard, Download, FileCheck2, MoreHorizontal, PackageOpen, PhoneCall, RotateCcw, Share2, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCircle2, CircleHelp, Download, FileCheck2, MoreHorizontal, PackageOpen, PhoneCall, RotateCcw, Share2, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
@@ -38,13 +38,13 @@ export default function ShipmentDetail() {
   const sendAgain = () => { localStorage.setItem("new-world-cargo-duplicate", JSON.stringify({ origin: shipment.origin, destination: shipment.destination, transport: shipment.transportMode })); navigate("/send?duplicate=latest"); };
 
   return <div className="mx-auto max-w-5xl">
-    <button onClick={() => navigate("/shipments")} className="mb-6 flex items-center gap-2 text-xs font-bold text-white/45 transition hover:text-white"><ArrowLeft className="size-4" />Back to shipments</button>
+    <div className="mb-6 flex items-center justify-between gap-3"><button onClick={() => navigate("/shipments")} className="inline-flex min-w-0 items-center gap-2 text-xs font-bold text-white/45 transition hover:text-white"><ArrowLeft className="size-4 shrink-0" />Back to shipments</button>{canPay && <button onClick={() => setShowPayment(true)} className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-cargo-yellow px-4 py-2.5 text-xs font-extrabold text-ink transition hover:brightness-105 active:scale-[0.97]" aria-label={`Pay ${linkedInvoice?.amount ?? shipment.price}`}>Pay</button>}</div>
     <div className="grid gap-6 lg:grid-cols-[1fr_0.78fr] lg:items-start">
       <div>
         <section className="relative overflow-hidden rounded-[32px] bg-cargo-yellow p-6 text-ink sm:p-8">
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `url(${ASSETS.package})`, backgroundPosition: "right center", backgroundSize: "cover", mixBlendMode: "multiply" }} />
           <div className="relative">
-            <div className="flex items-start justify-between gap-3"><div><CargoModeLabel mode={shipment.transportMode} /><h1 className="mt-3 font-heading text-3xl font-extrabold tracking-tight">{shipment.trackingNumber}</h1></div><div className="flex shrink-0 items-center gap-2">{canPay && <button onClick={() => setShowPayment(true)} className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-xs font-extrabold text-cargo-yellow transition hover:bg-ink/90 active:scale-[0.97]" aria-label={`Pay ${linkedInvoice?.amount ?? shipment.price}`}><CreditCard className="size-4" />Pay</button>}<button onClick={() => setShowActions(true)} className="grid size-10 place-items-center rounded-full bg-ink/10" aria-label="Shipment actions"><MoreHorizontal className="size-5" /></button></div></div>
+            <div className="flex items-start justify-between gap-3"><div><CargoModeLabel mode={shipment.transportMode} /><h1 className="mt-3 font-heading text-3xl font-extrabold tracking-tight">{shipment.trackingNumber}</h1></div><button onClick={() => setShowActions(true)} className="grid size-10 place-items-center rounded-full bg-ink/10" aria-label="Shipment actions"><MoreHorizontal className="size-5" /></button></div>
             <div className="mt-8 flex items-center justify-between gap-3"><RouteEnd label={shipment.origin} /><div className="flex flex-1 items-center gap-1 px-2"><span className="size-2.5 rounded-full bg-ink" /><span className="h-px flex-1 bg-ink/30" /><PackageOpen className="size-5" /><span className="h-px flex-1 bg-ink/30" /><span className="size-2.5 rounded-full border-2 border-ink bg-cargo-yellow" /></div><RouteEnd label={shipment.destination} align="right" /></div>
             <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-ink/15 pt-4"><StatusBadge status={shipment.status} label={cancelled ? "Cancellation requested" : shipment.statusLabel} /><div className="text-right"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink/45">Estimated arrival</p><p className="mt-1 text-sm font-bold">{shipment.eta}</p></div></div>
           </div>
