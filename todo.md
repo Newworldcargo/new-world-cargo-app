@@ -297,11 +297,11 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Complete an end-to-end infrastructure audit covering deployment, client, server, database, authentication, storage, observability, and API readiness.
 - [x] Synchronize the completed infrastructure audit and current project revision to GitHub before the API-readiness planning phase.
 - [x] Produce an API-readiness implementation plan covering contracts, TanStack Query server state, Zustand client workflow state, mock migration, and rollout safeguards.
-- [ ] Add an app-wide white-screen Cargo Yellow line-spinner preloader for app initialization and protected-route loading.
-- [ ] Prepare the frontend project for Vercel-compatible deployment with fallback routing guidance and deployment checks.
-- [ ] Push the current project state to GitHub exactly as-is.
-- [ ] Diagnose the reported Vercel deployment timeout from the user's network and classify whether remediation is required.
-- [ ] Fix the deployed New World Cargo logo asset rendering on Vercel and verify the public asset response.
-- [ ] Move the supplied New World Cargo logo and favicon into client/public and reference them directly for Vercel-safe delivery.
-- [ ] Push the current public-logo and favicon asset changes to GitHub for Vercel CI/CD.
+- [x] Add an app-wide white-screen Cargo Yellow line-spinner preloader for app initialization and protected-route loading.
+- [x] Prepare the frontend project for Vercel-compatible deployment with fallback routing guidance and deployment checks.
+- [x] Push the current project state to GitHub exactly as-is.
+- [x] Diagnose the reported Vercel deployment timeout from the user's network and classify whether remediation is required.
+- [x] Fix the deployed New World Cargo logo asset rendering on Vercel and verify the public asset response.
+- [x] Move the supplied New World Cargo logo and favicon into client/public and reference them directly for Vercel-safe delivery.
+- [x] Push the current public-logo and favicon asset changes to GitHub for Vercel CI/CD.
 - [x] Add a top-right Pay button to opened shipment details using the existing reusable payment modal and payment eligibility rules.
