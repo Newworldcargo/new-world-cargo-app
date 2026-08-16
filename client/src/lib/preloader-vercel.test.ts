@@ -10,6 +10,15 @@ describe("preloader and Vercel deployment contract", () => {
     expect(APP_PRELOADER_LABEL).toBe("Loading New World Cargo…");
   });
 
+  it("keeps the brand lockup host-independent for Vercel", () => {
+    const brandMark = readProjectFile("client/src/components/BrandMark.tsx");
+    const html = readProjectFile("client/index.html");
+
+    expect(brandMark).not.toContain("/manus-storage/");
+    expect(brandMark).toContain('src="/new-world-cargo-logo.png"');
+    expect(html).toContain('href="/favicon.ico"');
+  });
+
   it("keeps the Vercel output and SPA fallback aligned with the Vite build", () => {
     const config = JSON.parse(readProjectFile("vercel.json")) as {
       framework: string;

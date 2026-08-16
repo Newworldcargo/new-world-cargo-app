@@ -300,3 +300,7 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [ ] Add an app-wide white-screen Cargo Yellow line-spinner preloader for app initialization and protected-route loading.
 - [ ] Prepare the frontend project for Vercel-compatible deployment with fallback routing guidance and deployment checks.
 - [ ] Push the current project state to GitHub exactly as-is.
+- [ ] Diagnose the reported Vercel deployment timeout from the user's network and classify whether remediation is required.
+- [ ] Fix the deployed New World Cargo logo asset rendering on Vercel and verify the public asset response.
+- [ ] Move the supplied New World Cargo logo and favicon into client/public and reference them directly for Vercel-safe delivery.
+- [ ] Push the current public-logo and favicon asset changes to GitHub for Vercel CI/CD.
