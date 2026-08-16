@@ -292,3 +292,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Extract the mobile bottom navigation into one reusable component and show it only on the primary customer tab routes.
 - [x] Make all inactive mobile bottom-navigation labels and icons visibly solid white in the rendered interface.
 - [x] Raise the reusable floating mobile navigation and simplify Settings by removing the account-ready badge, account control rail banner, and customer-settings subtitle.
+- [x] Remove the redundant cargo-billing banner from Invoices while retaining the outstanding balance, and add its yellow icon treatment beside shipment contents in opened invoice details.
