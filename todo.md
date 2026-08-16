@@ -304,3 +304,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [ ] Fix the deployed New World Cargo logo asset rendering on Vercel and verify the public asset response.
 - [ ] Move the supplied New World Cargo logo and favicon into client/public and reference them directly for Vercel-safe delivery.
 - [ ] Push the current public-logo and favicon asset changes to GitHub for Vercel CI/CD.
+- [x] Add a top-right Pay button to opened shipment details using the existing reusable payment modal and payment eligibility rules.
