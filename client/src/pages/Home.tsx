@@ -76,7 +76,7 @@ export default function Home() {
               <span className="size-2 rounded-full bg-cargo-yellow" /> Your cargo desk
             </p>
             <h1 className="mt-3 font-heading text-3xl font-extrabold tracking-[-0.05em] text-foreground sm:text-4xl">
-              Good afternoon, Amina.
+              Good afternoon, Peter.
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-white/55">
               Your bookings, deliveries, and next actions are all here.

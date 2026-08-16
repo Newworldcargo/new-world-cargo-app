@@ -307,3 +307,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Add a top-right Pay button to opened shipment details using the existing reusable payment modal and payment eligibility rules.
 - [x] Replace the app logo with the supplied New World Cargo image and move the unpaid-only shipment Pay button beside Back to Shipments.
 - [x] Move the New World Cargo logo reference from Manus storage into client/public and verify root-path delivery.
+- [x] Replace “Good afternoon, Amina.” with “Good afternoon, Peter.” everywhere the greeting appears.
