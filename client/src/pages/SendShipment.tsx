@@ -4,6 +4,7 @@
  * and express hierarchy through spacing, weight, and subtle surfaces—not shadows.
  */
 import {
+  ArrowLeft,
   ArrowRight,
   Building2,
   Check,
@@ -90,7 +91,12 @@ export default function SendShipment() {
   const removeEvidence = (type: keyof EvidenceState, name: string) =>
     setEvidence((current) => ({ ...current, [type]: current[type].filter((item) => item !== name) }));
 
+  const goBack = () => (step ? setStep((current) => current - 1) : navigate("/"));
   const next = () => (step < steps.length - 1 ? setStep((current) => current + 1) : setPaymentOpen(true));
+  const saveDraft = () => {
+    window.localStorage.setItem("new-world-cargo-draft", JSON.stringify({ form, cargoRows, transport, handover, evidence, step }));
+    toast("Your cargo request draft has been saved.");
+  };
   const selectedTransport = cargoTransportOptions.find((option) => option.id === transport)!;
 
   if (success) {
@@ -134,7 +140,7 @@ export default function SendShipment() {
     <div className="mx-auto max-w-4xl">
       <SubpageBackButton
         className="mb-6"
-        onClick={() => (step ? setStep((current) => current - 1) : navigate("/"))}
+        onClick={goBack}
         label={step ? "Previous step" : "Back home"}
       />
 
@@ -334,10 +340,16 @@ export default function SendShipment() {
           </StepBlock>
         )}
 
-        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-white/8 pt-6 sm:flex-row sm:justify-between">
-          <button onClick={() => toast("Your cargo request draft has been saved.")} className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-bold text-white/55 transition hover:border-white/25 hover:text-white">
-            Save as draft
-          </button>
+        <div className="mt-8 flex flex-col gap-3 border-t border-white/8 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={goBack} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-bold text-white/65 transition hover:border-cargo-yellow/50 hover:text-cargo-yellow">
+              <ArrowLeft className="size-4" />
+              Back
+            </button>
+            <button onClick={saveDraft} className="rounded-2xl border border-cargo-yellow/35 bg-cargo-yellow/10 px-4 py-3 text-sm font-bold text-cargo-yellow transition hover:border-cargo-yellow hover:bg-cargo-yellow/15">
+              Save as Draft
+            </button>
+          </div>
           <button onClick={next} className="flex items-center justify-center gap-2 rounded-2xl bg-cargo-yellow px-6 py-3 text-sm font-bold text-ink transition hover:brightness-105">
             {step === 4 ? "Pay K 320 & create request" : "Continue"}
             <ArrowRight className="size-4" />

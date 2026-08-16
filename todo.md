@@ -228,3 +228,9 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Add dedicated Returns and Refunds, Shipping Policy, Payment Terms, and Acceptable Use / Customer Responsibilities workflows.
 - [x] Add legal contact and policy-version presentation without fabricating company-specific legal facts.
 - [x] Verify legal routes and responsive presentation, add regression coverage where appropriate, and save a new checkpoint.
+
+## Shipment wizard navigation refinement
+
+- [x] Add a Back button to the Send Shipment wizard for returning to the previous step or leaving the flow safely.
+- [x] Add a left-aligned Save as Draft button to the Send Shipment wizard.
+- [x] Verify the wizard actions on desktop and mobile, add regression coverage where appropriate, and save a new checkpoint.
