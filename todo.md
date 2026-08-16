@@ -234,3 +234,11 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Add a Back button to the Send Shipment wizard for returning to the previous step or leaving the flow safely.
 - [x] Add a left-aligned Save as Draft button to the Send Shipment wizard.
 - [x] Verify the wizard actions on desktop and mobile, add regression coverage where appropriate, and save a new checkpoint.
+
+## Current-state product audit
+
+- [x] Inventory all customer-facing pages and routes.
+- [x] Inventory navigation, reusable UI components, forms, modals, and shared design system elements.
+- [x] Document workflows, local/mock data, persistence boundaries, tests, and build status.
+- [x] Identify known limitations, placeholders, and prioritized missing features.
+- [x] Deliver a complete current-state audit report for planning the next product phase.
