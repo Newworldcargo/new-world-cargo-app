@@ -9,7 +9,8 @@ import { markDefaultAddress, removeSavedAddress } from "@/lib/settings-workflow"
 import { validateSignedInPasswordChange } from "@/lib/auth-workflow";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FormDialogContent as DialogContent } from "@/components/form-dialog-content";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type SettingSection = "account" | "addresses" | "recipients" | "notifications" | "payment-methods" | "security" | "billing";

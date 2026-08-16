@@ -27,6 +27,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { cargoTransportOptions, pickupOfficeSuggestions, recipients as seedRecipients } from "@/lib/mock-data";
+import { readMockRecord, writeMockRecord } from "@/lib/mock-repository";
 import { PaymentModal } from "@/components/payment-modal";
 import { SubpageBackButton } from "@/components/subpage-back-button";
 
@@ -65,15 +66,8 @@ export default function SendShipment() {
     contents: "",
     packages: "",
   });
-  const [savedRecipients] = useState(() => {
-    try {
-      const saved = localStorage.getItem("new-world-cargo-recipients");
-      return saved ? JSON.parse(saved) : seedRecipients;
-    } catch {
-      return seedRecipients;
-    }
-  });
-  useEffect(() => { try { if (location.includes("draft=latest")) { const raw = localStorage.getItem("new-world-cargo-draft"); if (!raw) return; const saved = JSON.parse(raw); if (saved.form) setForm(saved.form); if (saved.cargoRows) setCargoRows(saved.cargoRows); if (saved.transport) setTransport(saved.transport); if (saved.handover) setHandover(saved.handover); if (saved.evidence) setEvidence(saved.evidence); if (typeof saved.step === "number") setStep(saved.step); toast("Your saved draft is ready to continue."); } if (location.includes("quote=latest")) { const raw = localStorage.getItem("new-world-cargo-quote"); if (!raw) return; const quote = JSON.parse(raw); if (quote.expiresAt && Date.now() > quote.expiresAt) { toast("This quote has expired. Please request a fresh estimate."); return; } setForm((current) => ({ ...current, pickup: quote.from || current.pickup, destination: quote.to || current.destination, packages: quote.weight || current.packages })); toast(`Your ${quote.serviceName || ""} quote has been added. You can edit all details.`); } } catch { toast("This saved request could not be opened."); } }, [location]);
+  const [savedRecipients, setSavedRecipients] = useState(() => readMockRecord("new-world-cargo-recipients", seedRecipients));
+  useEffect(() => { if (location.includes("draft=latest")) { const saved = readMockRecord<Record<string, unknown> | null>("new-world-cargo-draft", null); if (!saved) return; if (saved.form) setForm(saved.form as typeof form); if (saved.cargoRows) setCargoRows(saved.cargoRows as CargoRow[]); if (saved.transport) setTransport(saved.transport as "air" | "sea"); if (saved.handover) setHandover(saved.handover as "collect" | "delivery"); if (saved.evidence) setEvidence(saved.evidence as EvidenceState); if (typeof saved.step === "number") setStep(saved.step); toast("Your saved draft is ready to continue."); } if (location.includes("quote=latest")) { const quote = readMockRecord<Record<string, string | number> | null>("new-world-cargo-quote", null); if (!quote) return; if (typeof quote.expiresAt === "number" && Date.now() > quote.expiresAt) { toast("This quote has expired. Please request a fresh estimate."); return; } setForm((current) => ({ ...current, pickup: String(quote.from || current.pickup), destination: String(quote.to || current.destination), packages: String(quote.weight || current.packages) })); toast(`Your ${quote.serviceName || ""} quote has been added. You can edit all details.`); } }, [location]);
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -103,8 +97,24 @@ export default function SendShipment() {
   const goBack = () => (step ? setStep((current) => current - 1) : navigate("/"));
   const next = () => (step < steps.length - 1 ? setStep((current) => current + 1) : setPaymentOpen(true));
   const saveDraft = () => {
-    window.localStorage.setItem("new-world-cargo-draft", JSON.stringify({ form, cargoRows, transport, handover, evidence, step }));
+    writeMockRecord("new-world-cargo-draft", { form, cargoRows, transport, handover, evidence, step });
     toast("Your cargo request draft has been saved.");
+  };
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) { toast.error("Location services are not available in this browser."); return; }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => { update("pickup", `Current location · ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`); toast.success("Your current pickup location was added."); },
+      () => toast.error("We could not access your location. Choose an office or enter an address instead."),
+      { enableHighAccuracy: false, timeout: 8000 },
+    );
+  };
+  const saveRecipient = () => {
+    if (!form.recipient.trim() || !form.phone.trim()) { toast.error("Add a cargo owner and phone number before saving this contact."); return; }
+    const recipient = { id: `recipient-${Date.now()}`, name: form.recipient.trim(), phone: form.phone.trim(), location: form.destination.trim() || "Address to be confirmed", initials: form.recipient.trim().split(/\s+/).map((word) => word[0]).slice(0, 2).join("").toUpperCase(), notes: form.recipientNotes };
+    const nextRecipients = [...savedRecipients, recipient];
+    setSavedRecipients(nextRecipients);
+    writeMockRecord("new-world-cargo-recipients", nextRecipients);
+    toast.success("Cargo owner saved to your recipients.");
   };
   const selectedTransport = cargoTransportOptions.find((option) => option.id === transport)!;
 
@@ -179,11 +189,11 @@ export default function SendShipment() {
           >
             <PickupAddressField value={form.pickup} onChange={(value) => update("pickup", value)} />
             <div className="mt-3 grid grid-cols-2 gap-3">
-              <button onClick={() => toast("Location access requested.")} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left text-xs font-bold text-white/70">
+              <button onClick={useCurrentLocation} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left text-xs font-bold text-white/70">
                 Use my location
                 <span className="mt-1 block text-[11px] font-normal text-white/35">For a custom collection point</span>
               </button>
-              <button onClick={() => toast("Saved addresses opened.")} className="rounded-2xl border border-cargo-yellow/30 bg-cargo-yellow/10 p-4 text-left text-xs font-bold text-cargo-yellow">
+              <button onClick={() => navigate("/settings/addresses")} className="rounded-2xl border border-cargo-yellow/30 bg-cargo-yellow/10 p-4 text-left text-xs font-bold text-cargo-yellow">
                 Saved address
                 <span className="mt-1 block text-[11px] font-normal text-white/35">Choose a previously used location</span>
               </button>
@@ -222,7 +232,7 @@ export default function SendShipment() {
                 className="w-full resize-none rounded-2xl border border-white/10 bg-ink/35 px-4 py-3 text-sm font-semibold text-white outline-none placeholder:text-white/30 focus:border-cargo-yellow/60"
               />
             </label>
-            <button onClick={() => toast("Contact saved to your address book.")} className="mt-4 text-xs font-bold text-cargo-yellow">
+            <button onClick={saveRecipient} className="mt-4 text-xs font-bold text-cargo-yellow">
               + Save this contact
             </button>
           </StepBlock>

@@ -48,7 +48,7 @@ export default function Home() {
       label: "Pay balance",
       detail: "K 1,280 due for China cargo",
       icon: WalletCards,
-      onClick: () => navigate("/account"),
+      onClick: () => navigate("/invoices"),
       accent: "bg-white text-foreground border-ink/10",
     },
     {
@@ -62,7 +62,7 @@ export default function Home() {
       label: "Get help",
       detail: "Talk to cargo support",
       icon: CircleHelp,
-      onClick: () => toast("New World Cargo support is online 24/7."),
+      onClick: () => navigate("/support"),
       accent: "bg-white text-foreground border-ink/10",
     },
   ];
@@ -124,7 +124,7 @@ export default function Home() {
             <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-cargo-yellow/15 text-cargo-yellow"><CreditCard className="size-5" /></div>
           </div>
           <button
-            onClick={() => navigate("/account")}
+            onClick={() => navigate("/invoices")}
             className="mt-6 flex w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-white px-4 py-3 text-left text-xs font-bold text-foreground transition hover:border-cargo-yellow/70"
           >
             Review payment <ArrowRight className="size-4 text-cargo-yellow" />
@@ -172,7 +172,7 @@ export default function Home() {
         <div id="tracking-rail" className="min-w-0 overflow-hidden rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Find a booking</p><h2 className="mt-1 font-heading text-xl font-bold tracking-tight text-foreground">Track another package</h2></div><MapPin className="size-5 text-cargo-yellow" /></div>
           <div className="mt-5 rounded-2xl border border-ink/10 bg-white p-2"><div className="flex items-center gap-2 px-3"><Search className="size-5 text-ink/45" /><input value={tracking} onChange={(event) => setTracking(event.target.value)} onKeyDown={(event) => event.key === "Enter" && track()} placeholder="Enter tracking number" className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-ink/40" aria-label="Tracking number" /><button onClick={track} className="grid size-10 place-items-center rounded-full bg-ink text-white transition hover:bg-ink/80" aria-label="Track package"><ScanLine className="size-5" /></button></div></div>
-          <div className="mt-3 flex items-center justify-between px-1 text-[11px] text-white/55"><span>Try NWC48291ZM</span><button onClick={() => toast("Camera scanning will be available in the installed app.")} className="flex items-center gap-1.5 font-semibold text-cargo-yellow"><Camera className="size-3.5" />Scan QR</button></div>
+          <div className="mt-3 flex items-center justify-between px-1 text-[11px] text-white/55"><span>Try NWC48291ZM</span><button onClick={() => navigate("/track")} className="flex items-center gap-1.5 font-semibold text-cargo-yellow"><Camera className="size-3.5" />Scan QR</button></div>
         </div>
       </section>
 
@@ -189,7 +189,7 @@ export default function Home() {
 
       <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink/10 bg-white px-4 py-3">
         <div className="flex items-center gap-3"><div className="grid size-8 place-items-center rounded-xl bg-cargo-yellow/25 text-ink"><ShieldCheck className="size-4" /></div><span className="text-xs font-semibold text-white/70">Need help with a booking or delivery?</span></div>
-        <button onClick={() => toast("New World Cargo support is online 24/7.")} className="text-xs font-bold text-cargo-yellow">Talk to support</button>
+        <button onClick={() => navigate("/support")} className="text-xs font-bold text-cargo-yellow">Talk to support</button>
       </section>
     </div>
   );

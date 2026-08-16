@@ -283,7 +283,7 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Connect Quote success and expiration states to editable Send Shipment prefill.
 - [x] Complete mock payment and invoice states: pending, failed, retry, method change, success, refund, receipt, and history.
 - [x] Complete notification actions and states: mark one/all read, deep links, preferences, empty/loading/error states.
-- [ ] Add consistent loading, error, empty, and offline states across all customer routes.
-- [ ] Refactor completed frontend flows around reusable form fields, centralized mock repositories, action/status rules, and smaller page modules.
-- [ ] Perform systematic responsive workflow QA across mobile, tablet, and desktop; remove dead buttons and placeholder-only interactions.
-- [ ] Add regression tests and save a checkpoint for each completed workflow phase.
+- [x] Add consistent loading, error, empty, and offline states across all customer routes.
+- [x] Refactor completed frontend flows around reusable form fields, centralized mock repositories, action/status rules, and smaller page modules.
+- [x] Perform systematic responsive workflow QA across mobile, tablet, and desktop; remove dead buttons and placeholder-only interactions.
+- [x] Add regression tests and save a checkpoint for each completed workflow phase.

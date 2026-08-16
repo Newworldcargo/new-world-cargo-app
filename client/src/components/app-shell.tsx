@@ -95,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <button onClick={() => { setProfileOpen(false); navigate("/settings/account"); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
                       <UserRound className="size-4 text-ink/55" /> Profile
                     </button>
-                    <button onClick={() => { setProfileOpen(false); navigate("/settings"); toast("Settings opened."); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
+                    <button onClick={() => { setProfileOpen(false); navigate("/settings"); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
                       <Settings2 className="size-4 text-ink/55" /> Settings
                     </button>
                     <div className="my-1 h-px bg-ink/8" />
