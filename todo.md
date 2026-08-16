@@ -299,3 +299,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Produce an API-readiness implementation plan covering contracts, TanStack Query server state, Zustand client workflow state, mock migration, and rollout safeguards.
 - [ ] Add an app-wide white-screen Cargo Yellow line-spinner preloader for app initialization and protected-route loading.
 - [ ] Prepare the frontend project for Vercel-compatible deployment with fallback routing guidance and deployment checks.
+- [ ] Push the current project state to GitHub exactly as-is.
