@@ -254,3 +254,11 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Connect Settings security/profile actions to the new auth routes or appropriate inline dialogs without redesigning completed screens.
 - [x] Add regression tests for auth validation, route/session behavior, and password/OTP helpers.
 - [x] Verify responsive auth screens and preserve existing customer pages, then save a new checkpoint.
+
+## Settings workflow completion
+
+- [x] Convert /settings/addresses into full CRUD with add, edit, delete, default-address, validation, and modal workflows.
+- [x] Persist saved-address changes within the current frontend state and prepare the data boundary for backend persistence.
+- [x] Add a dedicated sign-in activity page with a complete activity list, device/session details, and security actions.
+- [x] Review every remaining Settings hub link for dead ends, placeholder-only actions, or missing detail pages and complete them.
+- [x] Add regression coverage for address CRUD and sign-in activity, verify responsive workflows, and save a new checkpoint.

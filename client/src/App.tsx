@@ -14,13 +14,14 @@ import Quote from "./pages/Quote";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import SettingsDetail from "./pages/SettingsDetail";
+import SignInActivity from "./pages/SignInActivity";
 import Legal from "./pages/Legal";
 import Invoices from "./pages/Invoices";
 import NotFound from "./pages/NotFound";
 import { CompleteProfile, ForgotPassword, Login, Register, ResetPassword, SessionExpired, Verify } from "./pages/AuthPages";
 
 function CustomerRouter() {
-  return <Switch><Route path="/" component={Home} /><Route path="/shipments" component={Shipments} /><Route path="/shipments/:id" component={ShipmentDetail} /><Route path="/send" component={SendShipment} /><Route path="/quote" component={Quote} /><Route path="/notifications" component={Notifications} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route path="/settings/:section" component={SettingsDetail} /><Route path="/settings" component={Settings} /><Route path="/account" component={Settings} /><Route path="/invoices" component={Invoices} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/" component={Home} /><Route path="/shipments" component={Shipments} /><Route path="/shipments/:id" component={ShipmentDetail} /><Route path="/send" component={SendShipment} /><Route path="/quote" component={Quote} /><Route path="/notifications" component={Notifications} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route path="/settings/security/activity" component={SignInActivity} /><Route path="/settings/:section" component={SettingsDetail} /><Route path="/settings" component={Settings} /><Route path="/account" component={Settings} /><Route path="/invoices" component={Invoices} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 
 function PublicRouter() {
