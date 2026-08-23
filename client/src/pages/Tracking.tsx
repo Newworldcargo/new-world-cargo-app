@@ -2,7 +2,11 @@ import { Camera, CheckCircle2, Copy, PackageSearch, Share2, XCircle } from "luci
 import { useState } from "react";
 import { Link } from "wouter";
 import { usePublicTracking } from "@/api/hooks";
-import { PublicTrackingCampaignRail, PublicTrackingServiceCards } from "@/components/public-tracking-campaigns";
+import {
+  PUBLIC_TRACKING_BRAND_ASSETS,
+  PublicTrackingCampaignRail,
+  PublicTrackingServiceCards,
+} from "@/components/public-tracking-campaigns";
 import { Button } from "@/components/ui/button";
 
 type ScanState = "idle" | "permission" | "ready";
@@ -48,8 +52,12 @@ export default function Tracking() {
                 <span className="grid size-11 place-items-center rounded-2xl bg-cargo-yellow">
                   <PackageSearch className="size-5" />
                 </span>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-cargo-yellow">New World Cargo</p>
+                <div className="min-w-0">
+                  <img
+                    src={PUBLIC_TRACKING_BRAND_ASSETS.logo}
+                    alt="New World Cargo"
+                    className="h-7 w-auto max-w-36 object-contain object-left"
+                  />
                   <h1 className="font-heading text-3xl font-extrabold">Track a shipment</h1>
                 </div>
               </div>

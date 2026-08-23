@@ -326,3 +326,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Supersede the Google Ads-ready side-column request with New World Cargo-owned campaign columns; do not add third-party advertising integration.
 - [x] Replace the public tracking sourced imagery with two New World Cargo-owned, desktop-only campaign columns—one on each side of the centered tracking area—with no third-party advertising integration.
 - [x] Restore the two compact, non-image service cards below the public tracking form and move first-party campaign inventory into full-height desktop rails outside the centered tracking content.
+- [x] Restyle the two public tracking service cards in #012642 navy and add approved New World Cargo logo and promotional imagery to the central header and desktop campaign rails.

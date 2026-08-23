@@ -2,6 +2,17 @@ import { ArrowUpRight, Route, ShieldCheck } from "lucide-react";
 
 const SERVICES_URL = "https://www.newworldcargo.com/";
 
+export const PUBLIC_TRACKING_BRAND_ASSETS = {
+  logo: "/manus-storage/new-world-cargo-tracking-logo_1248486d.svg",
+  campaignSquare: "/manus-storage/new-world-cargo-campaign-111_144a01f3.jpg",
+  campaignWarehouse: "/manus-storage/new-world-cargo-warehouse-campaign_fa33d540.jpg",
+} as const;
+
+export const PUBLIC_TRACKING_CARD_THEME = {
+  surfaceClass: "bg-[#012642]",
+  copyClass: "text-white/72",
+} as const;
+
 export const PUBLIC_TRACKING_SERVICES = [
   {
     eyebrow: "Air & sea cargo",
@@ -19,14 +30,16 @@ export const PUBLIC_TRACKING_SERVICES = [
 
 export const PUBLIC_TRACKING_RAILS = {
   left: {
-    eyebrow: "New World Cargo",
+    eyebrow: "Sea freight",
     title: "Plan your next move",
-    detail: "A dedicated campaign space for air, sea, and local delivery services.",
+    detail: "Bring your next cargo shipment into view before it starts its journey.",
+    imageUrl: PUBLIC_TRACKING_BRAND_ASSETS.campaignWarehouse,
   },
   right: {
-    eyebrow: "Cargo support",
-    title: "Make every step easier",
-    detail: "A dedicated campaign space for services, offers, and customer support.",
+    eyebrow: "New World Cargo",
+    title: "Move with confidence",
+    detail: "A dedicated campaign space for current services, offers, and customer support.",
+    imageUrl: PUBLIC_TRACKING_BRAND_ASSETS.campaignSquare,
   },
 } as const;
 
@@ -40,20 +53,25 @@ export function PublicTrackingCampaignRail({ side }: { side: "left" | "right" })
   return (
     <aside
       aria-label={`${campaign.eyebrow} campaign rail`}
-      className="hidden min-h-screen border-x border-ink/10 bg-[#f7f8fb] px-5 py-8 xl:flex xl:justify-center"
+      data-campaign-rail={side}
+      className="relative hidden min-h-screen overflow-hidden bg-ink xl:block"
     >
-      <div className="sticky top-8 h-fit w-full max-w-48 border-y border-ink/10 py-6">
-        <p className="text-xs font-bold text-cargo-yellow">{campaign.eyebrow}</p>
-        <h2 className="mt-2 font-heading text-xl font-extrabold leading-tight text-ink">{campaign.title}</h2>
-        <p className="mt-3 text-sm leading-6 text-ink/65">{campaign.detail}</p>
-        <a
-          href={SERVICES_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-ink underline decoration-cargo-yellow decoration-2 underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cargo-yellow"
-        >
-          Learn more <ArrowUpRight className="size-4" aria-hidden="true" />
-        </a>
+      <img src={campaign.imageUrl} alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover" />
+      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-[#012642]/45 via-[#012642]/72 to-[#012642]/95" />
+      <div className="relative z-10 flex min-h-screen w-full items-end p-6">
+        <div className="w-full border-y border-white/25 py-6">
+          <p className="text-xs font-bold text-cargo-yellow">{campaign.eyebrow}</p>
+          <h2 className="mt-2 font-heading text-2xl font-extrabold leading-tight text-white">{campaign.title}</h2>
+          <p className="mt-3 text-sm leading-6 text-white/75">{campaign.detail}</p>
+          <a
+            href={SERVICES_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-white underline decoration-cargo-yellow decoration-2 underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cargo-yellow"
+          >
+            Learn more <ArrowUpRight className="size-4" aria-hidden="true" />
+          </a>
+        </div>
       </div>
     </aside>
   );
@@ -66,18 +84,18 @@ export function PublicTrackingServiceCards() {
         const Icon = service.icon;
 
         return (
-          <article key={service.title} className="rounded-[22px] border border-ink/10 p-5">
+          <article key={service.title} className={`rounded-[22px] border border-white/10 p-5 ${PUBLIC_TRACKING_CARD_THEME.surfaceClass}`}>
             <span className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow text-ink">
               <Icon className="size-5" aria-hidden="true" />
             </span>
-            <p className="mt-5 text-xs font-bold text-ink/50">{service.eyebrow}</p>
-            <h2 className="mt-1 font-heading text-lg font-extrabold text-ink">{service.title}</h2>
-            <p className="mt-2 text-sm leading-6 text-ink/65">{service.detail}</p>
+            <p className="mt-5 text-xs font-bold text-cargo-yellow">{service.eyebrow}</p>
+            <h2 className="mt-1 font-heading text-lg font-extrabold text-white">{service.title}</h2>
+            <p className={`mt-2 text-sm leading-6 ${PUBLIC_TRACKING_CARD_THEME.copyClass}`}>{service.detail}</p>
             <a
               href={SERVICES_URL}
               target="_blank"
               rel="noreferrer"
-              className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-ink underline decoration-cargo-yellow decoration-2 underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cargo-yellow"
+              className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-white underline decoration-cargo-yellow decoration-2 underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cargo-yellow"
             >
               Learn more <ArrowUpRight className="size-4" aria-hidden="true" />
             </a>
