@@ -333,3 +333,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Keep the desktop sidebar fixed while main portal content scrolls independently, with sidebar scrolling enabled only for sidebar overflow.
 - [x] Assess and implement a Vercel-compatible server-side API gateway so browser clients make same-origin application requests rather than direct backend API calls.
 - [x] Add scroll-aware active-section highlighting, preserve desktop sidebar scroll position after navigation, and provide a compact collapse control for smaller laptop viewports.
+- [x] Ensure completed public-tracking timeline connectors remain visibly Cargo Yellow through the in-transit stage.

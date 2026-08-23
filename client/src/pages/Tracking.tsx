@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 
 type ScanState = "idle" | "permission" | "ready";
 
-export const TRACKING_TIMELINE_CONNECTOR_CLASS = "absolute left-2.5 top-5 bottom-0 border-l-2 border-dashed";
+export const TRACKING_TIMELINE_CONNECTOR_CLASS = "absolute left-2.5 top-5 bottom-0 z-0 border-l-[3px] border-dashed";
 export const PUBLIC_TRACKING_SIGN_IN_LABEL = "Sign in to your account";
 
 export function getTrackingTimelineConnectorClass(isComplete: boolean) {
@@ -19,6 +19,8 @@ export function getTrackingTimelineConnectorClass(isComplete: boolean) {
 }
 
 export const shouldRenderTrackingConnector = (eventIndex: number, eventCount: number) => eventIndex < eventCount - 1;
+
+export const isTrackingTimelineSegmentComplete = (events: Array<{ complete?: boolean; current?: boolean }>, eventIndex: number) => Boolean(events[eventIndex + 1]?.complete || events[eventIndex + 1]?.current);
 
 export default function Tracking() {
   const [code, setCode] = useState("");
@@ -161,7 +163,7 @@ export default function Tracking() {
                   {result.events.map((event, index) => (
                     <div key={`${event.label}-${index}`} className="relative flex gap-3 pb-5 last:pb-0">
                       {shouldRenderTrackingConnector(index, result.events.length) && (
-                        <span aria-hidden="true" className={getTrackingTimelineConnectorClass(Boolean(event.complete))} />
+                        <span aria-hidden="true" className={getTrackingTimelineConnectorClass(isTrackingTimelineSegmentComplete(result.events, index))} />
                       )}
                       <span
                         className={`relative z-10 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ${event.complete || event.current ? "bg-cargo-yellow text-ink" : "border border-ink/20 bg-white"}`}

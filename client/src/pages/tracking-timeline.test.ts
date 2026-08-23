@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getTrackingTimelineConnectorClass,
+  isTrackingTimelineSegmentComplete,
   PUBLIC_TRACKING_SIGN_IN_LABEL,
   shouldRenderTrackingConnector,
   TRACKING_TIMELINE_CONNECTOR_CLASS,
@@ -15,12 +16,25 @@ describe("public tracking mapped timeline", () => {
 
   it("uses a vertical dashed connector that sits behind status circles", () => {
     expect(TRACKING_TIMELINE_CONNECTOR_CLASS).toContain("border-dashed");
-    expect(TRACKING_TIMELINE_CONNECTOR_CLASS).toContain("border-l-2");
+    expect(TRACKING_TIMELINE_CONNECTOR_CLASS).toContain("border-l-[3px]");
   });
 
   it("uses Cargo Yellow for completed route segments and light grey for upcoming segments", () => {
     expect(getTrackingTimelineConnectorClass(true)).toContain("border-cargo-yellow");
     expect(getTrackingTimelineConnectorClass(false)).toContain("border-ink/20");
+  });
+
+  it("keeps the final completed segment visibly yellow through the current in-transit event", () => {
+    const events = [
+      { complete: true },
+      { complete: true },
+      { current: true },
+      {},
+    ];
+
+    expect(isTrackingTimelineSegmentComplete(events, 0)).toBe(true);
+    expect(isTrackingTimelineSegmentComplete(events, 1)).toBe(true);
+    expect(isTrackingTimelineSegmentComplete(events, 2)).toBe(false);
   });
 
   it("keeps the sign-in control labelled for an account affordance", () => {
