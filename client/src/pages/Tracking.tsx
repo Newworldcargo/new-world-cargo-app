@@ -1,4 +1,4 @@
-import { Camera, CheckCircle2, Copy, PackageSearch, Share2, XCircle } from "lucide-react";
+import { Camera, CheckCircle2, Copy, PackageSearch, Share2, UserRound, XCircle } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import { usePublicTracking } from "@/api/hooks";
@@ -11,8 +11,12 @@ import { Button } from "@/components/ui/button";
 
 type ScanState = "idle" | "permission" | "ready";
 
-export const TRACKING_TIMELINE_CONNECTOR_CLASS =
-  "absolute left-2.5 top-5 bottom-0 border-l-2 border-dashed border-[#012642]/35";
+export const TRACKING_TIMELINE_CONNECTOR_CLASS = "absolute left-2.5 top-5 bottom-0 border-l-2 border-dashed";
+export const PUBLIC_TRACKING_SIGN_IN_LABEL = "Sign in to your account";
+
+export function getTrackingTimelineConnectorClass(isComplete: boolean) {
+  return `${TRACKING_TIMELINE_CONNECTOR_CLASS} ${isComplete ? "border-cargo-yellow" : "border-ink/20"}`;
+}
 
 export const shouldRenderTrackingConnector = (eventIndex: number, eventCount: number) => eventIndex < eventCount - 1;
 
@@ -66,8 +70,13 @@ export default function Tracking() {
                   <h1 className="font-heading text-3xl font-extrabold">Track a shipment</h1>
                 </div>
               </div>
-              <Link href="/login" className="shrink-0 text-sm font-bold text-ink underline decoration-cargo-yellow underline-offset-4">
-                Sign in
+              <Link
+                href="/login"
+                aria-label={PUBLIC_TRACKING_SIGN_IN_LABEL}
+                className="inline-flex shrink-0 items-center gap-1.5 text-sm font-bold text-ink underline decoration-cargo-yellow underline-offset-4"
+              >
+                <UserRound aria-hidden="true" className="size-4" />
+                <span>Sign in</span>
               </Link>
             </header>
 
@@ -152,7 +161,7 @@ export default function Tracking() {
                   {result.events.map((event, index) => (
                     <div key={`${event.label}-${index}`} className="relative flex gap-3 pb-5 last:pb-0">
                       {shouldRenderTrackingConnector(index, result.events.length) && (
-                        <span aria-hidden="true" className={TRACKING_TIMELINE_CONNECTOR_CLASS} />
+                        <span aria-hidden="true" className={getTrackingTimelineConnectorClass(Boolean(event.complete))} />
                       )}
                       <span
                         className={`relative z-10 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ${event.complete || event.current ? "bg-cargo-yellow text-ink" : "border border-ink/20 bg-white"}`}

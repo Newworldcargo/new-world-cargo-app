@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { shouldRenderTrackingConnector, TRACKING_TIMELINE_CONNECTOR_CLASS } from "./Tracking";
+import {
+  getTrackingTimelineConnectorClass,
+  PUBLIC_TRACKING_SIGN_IN_LABEL,
+  shouldRenderTrackingConnector,
+  TRACKING_TIMELINE_CONNECTOR_CLASS,
+} from "./Tracking";
 
 describe("public tracking mapped timeline", () => {
   it("connects each timeline circle except the final destination step", () => {
@@ -8,10 +13,17 @@ describe("public tracking mapped timeline", () => {
     expect(shouldRenderTrackingConnector(3, 4)).toBe(false);
   });
 
-  it("uses a vertical dashed navy connector that sits behind status circles", () => {
+  it("uses a vertical dashed connector that sits behind status circles", () => {
     expect(TRACKING_TIMELINE_CONNECTOR_CLASS).toContain("border-dashed");
     expect(TRACKING_TIMELINE_CONNECTOR_CLASS).toContain("border-l-2");
-    expect(TRACKING_TIMELINE_CONNECTOR_CLASS).toContain("border-[#012642]/35");
+  });
+
+  it("uses Cargo Yellow for completed route segments and light grey for upcoming segments", () => {
+    expect(getTrackingTimelineConnectorClass(true)).toContain("border-cargo-yellow");
+    expect(getTrackingTimelineConnectorClass(false)).toContain("border-ink/20");
+  });
+
+  it("keeps the sign-in control labelled for an account affordance", () => {
+    expect(PUBLIC_TRACKING_SIGN_IN_LABEL).toBe("Sign in to your account");
   });
 });
-

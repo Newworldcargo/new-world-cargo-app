@@ -329,3 +329,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Restyle the two public tracking service cards in #012642 navy and add approved New World Cargo logo and promotional imagery to the central header and desktop campaign rails.
 - [x] Add a vertical dashed route connector between successive tracking-result status circles so the shipment timeline reads as a mapped journey.
 - [x] Add the supplied courier advert at the top of the public tracking left desktop campaign rail and the referenced cargo animation immediately beneath it.
+- [x] Make active public tracking dashed-route connectors Cargo Yellow, retain light grey for inactive connectors, and add an account icon beside the header Sign in link.
