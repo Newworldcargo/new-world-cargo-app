@@ -19,21 +19,25 @@ import {
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { shipments } from "@/lib/mock-data";
 import { ShipmentCard, StatusBadge } from "@/components/shipment-ui";
+import { useCustomerInvoices, useCustomerShipments } from "@/api/hooks";
 
 export default function Home() {
   const [, navigate] = useLocation();
   const [tracking, setTracking] = useState("");
-  const arriving = shipments[1];
-  const inTransit = shipments[0];
+  const { data: shipments = [], isLoading: shipmentsLoading } = useCustomerShipments();
+  const { data: invoices = [] } = useCustomerInvoices();
+  const arriving = shipments.find((shipment) => shipment.status === "out_for_delivery") ?? shipments.find((shipment) => shipment.status !== "delivered") ?? shipments[0];
+  const inTransit = shipments.find((shipment) => shipment.status === "in_transit") ?? shipments.find((shipment) => shipment.id !== arriving?.id) ?? arriving;
+  const outstandingInvoice = invoices.find((invoice) => invoice.status === "unpaid");
 
   const track = () => {
     if (!tracking.trim()) {
       toast.error("Enter a tracking number to continue");
       return;
     }
-    navigate(`/shipments/${tracking.toUpperCase().includes("19034") ? "shipment-19034" : "shipment-48291"}`);
+    const matchingShipment = shipments.find((shipment) => shipment.trackingNumber.toLowerCase() === tracking.trim().toLowerCase());
+    navigate(matchingShipment ? `/shipments/${matchingShipment.id}` : `/track?number=${encodeURIComponent(tracking.trim().toUpperCase())}`);
   };
 
   const primaryActions = [
@@ -46,7 +50,7 @@ export default function Home() {
     },
     {
       label: "Pay balance",
-      detail: "K 1,280 due for China cargo",
+      detail: outstandingInvoice ? `${outstandingInvoice.amount} due for cargo` : "Review your cargo payments",
       icon: WalletCards,
       onClick: () => navigate("/invoices"),
       accent: "bg-white text-foreground border-ink/10",
@@ -55,7 +59,7 @@ export default function Home() {
       label: "Add delivery note",
       detail: "For your arriving parcel",
       icon: PackageCheck,
-      onClick: () => navigate(`/shipments/${arriving.id}`),
+      onClick: () => arriving ? navigate(`/shipments/${arriving.id}`) : navigate("/shipments"),
       accent: "bg-white text-foreground border-ink/10",
     },
     {
@@ -93,22 +97,22 @@ export default function Home() {
 
       <section className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[1.18fr_0.82fr]">
         <button
-          onClick={() => navigate(`/shipments/${arriving.id}`)}
+          onClick={() => arriving ? navigate(`/shipments/${arriving.id}`) : navigate("/shipments")}
           className="group rounded-[28px] border border-ink/10 bg-white p-5 text-left transition hover:border-cargo-yellow/45 sm:p-6"
         >
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Your next delivery</p>
-              <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">{arriving.eta}</h2>
-              <p className="mt-2 break-words text-sm font-semibold text-white/60">{arriving.packageName} · {arriving.trackingNumber}</p>
+              <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">{arriving?.eta ?? (shipmentsLoading ? "Loading delivery…" : "No delivery scheduled")}</h2>
+              <p className="mt-2 break-words text-sm font-semibold text-white/60">{arriving ? `${arriving.packageName} · ${arriving.trackingNumber}` : "Your next cargo update will appear here."}</p>
             </div>
-            <div className="self-start"><StatusBadge status={arriving.status} label={arriving.statusLabel} /></div>
+            {arriving && <div className="self-start"><StatusBadge status={arriving.status} label={arriving.statusLabel} /></div>}
           </div>
           <div className="mt-7 flex items-center gap-3">
             <div className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow/30 text-ink"><Truck className="size-5" /></div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-foreground">Courier is nearby</p>
-              <p className="mt-1 truncate text-xs text-white/55">{arriving.destination} · Add instructions if needed</p>
+              <p className="mt-1 truncate text-xs text-white/55">{arriving ? `${arriving.destination} · Add instructions if needed` : "We will notify you when cargo is scheduled."}</p>
             </div>
             <ChevronRight className="size-5 text-cargo-yellow transition group-hover:translate-x-0.5" />
           </div>
@@ -118,8 +122,8 @@ export default function Home() {
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Wallet & payments</p>
-              <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">K 1,280 due</h2>
-              <p className="mt-2 break-words text-sm leading-6 text-white/55">For your Guangzhou to Lusaka order.</p>
+              <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">{outstandingInvoice ? `${outstandingInvoice.amount} due` : "No balance due"}</h2>
+              <p className="mt-2 break-words text-sm leading-6 text-white/55">{outstandingInvoice ? `For your ${outstandingInvoice.route} order.` : "Your latest invoice status will appear here."}</p>
             </div>
             <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-cargo-yellow/15 text-cargo-yellow"><CreditCard className="size-5" /></div>
           </div>
@@ -166,7 +170,7 @@ export default function Home() {
             <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Open bookings</p><h2 className="mt-1 font-heading text-2xl font-bold tracking-tight text-foreground">Keep an eye on it</h2></div>
             <button onClick={() => navigate("/shipments")} className="flex items-center gap-1 text-xs font-bold text-cargo-yellow">View all <ChevronRight className="size-4" /></button>
           </div>
-          <ShipmentCard shipment={inTransit} onOpen={() => navigate(`/shipments/${inTransit.id}`)} />
+          {inTransit ? <ShipmentCard shipment={inTransit} onOpen={() => navigate(`/shipments/${inTransit.id}`)} /> : <div className="rounded-[24px] border border-dashed border-ink/15 bg-white p-6 text-sm text-ink/60">No open bookings are linked to this customer account.</div>}
         </div>
 
         <div id="tracking-rail" className="min-w-0 overflow-hidden rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6">

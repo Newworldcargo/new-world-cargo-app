@@ -1,16 +1,18 @@
 import { ArrowLeft, CalendarDays, CheckCircle2, CircleHelp, Download, FileCheck2, MoreHorizontal, PackageOpen, PhoneCall, RotateCcw, Share2, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
-import { ASSETS, invoices, shipments } from "@/lib/mock-data";
 import { CargoModeLabel, ShipmentActions, StatusBadge, Timeline } from "@/components/shipment-ui";
 import { PaymentModal, type PaymentConfirmation } from "@/components/payment-modal";
 import { canModifyShipment, canPayShipment } from "@/lib/workflow-completion";
+import { cargoAssets } from "@/lib/cargo-assets";
+import { useCustomerInvoices, useCustomerShipment } from "@/api/hooks";
 
 export default function ShipmentDetail() {
   const [, params] = useRoute("/shipments/:id");
   const [, navigate] = useLocation();
-  const shipment = shipments.find((item) => item.id === params?.id);
+  const { data: shipment, isLoading: shipmentLoading } = useCustomerShipment(params?.id);
+  const { data: invoices = [] } = useCustomerInvoices();
   const linkedInvoice = shipment ? invoices.find((invoice) => invoice.shipmentId === shipment.id) : undefined;
   const [showReschedule, setShowReschedule] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
@@ -18,14 +20,19 @@ export default function ShipmentDetail() {
   const [showActions, setShowActions] = useState(false);
   const [showJourney, setShowJourney] = useState(false);
   const [cancelled, setCancelled] = useState(false);
-  const [instructions, setInstructions] = useState(() => shipment ? localStorage.getItem(`new-world-cargo-instructions-${shipment.id}`) || "" : "");
+  const [instructions, setInstructions] = useState("");
   const [recipientName, setRecipientName] = useState("Shipment recipient");
   const [deliveryAddress, setDeliveryAddress] = useState("Selected delivery address");
   const [collectFromDepot, setCollectFromDepot] = useState(false);
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
 
-  if (!shipment) return <div className="mx-auto max-w-xl py-12 text-center"><PackageOpen className="mx-auto size-10 text-cargo-yellow" /><h1 className="mt-4 font-heading text-2xl font-extrabold">Shipment not found</h1><p className="mt-2 text-sm text-white/50">This shipment may have been removed or the link is incomplete.</p><button onClick={() => navigate("/shipments")} className="mt-6 rounded-xl bg-cargo-yellow px-5 py-3 text-sm font-bold text-ink">View shipments</button></div>;
+  useEffect(() => {
+    if (shipment) setInstructions(localStorage.getItem(`new-world-cargo-instructions-${shipment.id}`) || "");
+  }, [shipment]);
+
+  if (shipmentLoading) return <div className="mx-auto max-w-xl py-12 text-center text-sm text-white/50">Loading your shipment…</div>;
+  if (!shipment) return <div className="mx-auto max-w-xl py-12 text-center"><PackageOpen className="mx-auto size-10 text-cargo-yellow" /><h1 className="mt-4 font-heading text-2xl font-extrabold">Shipment not found</h1><p className="mt-2 text-sm text-white/50">This shipment may not be linked to your account, may have been removed, or the link is incomplete.</p><button onClick={() => navigate("/shipments")} className="mt-6 rounded-xl bg-cargo-yellow px-5 py-3 text-sm font-bold text-ink">View shipments</button></div>;
   const canModify = canModifyShipment(shipment.status, cancelled);
   const canPay = canPayShipment(linkedInvoice?.status, cancelled || paymentCompleted);
   const completePayment = (payment: PaymentConfirmation) => {
@@ -42,7 +49,7 @@ export default function ShipmentDetail() {
     <div className="grid gap-6 lg:grid-cols-[1fr_0.78fr] lg:items-start">
       <div>
         <section className="relative overflow-hidden rounded-[32px] bg-cargo-yellow p-6 text-ink sm:p-8">
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `url(${ASSETS.package})`, backgroundPosition: "right center", backgroundSize: "cover", mixBlendMode: "multiply" }} />
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `url(${cargoAssets.package})`, backgroundPosition: "right center", backgroundSize: "cover", mixBlendMode: "multiply" }} />
           <div className="relative">
             <div className="flex items-start justify-between gap-3"><div><CargoModeLabel mode={shipment.transportMode} /><h1 className="mt-3 font-heading text-3xl font-extrabold tracking-tight">{shipment.trackingNumber}</h1></div><button onClick={() => setShowActions(true)} className="grid size-10 place-items-center rounded-full bg-ink/10" aria-label="Shipment actions"><MoreHorizontal className="size-5" /></button></div>
             <div className="mt-8 flex items-center justify-between gap-3"><RouteEnd label={shipment.origin} /><div className="flex flex-1 items-center gap-1 px-2"><span className="size-2.5 rounded-full bg-ink" /><span className="h-px flex-1 bg-ink/30" /><PackageOpen className="size-5" /><span className="h-px flex-1 bg-ink/30" /><span className="size-2.5 rounded-full border-2 border-ink bg-cargo-yellow" /></div><RouteEnd label={shipment.destination} align="right" /></div>

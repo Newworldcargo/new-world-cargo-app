@@ -26,10 +26,10 @@ import {
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { cargoTransportOptions, pickupOfficeSuggestions, recipients as seedRecipients } from "@/lib/mock-data";
-import { readMockRecord, writeMockRecord } from "@/lib/mock-repository";
 import { PaymentModal } from "@/components/payment-modal";
 import { SubpageBackButton } from "@/components/subpage-back-button";
+import { useCustomerRecipients, useCustomerReferenceData } from "@/api/hooks";
+import { useCustomerWorkflowStore } from "@/stores/customer-workflow-store";
 
 const steps = ["Pickup", "Recipient", "Cargo", "Transport", "Review"];
 
@@ -46,6 +46,12 @@ type CargoRow = {
 
 export default function SendShipment() {
   const [location, navigate] = useLocation();
+  const { data: referenceData, isLoading: isReferenceDataLoading } = useCustomerReferenceData();
+  const { data: savedRecipients = [] } = useCustomerRecipients();
+  const shipmentDrafts = useCustomerWorkflowStore((state) => state.shipmentDrafts);
+  const latestQuote = useCustomerWorkflowStore((state) => state.latestQuote);
+  const saveShipmentDraft = useCustomerWorkflowStore((state) => state.saveShipmentDraft);
+  const setLatestQuote = useCustomerWorkflowStore((state) => state.setLatestQuote);
   const [step, setStep] = useState(0);
   const [success, setSuccess] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -66,8 +72,26 @@ export default function SendShipment() {
     contents: "",
     packages: "",
   });
-  const [savedRecipients, setSavedRecipients] = useState(() => readMockRecord("new-world-cargo-recipients", seedRecipients));
-  useEffect(() => { if (location.includes("draft=latest")) { const saved = readMockRecord<Record<string, unknown> | null>("new-world-cargo-draft", null); if (!saved) return; if (saved.form) setForm(saved.form as typeof form); if (saved.cargoRows) setCargoRows(saved.cargoRows as CargoRow[]); if (saved.transport) setTransport(saved.transport as "air" | "sea"); if (saved.handover) setHandover(saved.handover as "collect" | "delivery"); if (saved.evidence) setEvidence(saved.evidence as EvidenceState); if (typeof saved.step === "number") setStep(saved.step); toast("Your saved draft is ready to continue."); } if (location.includes("quote=latest")) { const quote = readMockRecord<Record<string, string | number> | null>("new-world-cargo-quote", null); if (!quote) return; if (typeof quote.expiresAt === "number" && Date.now() > quote.expiresAt) { toast("This quote has expired. Please request a fresh estimate."); return; } setForm((current) => ({ ...current, pickup: String(quote.from || current.pickup), destination: String(quote.to || current.destination), packages: String(quote.weight || current.packages) })); toast(`Your ${quote.serviceName || ""} quote has been added. You can edit all details.`); } }, [location]);
+  useEffect(() => {
+    if (location.includes("draft=latest")) {
+      const saved = Object.values(shipmentDrafts).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+      if (!saved) return;
+      const payload = saved.payload as Partial<{ form: typeof form; cargoRows: CargoRow[]; transport: "air" | "sea"; handover: "collect" | "delivery"; evidence: EvidenceState }>;
+      if (payload.form) setForm(payload.form);
+      if (payload.cargoRows) setCargoRows(payload.cargoRows);
+      if (payload.transport) setTransport(payload.transport);
+      if (payload.handover) setHandover(payload.handover);
+      if (payload.evidence) setEvidence(payload.evidence);
+      setStep(saved.step);
+      toast("Your saved draft is ready to continue.");
+    }
+    if (location.includes("quote=latest")) {
+      if (!latestQuote) return;
+      if (Date.now() > new Date(latestQuote.expiresAt).getTime()) { setLatestQuote(null); toast("This quote has expired. Please request a fresh estimate."); return; }
+      setForm((current) => ({ ...current, pickup: latestQuote.from || current.pickup, destination: latestQuote.to || current.destination, packages: String(latestQuote.weightKg || current.packages) }));
+      toast(`Your ${latestQuote.serviceName} quote has been added. You can edit all details.`);
+    }
+  }, [latestQuote, location, setLatestQuote, shipmentDrafts]);
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -97,7 +121,7 @@ export default function SendShipment() {
   const goBack = () => (step ? setStep((current) => current - 1) : navigate("/"));
   const next = () => (step < steps.length - 1 ? setStep((current) => current + 1) : setPaymentOpen(true));
   const saveDraft = () => {
-    writeMockRecord("new-world-cargo-draft", { form, cargoRows, transport, handover, evidence, step });
+    saveShipmentDraft({ id: "latest", step, payload: { form, cargoRows, transport, handover, evidence }, updatedAt: new Date().toISOString() });
     toast("Your cargo request draft has been saved.");
   };
   const useCurrentLocation = () => {
@@ -110,13 +134,11 @@ export default function SendShipment() {
   };
   const saveRecipient = () => {
     if (!form.recipient.trim() || !form.phone.trim()) { toast.error("Add a cargo owner and phone number before saving this contact."); return; }
-    const recipient = { id: `recipient-${Date.now()}`, name: form.recipient.trim(), phone: form.phone.trim(), location: form.destination.trim() || "Address to be confirmed", initials: form.recipient.trim().split(/\s+/).map((word) => word[0]).slice(0, 2).join("").toUpperCase(), notes: form.recipientNotes };
-    const nextRecipients = [...savedRecipients, recipient];
-    setSavedRecipients(nextRecipients);
-    writeMockRecord("new-world-cargo-recipients", nextRecipients);
-    toast.success("Cargo owner saved to your recipients.");
+    toast.info("This contact is ready to be saved through the customer API when it is enabled.");
   };
-  const selectedTransport = cargoTransportOptions.find((option) => option.id === transport)!;
+  const transportOptions = referenceData?.cargoTransportOptions ?? [];
+  const pickupOffices = referenceData?.pickupOfficeSuggestions ?? [];
+  const selectedTransport = transportOptions.find((option) => option.id === transport) ?? { id: transport, name: transport === "air" ? "Air cargo" : "Sea cargo", detail: "Loading service options", eta: "To be confirmed" };
 
   if (success) {
     return (
@@ -179,7 +201,7 @@ export default function SendShipment() {
       <div className="rounded-[30px] border border-white/8 bg-white/[0.035] p-5 sm:p-8">
         {step === 0 && (
           <StepBlock icon={MapPin} title="Where should we collect it?">
-            <PickupAddressField value={form.pickup} onChange={(value) => update("pickup", value)} />
+            <PickupAddressField value={form.pickup} onChange={(value) => update("pickup", value)} offices={pickupOffices} />
             <div className="mt-3 grid grid-cols-2 gap-3">
               <button onClick={useCurrentLocation} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left text-xs font-bold text-white/70">
                 Use my location
@@ -283,7 +305,7 @@ export default function SendShipment() {
           <StepBlock icon={Plane} title="Choose transport and arrival">
             <p className="mb-3 text-xs font-bold text-white/40">How should the cargo travel?</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              {cargoTransportOptions.map((option) => {
+              {isReferenceDataLoading ? <p className="text-sm text-white/45">Loading service options…</p> : transportOptions.map((option) => {
                 const Icon = option.id === "air" ? Plane : ShipWheel;
                 return (
                   <button
@@ -391,11 +413,11 @@ function Field({ label, icon: Icon, value, onChange, type = "text" }: { label: s
   return <label className="block"><span className="mb-2 block text-xs font-bold text-white/35">{label}</span><div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink/35 px-4"><Icon className="size-4 shrink-0 text-white/30" /><input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/30" /></div></label>;
 }
 
-function PickupAddressField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function PickupAddressField({ value, onChange, offices }: { value: string; onChange: (value: string) => void; offices: { id: string; name: string; address: string; detail: string }[] }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const normalized = value.trim().toLowerCase();
-  const suggestions = pickupOfficeSuggestions.filter((office) => !normalized || `${office.name} ${office.address} ${office.detail}`.toLowerCase().includes(normalized));
+  const suggestions = offices.filter((office) => !normalized || `${office.name} ${office.address} ${office.detail}`.toLowerCase().includes(normalized));
   const selectOffice = (address: string) => { onChange(address); setOpen(false); setActiveIndex(-1); };
   const optionId = (index: number) => `pickup-office-${index}`;
   return <label className="relative block"><span className="mb-2 block text-xs font-bold text-white/35">Pickup address</span><div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink/35 px-4"><MapPin className="size-4 shrink-0 text-white/30" /><input value={value} onChange={(event) => { onChange(event.target.value); setOpen(true); setActiveIndex(-1); }} onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 120)} onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); setActiveIndex(-1); } if (event.key === "ArrowDown") { event.preventDefault(); setOpen(true); setActiveIndex((current) => Math.min(current + 1, suggestions.length - 1)); } if (event.key === "ArrowUp") { event.preventDefault(); setActiveIndex((current) => Math.max(current - 1, 0)); } if (event.key === "Enter" && open && activeIndex >= 0 && suggestions[activeIndex]) { event.preventDefault(); selectOffice(suggestions[activeIndex].address); } }} className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/30" placeholder="Select an office or type an address" role="combobox" aria-expanded={open} aria-controls="pickup-office-list" aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined} aria-autocomplete="list" /></div>{open && <div id="pickup-office-list" role="listbox" className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-white p-1.5">{suggestions.length ? <><p className="px-3 py-2 text-[11px] font-semibold text-white/45">New World Cargo offices</p>{suggestions.map((office, index) => <button key={office.id} id={optionId(index)} type="button" role="option" aria-selected={activeIndex === index} onMouseDown={(event) => event.preventDefault()} onClick={() => selectOffice(office.address)} className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition ${activeIndex === index ? "bg-cargo-yellow/15" : "hover:bg-white/8"}`}><span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl bg-cargo-yellow/15 text-cargo-yellow"><Building2 className="size-4" /></span><span className="min-w-0"><span className="block text-sm font-bold text-white">{office.name}</span><span className="mt-0.5 block text-xs text-white/45">{office.address}</span><span className="mt-1 block text-[11px] text-white/30">{office.detail}</span></span></button>)}</> : <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setOpen(false)} className="w-full rounded-xl px-3 py-3 text-left text-sm font-semibold text-white/65 hover:bg-white/8">Use “{value}” as the pickup address</button>}</div>}</label>;

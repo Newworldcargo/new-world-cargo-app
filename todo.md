@@ -309,3 +309,11 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Move the New World Cargo logo reference from Manus storage into client/public and verify root-path delivery.
 - [x] Replace “Good afternoon, Amina.” with “Good afternoon, Peter.” everywhere the greeting appears.
 - [x] Audit whether signed-in customers can see only shipments linked to their account, then identify the data-model and API gap.
+- [ ] Replace direct shared mock-data usage with customer-scoped, API-ready domain contracts and repository adapters across the portal.
+- [ ] Define the authenticated backend routes, database ownership model, query keys, error contracts, and migration path needed for plug-in API integration.
+- [ ] Migrate shipment, invoice, payment, profile, addresses, recipients, notifications, support, returns, pickup, delivery, and draft workflows to the API-ready data boundary.
+- [ ] Add contract and repository tests, integration documentation, and a mock-adapter removal checklist for live API activation.
+- [ ] Ensure every customer page reads data only through typed, customer-scoped query hooks and never directly from mock fixtures or browser records.
+- [ ] Provide mutation contracts, invalidation rules, field-error handling, idempotency support, and recovery states for every write workflow.
+- [ ] Add local-only Zustand stores for unsent drafts and transient UI state while keeping server records, identities, and payment outcomes out of browser persistence.
+- [ ] Add API-ready upload, payment-intent, public-tracking, session, authorization, and cache-reset boundaries with a backend handoff contract for each.

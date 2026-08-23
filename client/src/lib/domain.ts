@@ -35,6 +35,8 @@ export type Shipment = {
   progress: number;
   events: TrackingEvent[];
   nextAction?: string;
+  revision?: number;
+  allowedActions?: string[];
 };
 
 export type Address = {
@@ -43,6 +45,7 @@ export type Address = {
   line: string;
   landmark: string;
   default?: boolean;
+  revision?: number;
 };
 
 export type Recipient = {
@@ -51,6 +54,7 @@ export type Recipient = {
   location: string;
   phone: string;
   initials: string;
+  revision?: number;
 };
 
 export type DeliveryOption = {
