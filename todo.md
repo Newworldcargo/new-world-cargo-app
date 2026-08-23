@@ -319,3 +319,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Add API-ready upload, payment-intent, public-tracking, session, authorization, and cache-reset boundaries with a backend handoff contract for each.
 - [x] Re-audit the API-ready portal for missing security, identity, data, transport, resilience, observability, deployment, and test infrastructure; remediate frontend-owned gaps.
 - [x] Add reusable Sonner feedback conventions for successful, warning, error, and informational outcomes across primary customer workflows and pages.
+- [x] Produce a complete backend implementation specification: API list, schemas, authorization, customer workflows, operational requirements, integration sequence, and acceptance tests for plug-in frontend activation.

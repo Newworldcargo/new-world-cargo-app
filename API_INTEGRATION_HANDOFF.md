@@ -1,5 +1,7 @@
 # New World Cargo Frontend API Integration Handoff
 
+> **Implementation package:** [`BACKEND_IMPLEMENTATION_SPEC.md`](./BACKEND_IMPLEMENTATION_SPEC.md) is the definitive build brief for the backend team. It expands this adapter matrix into workflow definitions, data ownership, security, operational requirements, acceptance tests, delivery order, and the additional APIs required to complete currently local-only shipment, quote, document, payment-method, and notification-preference workflows.
+
 **Status:** The customer portal is now **adapter-ready**. Customer pages read through typed query hooks and write through typed mutation hooks. No page imports shared mock fixtures or browser mock persistence directly. The remaining mock data is isolated inside the development adapter and can be replaced by the HTTP adapter through configuration.
 
 > **Activation rule:** Set `VITE_NWC_DATA_MODE=http` and provide `VITE_NWC_API_BASE_URL` only after the backend implements the endpoints and response envelopes in this document. The pages, routes, form UX, cache ownership, and customer-scoped data hooks do not change.
