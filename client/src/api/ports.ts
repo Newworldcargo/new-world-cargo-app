@@ -1,4 +1,4 @@
-import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, PaymentIntentDto, PaymentIntentInput, RecipientDto, RecipientInput, ShipmentAction, ShipmentDto } from "./contracts";
+import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto } from "./contracts";
 
 export type ShipmentListFilters = {
   query?: string;
@@ -28,4 +28,18 @@ export interface CustomerPortalPort {
   performShipmentAction(scope: CustomerScope, shipmentId: string, revision: number, action: ShipmentAction, idempotencyKey: string): Promise<ShipmentDto>;
   createPaymentIntent(scope: CustomerScope, input: PaymentIntentInput): Promise<PaymentIntentDto>;
   createFileUploadIntent(scope: CustomerScope, input: FileUploadIntentInput): Promise<FileUploadIntentDto>;
+  completeFileUpload(scope: CustomerScope, fileId: string): Promise<UploadedFileDto>;
+  listNotifications(scope: CustomerScope): Promise<NotificationDto[]>;
+  markNotificationRead(scope: CustomerScope, notificationId: string, revision: number): Promise<NotificationDto>;
+  markAllNotificationsRead(scope: CustomerScope, idempotencyKey: string): Promise<void>;
+  listSupportCases(scope: CustomerScope): Promise<SupportCaseDto[]>;
+  createSupportCase(scope: CustomerScope, input: SupportCaseInput): Promise<SupportCaseDto>;
+  listReturnRequests(scope: CustomerScope): Promise<ReturnRequestDto[]>;
+  createReturnRequest(scope: CustomerScope, input: ReturnRequestInput): Promise<ReturnRequestDto>;
+  getPickup(scope: CustomerScope): Promise<PickupDto | null>;
+  schedulePickup(scope: CustomerScope, input: PickupInput): Promise<PickupDto>;
+  cancelPickup(scope: CustomerScope, pickupId: string, revision: number, idempotencyKey: string): Promise<PickupDto>;
+  listSessionActivity(scope: CustomerScope): Promise<SessionActivityDto[]>;
+  setSessionTrust(scope: CustomerScope, sessionId: string, revision: number, trusted: boolean): Promise<SessionActivityDto>;
+  revokeSession(scope: CustomerScope, sessionId: string, revision: number, idempotencyKey: string): Promise<void>;
 }

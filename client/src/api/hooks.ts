@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { addressToViewModel, invoiceToViewModel, recipientToViewModel, referenceDataToViewModel, shipmentToViewModel } from "./mappers";
-import type { AddressInput, FileUploadIntentInput, PaymentIntentInput, RecipientInput, ShipmentAction } from "./contracts";
+import type { AddressInput, FileUploadIntentInput, PaymentIntentInput, PickupInput, RecipientInput, ReturnRequestInput, ShipmentAction, SupportCaseInput } from "./contracts";
 import type { InvoiceListFilters, ShipmentListFilters } from "./ports";
 import { queryKeys } from "./query-keys";
 import { customerPortalRepository } from "./repository";
@@ -91,6 +91,90 @@ export function useCustomerReferenceData() {
   });
 }
 
+export function useCustomerNotifications() {
+  const scope = useCustomerScope();
+  return useQuery({
+    queryKey: queryKeys.notifications.list(scope.customerId),
+    queryFn: () => customerPortalRepository.listNotifications({ customerId: scope.customerId }),
+    enabled: scope.enabled,
+    staleTime: 30_000,
+  });
+}
+
+export function useNotificationMutations() {
+  const scope = useCustomerScope();
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all(scope.customerId) });
+  return {
+    markRead: useMutation({
+      mutationFn: ({ id, revision }: { id: string; revision: number }) => customerPortalRepository.markNotificationRead(requireCustomerScope(scope), id, revision),
+      onSuccess: invalidate,
+    }),
+    markAllRead: useMutation({
+      mutationFn: () => customerPortalRepository.markAllNotificationsRead(requireCustomerScope(scope), crypto.randomUUID()),
+      onSuccess: invalidate,
+    }),
+  };
+}
+
+export function useCustomerSupportCases() {
+  const scope = useCustomerScope();
+  return useQuery({ queryKey: queryKeys.support.list(scope.customerId), queryFn: () => customerPortalRepository.listSupportCases({ customerId: scope.customerId }), enabled: scope.enabled, staleTime: 30_000 });
+}
+
+export function useSupportCaseMutation() {
+  const scope = useCustomerScope();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Omit<SupportCaseInput, "idempotencyKey">) => customerPortalRepository.createSupportCase(requireCustomerScope(scope), { ...input, idempotencyKey: crypto.randomUUID() }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.support.list(scope.customerId) }),
+  });
+}
+
+export function useCustomerReturnRequests() {
+  const scope = useCustomerScope();
+  return useQuery({ queryKey: queryKeys.returns.list(scope.customerId), queryFn: () => customerPortalRepository.listReturnRequests({ customerId: scope.customerId }), enabled: scope.enabled, staleTime: 30_000 });
+}
+
+export function useReturnRequestMutation() {
+  const scope = useCustomerScope();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Omit<ReturnRequestInput, "idempotencyKey">) => customerPortalRepository.createReturnRequest(requireCustomerScope(scope), { ...input, idempotencyKey: crypto.randomUUID() }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.returns.list(scope.customerId) }),
+  });
+}
+
+export function useCustomerPickup() {
+  const scope = useCustomerScope();
+  return useQuery({ queryKey: queryKeys.pickups.detail(scope.customerId), queryFn: () => customerPortalRepository.getPickup({ customerId: scope.customerId }), enabled: scope.enabled, staleTime: 30_000 });
+}
+
+export function usePickupMutations() {
+  const scope = useCustomerScope();
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.pickups.detail(scope.customerId) });
+  return {
+    schedule: useMutation({ mutationFn: (input: Omit<PickupInput, "idempotencyKey">) => customerPortalRepository.schedulePickup(requireCustomerScope(scope), { ...input, idempotencyKey: crypto.randomUUID() }), onSuccess: invalidate }),
+    cancel: useMutation({ mutationFn: ({ id, revision }: { id: string; revision: number }) => customerPortalRepository.cancelPickup(requireCustomerScope(scope), id, revision, crypto.randomUUID()), onSuccess: invalidate }),
+  };
+}
+
+export function useCustomerSessionActivity() {
+  const scope = useCustomerScope();
+  return useQuery({ queryKey: queryKeys.security.sessions(scope.customerId), queryFn: () => customerPortalRepository.listSessionActivity({ customerId: scope.customerId }), enabled: scope.enabled, staleTime: 30_000 });
+}
+
+export function useSessionActivityMutations() {
+  const scope = useCustomerScope();
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.security.sessions(scope.customerId) });
+  return {
+    setTrust: useMutation({ mutationFn: ({ id, revision, trusted }: { id: string; revision: number; trusted: boolean }) => customerPortalRepository.setSessionTrust(requireCustomerScope(scope), id, revision, trusted), onSuccess: invalidate }),
+    revoke: useMutation({ mutationFn: ({ id, revision }: { id: string; revision: number }) => customerPortalRepository.revokeSession(requireCustomerScope(scope), id, revision, crypto.randomUUID()), onSuccess: invalidate }),
+  };
+}
+
 export function useAddressMutations() {
   const scope = useCustomerScope();
   const queryClient = useQueryClient();
@@ -139,5 +223,12 @@ export function useFileUploadIntentMutation() {
   const scope = useCustomerScope();
   return useMutation({
     mutationFn: (input: Omit<FileUploadIntentInput, "idempotencyKey">) => customerPortalRepository.createFileUploadIntent(requireCustomerScope(scope), { ...input, idempotencyKey: crypto.randomUUID() }),
+  });
+}
+
+export function useCompleteFileUploadMutation() {
+  const scope = useCustomerScope();
+  return useMutation({
+    mutationFn: (fileId: string) => customerPortalRepository.completeFileUpload(requireCustomerScope(scope), fileId),
   });
 }

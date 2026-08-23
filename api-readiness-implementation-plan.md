@@ -2,7 +2,7 @@
 
 **Project:** New World Cargo customer application  
 **Author:** Manus AI  
-**Status:** Planning baseline — no production API integration has been added  
+**Status:** Implementation handoff — API-ready frontend boundaries, typed contracts, mock/HTTP adapters, query hooks, local workflow state, and session gateway have been added; no production backend is connected yet.  
 **Purpose:** Prepare the existing React customer application so that introducing live APIs replaces the current mock adapter rather than requiring a UI rewrite.
 
 ## 1. Decision Summary
@@ -358,7 +358,7 @@ The frontend is ready to consume a newly exposed endpoint when the following con
 
 The first implementation slice should be **session + addresses/recipients + shipment reads**. It establishes secure authentication, a complete CRUD pattern, query/provider conventions, and the app’s most visible customer data without introducing payment risk. The second slice should add shipment drafts and quote reads. Payment and provider integrations should remain last, after idempotency, observability, uploads, and server-side financial records are proven.
 
-This plan intentionally does not start API integration, install dependencies, or alter customer behavior. It is the build contract for the next implementation phase.
+The original planning scope is now implemented on the frontend. See [`API_INTEGRATION_HANDOFF.md`](./API_INTEGRATION_HANDOFF.md) for the exact live-adapter endpoint matrix, ownership rules, concurrency contract, activation steps, and mock-removal gates.
 
 ## References
 

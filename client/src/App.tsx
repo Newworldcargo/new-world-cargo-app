@@ -56,7 +56,7 @@ function PublicRouter() {
 
 function RoutedApp() {
   const [location, navigate] = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: sessionLoading } = useAuth();
   const [booting, setBooting] = useState(true);
   useEffect(() => {
     const timer = window.setTimeout(() => setBooting(false), 180);
@@ -64,7 +64,7 @@ function RoutedApp() {
   }, []);
   const isPublic = ["/login", "/register", "/verify", "/forgot-password", "/reset-password", "/auth/complete-profile", "/session-expired", "/track"].some(path => location.startsWith(path)) || location.startsWith("/settings/legal");
   useEffect(() => { if (!isAuthenticated && !isPublic) navigate(`/login?returnTo=${encodeURIComponent(location)}`); }, [isAuthenticated, isPublic, location, navigate]);
-  if (booting) return <AppPreloader />;
+  if (booting || sessionLoading) return <AppPreloader />;
   if (isPublic) return <PublicRouter />;
   if (!isAuthenticated) return null;
   return <AppShell><CustomerRouter /></AppShell>;

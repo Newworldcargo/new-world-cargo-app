@@ -169,7 +169,7 @@ export const fileUploadIntentInputSchema = z.object({
   filename: z.string().trim().min(1).max(255),
   contentType: z.string().trim().min(1).max(120),
   sizeBytes: z.number().int().positive().max(20 * 1024 * 1024),
-  purpose: z.enum(["shipment-evidence", "support-attachment", "proof-of-delivery"]),
+  purpose: z.enum(["shipment-evidence", "support-attachment", "proof-of-delivery", "profile-photo"]),
   idempotencyKey: z.string().uuid(),
 });
 
@@ -178,6 +178,99 @@ export const fileUploadIntentDtoSchema = z.object({
   uploadUrl: z.string().url(),
   headers: z.record(z.string(), z.string()),
   expiresAt: z.string().datetime(),
+});
+
+export const uploadedFileDtoSchema = z.object({
+  fileId: z.string(),
+  url: z.string().url(),
+  contentType: z.string(),
+  sizeBytes: z.number().int().positive(),
+});
+
+export const notificationTypeSchema = z.enum(["progress", "arrival", "exception", "payment"]);
+
+export const notificationDtoSchema = z.object({
+  id: z.string(),
+  customerId: z.string(),
+  type: notificationTypeSchema,
+  title: z.string(),
+  body: z.string(),
+  occurredAt: z.string().datetime(),
+  displayTime: z.string(),
+  shipmentId: z.string().nullable(),
+  unread: z.boolean(),
+  revision: z.number().int().nonnegative(),
+});
+
+export const supportCaseStatusSchema = z.enum(["open", "in_review", "resolved"]);
+export const supportCaseDtoSchema = z.object({
+  id: z.string(),
+  customerId: z.string(),
+  category: z.string(),
+  subject: z.string(),
+  detail: z.string(),
+  status: supportCaseStatusSchema,
+  createdAt: z.string().datetime(),
+  displayCreatedAt: z.string(),
+  attachmentFileId: z.string().nullable(),
+  revision: z.number().int().nonnegative(),
+});
+export const supportCaseInputSchema = z.object({
+  category: z.string().trim().min(1).max(100),
+  subject: z.string().trim().min(1).max(180),
+  detail: z.string().trim().min(1).max(5_000),
+  attachmentFileId: z.string().nullable().default(null),
+  idempotencyKey: z.string().uuid(),
+});
+
+export const returnRequestStatusSchema = z.enum(["draft", "requested", "approved", "in_transit", "completed", "rejected"]);
+export const returnRequestDtoSchema = z.object({
+  id: z.string(),
+  customerId: z.string(),
+  shipmentId: z.string(),
+  trackingNumber: z.string(),
+  reason: z.string(),
+  handover: z.enum(["pickup", "drop_off"]),
+  status: returnRequestStatusSchema,
+  displayStatus: z.string(),
+  createdAt: z.string().datetime(),
+  revision: z.number().int().nonnegative(),
+});
+export const returnRequestInputSchema = z.object({
+  shipmentId: z.string().min(1),
+  reason: z.string().trim().min(1).max(1_000),
+  handover: z.enum(["pickup", "drop_off"]),
+  idempotencyKey: z.string().uuid(),
+});
+
+export const pickupStatusSchema = z.enum(["not_scheduled", "scheduled", "completed", "cancelled", "failed"]);
+export const pickupDtoSchema = z.object({
+  id: z.string(),
+  customerId: z.string(),
+  shipmentId: z.string().nullable(),
+  status: pickupStatusSchema,
+  collectionPoint: z.string(),
+  scheduledDate: z.string().nullable(),
+  scheduledTime: z.string().nullable(),
+  revision: z.number().int().nonnegative(),
+});
+export const pickupInputSchema = z.object({
+  shipmentId: z.string().nullable().default(null),
+  date: z.string().min(1),
+  time: z.string().min(1),
+  idempotencyKey: z.string().uuid(),
+});
+
+export const sessionActivityDtoSchema = z.object({
+  id: z.string(),
+  customerId: z.string(),
+  device: z.string(),
+  location: z.string(),
+  lastActiveAt: z.string().datetime(),
+  displayLastActiveAt: z.string(),
+  current: z.boolean(),
+  trusted: z.boolean(),
+  revision: z.number().int().nonnegative(),
 });
 
 export const apiProblemSchema = z.object({
@@ -204,6 +297,17 @@ export type PaymentIntentInput = z.infer<typeof paymentIntentInputSchema>;
 export type PaymentIntentDto = z.infer<typeof paymentIntentDtoSchema>;
 export type FileUploadIntentInput = z.infer<typeof fileUploadIntentInputSchema>;
 export type FileUploadIntentDto = z.infer<typeof fileUploadIntentDtoSchema>;
+export type UploadedFileDto = z.infer<typeof uploadedFileDtoSchema>;
+export type NotificationDto = z.infer<typeof notificationDtoSchema>;
+export type NotificationType = z.infer<typeof notificationTypeSchema>;
+export type SupportCaseDto = z.infer<typeof supportCaseDtoSchema>;
+export type SupportCaseInput = z.infer<typeof supportCaseInputSchema>;
+export type SupportCaseStatus = z.infer<typeof supportCaseStatusSchema>;
+export type ReturnRequestDto = z.infer<typeof returnRequestDtoSchema>;
+export type ReturnRequestInput = z.infer<typeof returnRequestInputSchema>;
+export type PickupDto = z.infer<typeof pickupDtoSchema>;
+export type PickupInput = z.infer<typeof pickupInputSchema>;
+export type SessionActivityDto = z.infer<typeof sessionActivityDtoSchema>;
 export type ApiProblem = z.infer<typeof apiProblemSchema>;
 
 export type ApiSuccess<T> = { data: T; meta?: { nextCursor?: string; total?: number }; requestId?: string };

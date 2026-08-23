@@ -1,5 +1,5 @@
 import { ASSETS, addresses, cargoTransportOptions, deliveryOptions, invoices, pickupOfficeSuggestions, recipients, shipments } from "@/lib/mock-data";
-import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, PaymentIntentDto, PaymentIntentInput, RecipientDto, RecipientInput, ShipmentAction, ShipmentDto } from "../contracts";
+import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto } from "../contracts";
 import type { CustomerPortalPort, CustomerScope, InvoiceListFilters, ShipmentListFilters } from "../ports";
 
 const DEMO_CUSTOMER_ID = "nwc-001";
@@ -74,6 +74,19 @@ function mapRecipient(input: (typeof recipients)[number]): RecipientDto {
 
 let mockAddresses = addresses.map(mapAddress);
 let mockRecipients = recipients.map(mapRecipient);
+let mockNotifications: NotificationDto[] = [
+  { id: "notification-1", customerId: DEMO_CUSTOMER_ID, type: "progress", title: "Your package is in transit", body: "NWC48291ZM is moving through our delivery network.", occurredAt: "2026-08-23T07:35:00.000Z", displayTime: "12 min ago", shipmentId: "shipment-48291", unread: true, revision: 1 },
+  { id: "notification-2", customerId: DEMO_CUSTOMER_ID, type: "arrival", title: "Courier is nearby", body: "NWC19034ZM is arriving today in Ndola.", occurredAt: "2026-08-23T06:47:00.000Z", displayTime: "1 hr ago", shipmentId: "shipment-19034", unread: true, revision: 1 },
+  { id: "notification-3", customerId: DEMO_CUSTOMER_ID, type: "exception", title: "Delivery needs your attention", body: "We couldn't reach the recipient for NWC77120ZM.", occurredAt: "2026-08-22T12:00:00.000Z", displayTime: "Yesterday", shipmentId: "shipment-77120", unread: false, revision: 1 },
+  { id: "notification-4", customerId: DEMO_CUSTOMER_ID, type: "payment", title: "Payment confirmed", body: "Your receipt for NWC48291ZM is ready to view.", occurredAt: "2026-08-12T12:00:00.000Z", displayTime: "12 Aug", shipmentId: "shipment-48291", unread: false, revision: 1 },
+];
+let mockSupportCases: SupportCaseDto[] = [{ id: "NWC-CASE-1048", customerId: DEMO_CUSTOMER_ID, category: "Delivery question", subject: "Delivery time for NWC19034ZM", detail: "Please confirm the expected delivery window.", status: "in_review", createdAt: "2026-08-23T07:00:00.000Z", displayCreatedAt: "Today", attachmentFileId: null, revision: 1 }];
+let mockReturnRequests: ReturnRequestDto[] = [];
+let mockPickup: PickupDto = { id: "pickup-current", customerId: DEMO_CUSTOMER_ID, shipmentId: null, status: "not_scheduled", collectionPoint: "New World Cargo Lusaka office", scheduledDate: null, scheduledTime: null, revision: 1 };
+let mockSessions: SessionActivityDto[] = [
+  { id: "session-current", customerId: DEMO_CUSTOMER_ID, device: "This device", location: "Lusaka, Zambia", lastActiveAt: "2026-08-23T07:50:00.000Z", displayLastActiveAt: "Active now", current: true, trusted: true, revision: 1 },
+  { id: "session-previous", customerId: DEMO_CUSTOMER_ID, device: "Chrome on Windows", location: "Lusaka, Zambia", lastActiveAt: "2026-08-21T11:00:00.000Z", displayLastActiveAt: "2 days ago", current: false, trusted: false, revision: 1 },
+];
 
 function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -190,6 +203,67 @@ export const mockCustomerPortalPort: CustomerPortalPort = {
   async createFileUploadIntent(scope, input: FileUploadIntentInput): Promise<FileUploadIntentDto> {
     if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
     return { fileId: newId("file"), uploadUrl: `https://uploads.newworldcargo.test/${encodeURIComponent(input.filename)}`, headers: {}, expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() };
+  },
+  async completeFileUpload(scope, fileId): Promise<UploadedFileDto> {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    return { fileId, url: "https://placehold.co/256x256/png?text=NWC", contentType: "image/png", sizeBytes: 1 };
+  },
+  async listNotifications(scope) {
+    return ownsDemoRecords(scope) ? mockNotifications : [];
+  },
+  async markNotificationRead(scope, notificationId, revision) {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    const current = mockNotifications.find((item) => item.id === notificationId);
+    if (!current || current.revision !== revision) throw new Error("Notification was changed elsewhere. Refresh and try again.");
+    const updated = { ...current, unread: false, revision: current.revision + 1 };
+    mockNotifications = mockNotifications.map((item) => item.id === notificationId ? updated : item);
+    return updated;
+  },
+  async markAllNotificationsRead(scope, _idempotencyKey) {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    mockNotifications = mockNotifications.map((item) => item.unread ? { ...item, unread: false, revision: item.revision + 1 } : item);
+  },
+  async listSupportCases(scope) { return ownsDemoRecords(scope) ? mockSupportCases : []; },
+  async createSupportCase(scope, input: SupportCaseInput) {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    const record: SupportCaseDto = { id: `NWC-CASE-${1049 + mockSupportCases.length}`, customerId: scope.customerId, category: input.category, subject: input.subject, detail: input.detail, status: "open", createdAt: new Date().toISOString(), displayCreatedAt: "Just now", attachmentFileId: input.attachmentFileId, revision: 1 };
+    mockSupportCases = [record, ...mockSupportCases];
+    return record;
+  },
+  async listReturnRequests(scope) { return ownsDemoRecords(scope) ? mockReturnRequests : []; },
+  async createReturnRequest(scope, input: ReturnRequestInput) {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    const shipment = await this.getShipment(scope, input.shipmentId);
+    if (!shipment) throw new Error("Shipment was not found for this customer.");
+    const record: ReturnRequestDto = { id: newId("return"), customerId: scope.customerId, shipmentId: shipment.id, trackingNumber: shipment.trackingNumber, reason: input.reason, handover: input.handover, status: "requested", displayStatus: "Request received", createdAt: new Date().toISOString(), revision: 1 };
+    mockReturnRequests = [record, ...mockReturnRequests];
+    return record;
+  },
+  async getPickup(scope) { return ownsDemoRecords(scope) ? mockPickup : null; },
+  async schedulePickup(scope, input: PickupInput) {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    mockPickup = { ...mockPickup, shipmentId: input.shipmentId, status: "scheduled", scheduledDate: input.date, scheduledTime: input.time, revision: mockPickup.revision + 1 };
+    return mockPickup;
+  },
+  async cancelPickup(scope, pickupId, revision, _idempotencyKey) {
+    if (!ownsDemoRecords(scope) || mockPickup.id !== pickupId || mockPickup.revision !== revision) throw new Error("Pickup was changed elsewhere. Refresh and try again.");
+    mockPickup = { ...mockPickup, status: "cancelled", revision: mockPickup.revision + 1 };
+    return mockPickup;
+  },
+  async listSessionActivity(scope) { return ownsDemoRecords(scope) ? mockSessions : []; },
+  async setSessionTrust(scope, sessionId, revision, trusted) {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    const current = mockSessions.find((session) => session.id === sessionId);
+    if (!current || current.revision !== revision) throw new Error("Session was changed elsewhere. Refresh and try again.");
+    const updated = { ...current, trusted, revision: current.revision + 1 };
+    mockSessions = mockSessions.map((session) => session.id === sessionId ? updated : session);
+    return updated;
+  },
+  async revokeSession(scope, sessionId, revision, _idempotencyKey) {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    const current = mockSessions.find((session) => session.id === sessionId);
+    if (!current || current.revision !== revision) throw new Error("Session was changed elsewhere. Refresh and try again.");
+    mockSessions = mockSessions.filter((session) => session.id !== sessionId);
   },
 };
 

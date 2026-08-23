@@ -18,6 +18,21 @@ export const queryKeys = {
     addresses: (customerId: string) => ["profile", customerId, "addresses"] as const,
     recipients: (customerId: string, query = "") => ["profile", customerId, "recipients", query] as const,
   },
+  notifications: {
+    all: (customerId: string) => ["notifications", customerId] as const,
+    list: (customerId: string) => ["notifications", customerId, "list"] as const,
+  },
+  support: {
+    list: (customerId: string) => ["support", customerId, "list"] as const,
+  },
+  returns: {
+    list: (customerId: string) => ["returns", customerId, "list"] as const,
+  },
+  pickups: {
+    detail: (customerId: string) => ["pickups", customerId, "detail"] as const,
+  },
+  security: {
+    sessions: (customerId: string) => ["security", customerId, "sessions"] as const,
+  },
   referenceData: () => ["reference-data"] as const,
 };
-
