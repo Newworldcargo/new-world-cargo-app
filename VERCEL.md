@@ -1,6 +1,5 @@
 # Vercel deployment preparation
-
-This project is prepared for a **frontend-only Vercel deployment**. The repository contains a Vite React customer application whose production browser assets are emitted to `dist/public` by the existing `pnpm build` command.
+This project is prepared for a Vite React deployment with a **constrained same-origin Backend-for-Frontend (BFF)**. Browser assets are emitted to `dist/public` by the existing `pnpm build` command, while `api/gateway.ts` runs as a Vercel Function.
 
 ## Project settings
 
@@ -11,20 +10,15 @@ This project is prepared for a **frontend-only Vercel deployment**. The reposito
 | Build command | `pnpm build` |
 | Output directory | `dist/public` |
 | SPA fallback | `vercel.json` rewrites application routes to `/index.html` |
+| Secure API path | `/api/gateway/v1/:path*` rewrites to the BFF Function before the SPA fallback |
 
 The fallback is required because Wouter handles routes in the browser. Vercel's Vite guidance recommends a root `vercel.json` rewrite for deep links in a Vite SPA. The committed configuration also adds long-lived immutable caching for generated assets.
 
 ## Important API boundary
 
-The current `vercel.json` is intentionally a **static frontend configuration**. Its catch-all rewrite is suitable while the app uses mocked repositories. It must not be treated as a production API proxy: when live APIs are introduced, add an `/api/:path*` rewrite before the SPA fallback only if the backend origin, authentication model, CORS policy, and cache policy have been explicitly approved.
+The Vercel Function is a **same-origin BFF**, not an open reverse proxy. It accepts only the frontend adapter's explicit `/v1` route and method pairs, checks the canonical portal origin for mutations, bounds JSON bodies and upstream time, strips browser authorization/cookies and sensitive upstream response headers, and returns `Cache-Control: private, no-store, max-age=0` for BFF responses.
 
-The current Express server bundle is not automatically converted into Vercel Functions by this configuration. For a Vercel-hosted full-stack deployment, choose one of these deliberate paths before connecting production data:
-
-1. Deploy the API as a separate service and configure a scoped external `/api/:path*` rewrite to that origin.
-2. Convert the server routes into Vercel-compatible Functions or adopt a Vite full-stack adapter such as Nitro.
-3. Keep the API on Manus hosting and deploy only this browser frontend to Vercel, with the API base URL supplied through a Vite environment variable.
-
-Do not add API secrets to `VITE_*` variables; those values are exposed to browser code. Public API base URLs may use `VITE_*`, while tokens, database credentials, payment secrets, and signing keys must remain server-side.
+The current Express server bundle remains a local/static SPA runtime and is not the BFF. The actual Cargo API must be separately deployed and provide the BFF service-authentication and session-exchange contract described in [`SERVER_SIDE_GATEWAY_ARCHITECTURE.md`](./SERVER_SIDE_GATEWAY_ARCHITECTURE.md). Configure these values only in Vercel Preview and Production: `NWC_BACKEND_ORIGIN`, `NWC_BFF_SERVICE_TOKEN`, `NWC_BFF_ALLOWED_ORIGIN`, and `NWC_BFF_TIMEOUT_MS`. Never add the backend host, service token, database credentials, payment secrets, or signing keys to `VITE_*` variables.
 
 ## Verification before deployment
 
@@ -36,7 +30,7 @@ pnpm test
 pnpm build
 ```
 
-After connecting the repository to Vercel, validate a preview deployment by opening the root route and direct deep links such as `/shipments`, `/send`, `/invoices`, and `/settings`. Confirm that generated assets load, browser navigation remains client-side, and API routes are not accidentally captured by the SPA fallback.
+After connecting the repository to Vercel, validate a preview deployment by opening the root route and direct deep links such as `/shipments`, `/send`, `/invoices`, and `/settings`. Confirm that generated assets load, browser navigation remains client-side, `/api/gateway/v1/not-a-route` returns a JSON `404` rather than `index.html`, and authenticated staging calls reach the BFF without exposing the backend host in browser network destinations.
 
 ## Hosting note
 

@@ -4,10 +4,20 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build",
   "outputDirectory": "dist/public",
+  "functions": {
+    "api/gateway.ts": {
+      "maxDuration": 15,
+      "supportsCancellation": true
+    }
+  },
   "rewrites": [
     {
       "source": "/healthz",
       "destination": "/health.json"
+    },
+    {
+      "source": "/api/gateway/:path*",
+      "destination": "/api/gateway?path=:path*"
     },
     {
       "source": "/(.*)",
@@ -15,6 +25,19 @@
     }
   ],
   "headers": [
+    {
+      "source": "/api/gateway/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
+        }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

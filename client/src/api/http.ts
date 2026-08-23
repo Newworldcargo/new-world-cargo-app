@@ -1,7 +1,8 @@
 import { apiProblemSchema, type ApiSuccess } from "./contracts";
 import { CustomerApiError } from "./errors";
 
-const apiBaseUrl = (import.meta.env.VITE_NWC_API_BASE_URL || "/api/v1").replace(/\/$/, "");
+// Deliberately relative: browser code never receives the backend host or BFF credential.
+const apiBaseUrl = "/api/gateway/v1";
 const configuredTimeout = Number(import.meta.env.VITE_NWC_API_TIMEOUT_MS || 15_000);
 export const apiRequestTimeoutMs = Number.isFinite(configuredTimeout) ? Math.min(Math.max(configuredTimeout, 1_000), 60_000) : 15_000;
 

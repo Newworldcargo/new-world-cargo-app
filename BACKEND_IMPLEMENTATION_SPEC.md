@@ -23,12 +23,12 @@ The implementation should publish an **OpenAPI 3.1** contract and test the runni
 
 ## 2. Boundary and Integration Model
 
-The customer portal has two modes. `mock` is development-only. `http` invokes the API base URL supplied in `VITE_NWC_API_BASE_URL`, or `/api/v1` when the frontend and API share an origin. The live configuration **must not** be enabled until the current-adapter APIs pass staging contract and authorization tests.
+The customer portal has two modes. `mock` is development-only. `http` calls the fixed same-origin BFF path `/api/gateway/v1`; the BFF then invokes the private backend `/api/v1` namespace with server-only configuration. The live configuration **must not** be enabled until the current-adapter APIs pass staging contract and authorization tests. See [`SERVER_SIDE_GATEWAY_ARCHITECTURE.md`](./SERVER_SIDE_GATEWAY_ARCHITECTURE.md) for the Vercel boundary.
 
 | Layer | Existing frontend behavior | Backend delivery requirement |
 |---|---|---|
-| Session gateway | Uses cookie credentials for session, auth, profile, verification, password, and logout calls. | Issue, validate, rotate, revoke, and expire secure session cookies; publish the documented auth error codes. |
-| HTTP transport | Sends `Accept: application/json`, `X-Request-ID`, `credentials: include`, an optional `X-CSRF-Token`, and a bounded request timeout. | Return JSON envelopes, echo/correlate request IDs, accept cookie credentials, validate CSRF on unsafe cookie-authenticated calls, and keep CORS/cookie policy compatible. |
+| Session gateway | Uses a same-origin portal session cookie for session, auth, profile, verification, password, and logout calls. | Support the BFF's server-to-server session exchange and customer-assertion contract; do not require the BFF to forward arbitrary browser cookies. |
+| HTTP transport | Sends `Accept: application/json`, `X-Request-ID`, `credentials: include`, an optional `X-CSRF-Token`, and a bounded request timeout to the BFF. | Trust only the BFF service credential plus its short-lived customer assertion, return JSON envelopes, echo/correlate request IDs, and validate CSRF/origin protections for unsafe calls. |
 | Resource adapter | Calls the concrete paths in Section 5. | Match method, path, query parameter, headers, body, status, and response schema exactly. |
 | React Query | Invalidates affected customer data after writes. | Return committed server state promptly and make reads consistent enough for post-write refresh. |
 | Zustand workflow store | Holds only unsent local cargo drafts, quote handoff, and a non-sensitive last payment-method preference. | Do not treat browser values as authoritative; introduce server draft and quote resources before relying on them for operations. |
@@ -36,13 +36,13 @@ The customer portal has two modes. `mock` is development-only. `http` invokes th
 
 ### 2.1 Environments and activation variables
 
-| Environment | `VITE_NWC_DATA_MODE` | `VITE_NWC_API_BASE_URL` | Purpose |
+| Environment | `VITE_NWC_DATA_MODE` | BFF configuration | Purpose |
 |---|---:|---|---|
 | Local development | `mock` | Not required | UI and workflow development without a backend. |
-| Backend staging | `http` | `https://api-staging.<domain>/api/v1` | Contract, authorization, integration, and smoke testing. |
-| Production | `http` | `https://api.<domain>/api/v1` or same-origin `/api/v1` | Customer traffic after all go-live gates pass. |
+| Backend staging | `http` | `NWC_BACKEND_ORIGIN=https://api-staging.<domain>` plus the BFF service/session settings | Contract, authorization, integration, and smoke testing. |
+| Production | `http` | `NWC_BACKEND_ORIGIN=https://api.<domain>` plus the BFF service/session settings | Customer traffic after all go-live gates pass. |
 
-The frontend static host is not the API. The current project server is only a static SPA host. Deploy the API as a separately managed HTTPS service or place it behind a correctly configured reverse proxy. If a cross-origin architecture is selected, configure a precise origin allowlist, allow credentials, set `Vary: Origin`, and do not use wildcard origins with cookies.
+The frontend static host is not the Cargo business API. Deploy the API as a separately managed HTTPS service; the Vercel Function is a constrained BFF rather than the authoritative business backend. The browser should never target that backend origin directly. The backend should restrict service authentication to the BFF and accept only a verified BFF-issued customer assertion for private data access.
 
 ## 3. Global HTTP Contract
 
