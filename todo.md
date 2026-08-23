@@ -330,3 +330,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Add a vertical dashed route connector between successive tracking-result status circles so the shipment timeline reads as a mapped journey.
 - [x] Add the supplied courier advert at the top of the public tracking left desktop campaign rail and the referenced cargo animation immediately beneath it.
 - [x] Make active public tracking dashed-route connectors Cargo Yellow, retain light grey for inactive connectors, and add an account icon beside the header Sign in link.
+- [x] Keep the desktop sidebar fixed while main portal content scrolls independently, with sidebar scrolling enabled only for sidebar overflow.

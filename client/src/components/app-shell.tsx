@@ -47,8 +47,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="nwc-light min-h-screen overflow-x-hidden bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen max-w-[1600px]">
-        <aside className="sticky top-0 hidden h-screen w-[236px] shrink-0 flex-col border-r border-ink/10 bg-white px-5 py-7 lg:flex">
+      <div className="mx-auto min-h-screen max-w-[1600px] lg:pl-[236px]">
+        <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-[236px] flex-col overflow-y-auto overscroll-contain border-r border-ink/10 bg-white px-5 py-7 lg:flex">
           <BrandMark />
           <div className="mt-14 flex flex-1 flex-col gap-1">
             {desktopNavItems.map((item) => <NavLink key={item.href} item={item} active={activeHref === item.href} />)}
