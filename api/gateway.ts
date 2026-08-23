@@ -15,6 +15,7 @@ type GatewayRequest = IncomingMessage & {
 
 type GatewayConfig = {
   backendOrigin: string;
+  backendApiPrefix: string;
   serviceToken: string;
   allowedOrigin: string;
   timeoutMs: number;
@@ -51,8 +52,12 @@ function readConfig(): GatewayConfig | null {
     return null;
   }
 
+  const backendApiPrefix = (process.env.NWC_BACKEND_API_PREFIX || "/api").replace(/\/+$/, "");
+  if (!backendApiPrefix.startsWith("/") || backendApiPrefix.includes("//") || backendApiPrefix.includes("..")) return null;
+
   return {
     backendOrigin,
+    backendApiPrefix,
     serviceToken,
     allowedOrigin,
     timeoutMs,
@@ -206,7 +211,7 @@ export default async function handler(request: GatewayRequest, response: ServerR
     }
 
     const originalUrl = new URL(request.url || "/api/gateway", config.allowedOrigin);
-    const upstreamUrl = new URL(path, config.backendOrigin);
+    const upstreamUrl = new URL(`${config.backendApiPrefix}${path}`, `${config.backendOrigin}/`);
     originalUrl.searchParams.forEach((value, key) => {
       if (key !== "path") upstreamUrl.searchParams.append(key, value);
     });
