@@ -2,7 +2,7 @@ import { Camera, CheckCircle2, Copy, PackageSearch, Share2, XCircle } from "luci
 import { useState } from "react";
 import { Link } from "wouter";
 import { usePublicTracking } from "@/api/hooks";
-import { PublicTrackingCampaignBanner, PublicTrackingCampaignColumn } from "@/components/public-tracking-campaigns";
+import { PublicTrackingCampaignRail, PublicTrackingServiceCards } from "@/components/public-tracking-campaigns";
 import { Button } from "@/components/ui/button";
 
 type ScanState = "idle" | "permission" | "ready";
@@ -39,12 +39,10 @@ export default function Tracking() {
   };
 
   return (
-    <main className="min-h-screen bg-white px-4 py-8 text-ink sm:px-6 xl:px-8">
-      <div className="mx-auto max-w-[1440px]">
-        <PublicTrackingCampaignBanner />
-        <div className="xl:grid xl:grid-cols-[220px_minmax(0,42rem)_220px] xl:items-start xl:justify-center xl:gap-8">
-          <PublicTrackingCampaignColumn side="left" />
-          <div className="mx-auto w-full max-w-2xl">
+    <main className="min-h-screen bg-white text-ink">
+      <div className="xl:grid xl:grid-cols-[minmax(12rem,1fr)_minmax(0,44rem)_minmax(12rem,1fr)]">
+        <PublicTrackingCampaignRail side="left" />
+        <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 xl:px-8">
             <header className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="grid size-11 place-items-center rounded-2xl bg-cargo-yellow">
@@ -171,10 +169,10 @@ export default function Tracking() {
               </section>
             )}
             <p className="mt-8 text-center text-xs text-ink/45">Need help? Contact New World Cargo support by phone or email.</p>
-          </div>
-          <PublicTrackingCampaignColumn side="right" />
+            <PublicTrackingServiceCards />
         </div>
-      </div>
+        <PublicTrackingCampaignRail side="right" />
+        </div>
     </main>
   );
 }

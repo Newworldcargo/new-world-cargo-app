@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { PUBLIC_TRACKING_CAMPAIGNS } from "./public-tracking-campaigns";
+import { PUBLIC_TRACKING_RAILS, PUBLIC_TRACKING_SERVICES } from "./public-tracking-campaigns";
 
 describe("public tracking campaigns", () => {
-  it("defines one first-party banner and two distinct desktop side campaigns", () => {
-    expect(PUBLIC_TRACKING_CAMPAIGNS.banner.title).toBeTruthy();
-    expect(PUBLIC_TRACKING_CAMPAIGNS.left.eyebrow).not.toBe(PUBLIC_TRACKING_CAMPAIGNS.right.eyebrow);
-    expect(PUBLIC_TRACKING_CAMPAIGNS.left.detail.length).toBeLessThan(100);
-    expect(PUBLIC_TRACKING_CAMPAIGNS.right.detail.length).toBeLessThan(100);
+  it("defines two compact service cards below tracking", () => {
+    expect(PUBLIC_TRACKING_SERVICES).toHaveLength(2);
+    expect(PUBLIC_TRACKING_SERVICES.every((service) => service.detail.length < 100)).toBe(true);
+  });
+
+  it("defines two distinct first-party desktop campaign rails", () => {
+    expect(PUBLIC_TRACKING_RAILS.left.title).not.toBe(PUBLIC_TRACKING_RAILS.right.title);
+    expect(PUBLIC_TRACKING_RAILS.left.detail).toContain("campaign space");
+    expect(PUBLIC_TRACKING_RAILS.right.detail).toContain("campaign space");
   });
 });
+
