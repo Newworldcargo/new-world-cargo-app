@@ -3,11 +3,11 @@ import { ArrowUpRight, Route, ShieldCheck } from "lucide-react";
 const SERVICES_URL = "https://www.newworldcargo.com/";
 
 export const PUBLIC_TRACKING_BRAND_ASSETS = {
-  logo: "/manus-storage/new-world-cargo-tracking-logo_1248486d.svg",
-  campaignSquare: "/manus-storage/new-world-cargo-campaign-111_144a01f3.jpg",
-  campaignWarehouse: "/manus-storage/new-world-cargo-warehouse-campaign_fa33d540.jpg",
-  courierServicesAd: "/manus-storage/new-world-cargo-courier-services-ad_4e1b1578.png",
-  airCargoAnimation: "/manus-storage/new-world-cargo-air-cargo-animation_b8d80832.gif",
+  logo: "/new-world-cargo-logo.png",
+  campaignSquare: "https://www.newworldcargo.com/images/home1.webp",
+  campaignWarehouse: "https://www.newworldcargo.com/images/home1.webp",
+  courierServicesAd: "https://www.newworldcargo.com/images/home1.webp",
+  airCargoAnimation: "https://www.newworldcargo.com/images/home1.webp",
 } as const;
 
 export const PUBLIC_TRACKING_CARD_THEME = {

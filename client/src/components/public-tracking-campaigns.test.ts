@@ -20,18 +20,14 @@ describe("public tracking campaigns", () => {
     expect(PUBLIC_TRACKING_RAILS.right.imageUrl).toBe(PUBLIC_TRACKING_BRAND_ASSETS.campaignSquare);
   });
 
-  it("uses uploaded official visual assets and the default navy card surface", () => {
-    expect(PUBLIC_TRACKING_BRAND_ASSETS.logo).toMatch(/^\/manus-storage\/new-world-cargo-tracking-logo_/);
-    expect(PUBLIC_TRACKING_BRAND_ASSETS.campaignSquare).toMatch(/^\/manus-storage\/new-world-cargo-campaign-111_/);
+  it("uses stable first-party visual assets and the default navy card surface", () => {
+    expect(PUBLIC_TRACKING_BRAND_ASSETS.logo).toBe("/new-world-cargo-logo.png");
+    expect(PUBLIC_TRACKING_BRAND_ASSETS.campaignSquare).toBe("https://www.newworldcargo.com/images/home1.webp");
     expect(PUBLIC_TRACKING_CARD_THEME.surfaceClass).toBe("bg-[#012642]");
   });
 
   it("provides the supplied courier advert above the cargo animation for the left campaign rail", () => {
-    expect(PUBLIC_TRACKING_BRAND_ASSETS.courierServicesAd).toBe(
-      "/manus-storage/new-world-cargo-courier-services-ad_4e1b1578.png",
-    );
-    expect(PUBLIC_TRACKING_BRAND_ASSETS.airCargoAnimation).toBe(
-      "/manus-storage/new-world-cargo-air-cargo-animation_b8d80832.gif",
-    );
+    expect(PUBLIC_TRACKING_BRAND_ASSETS.courierServicesAd).toBe("https://www.newworldcargo.com/images/home1.webp");
+    expect(PUBLIC_TRACKING_BRAND_ASSETS.airCargoAnimation).toBe("https://www.newworldcargo.com/images/home1.webp");
   });
 });

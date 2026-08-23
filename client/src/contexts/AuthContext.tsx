@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { authGateway, type AuthUser } from "@/api/auth-gateway";
 import { customerQueryClient } from "@/api/query-client";
+import { isPublicAuthPath } from "@/lib/auth-workflow";
 import { useCustomerWorkflowStore } from "@/stores/customer-workflow-store";
 
 export type { AuthUser } from "@/api/auth-gateway";
@@ -25,7 +26,16 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { let active = true; authGateway.getSession().then((session) => { if (active) setUser(session); }).catch(() => { if (active) setUser(null); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
+  useEffect(() => {
+    let active = true;
+    const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
+    if (isPublicAuthPath(pathname)) {
+      setLoading(false);
+      return () => { active = false; };
+    }
+    authGateway.getSession().then((session) => { if (active) setUser(session); }).catch(() => { if (active) setUser(null); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
   const value = useMemo<AuthContextValue>(() => ({
     user, loading, isAuthenticated: Boolean(user),
     async login(identifier, password) { const result = await authGateway.login(identifier, password); if (result.ok && result.user) setUser(result.user); return result; },
