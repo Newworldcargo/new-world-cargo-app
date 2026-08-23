@@ -1,10 +1,10 @@
 # New World Cargo Customer Portal — Infrastructure Audit v2
 
-**Scope:** This audit reviews the customer portal after the first API-adapter migration. It distinguishes implemented frontend controls from the services that must exist before `VITE_NWC_DATA_MODE=http` is enabled. The assessment is based on the transport layer, contracts, repository ports and adapters, query hooks, authentication gateway, deployment configuration, test coverage, and production build configuration in this repository.
+**Scope:** This audit reviews the customer portal after the API-adapter migration. It distinguishes implemented frontend controls from the Laravel services that must remain authoritative. The assessment is based on the transport layer, contracts, repository ports and adapters, query hooks, authentication gateway, deployment configuration, test coverage, and production build configuration in this repository.
 
 ## Executive assessment
 
-The portal now has a **customer-scoped, API-ready frontend boundary**. Customer pages obtain server-owned records through typed TanStack Query hooks and a transport-neutral repository port rather than importing fixtures directly. The default development mode remains the isolated mock adapter; HTTP mode requires an externally deployed API at `VITE_NWC_API_BASE_URL`. The current Express entry point is a static SPA host only and must not be treated as the future business API.
+The portal now has a **customer-scoped, API-ready frontend boundary**. Customer pages obtain server-owned records through typed TanStack Query hooks and a transport-neutral repository port rather than importing fixtures directly. The live HTTP adapter uses the same-origin gateway at `/api/gateway/v1`; frontend API environment variables are not required. The current Express entry point is a static SPA host only and must not be treated as the business API.
 
 | Area | Assessment | Evidence in this repository | Release implication |
 |---|---|---|---|
@@ -27,7 +27,7 @@ The following controls were added or verified after the initial adapter refactor
 
 | Control | Implemented behavior | Relevant modules |
 |---|---|---|
-| Request bounds and cancellation | Requests use an `AbortController` with `VITE_NWC_API_TIMEOUT_MS`, constrained to 1–60 seconds. Timeout and unavailable-network conditions normalize to typed errors. | `client/src/api/http.ts` |
+| Request bounds and cancellation | Requests use an `AbortController` with a fixed 15-second timeout. Timeout and unavailable-network conditions normalize to typed errors. | `client/src/api/http.ts` |
 | Cookie and CSRF support | Requests include browser credentials, `Accept`, `X-Request-ID`, and `X-CSRF-Token` when the `nwc_csrf` cookie exists. | `client/src/api/http.ts` |
 | Wallet as server state | Customer balance is represented by a DTO, repository method, mock/HTTP adapter implementation, cache key, query hook, and dashboard use. Payment intent invalidation refreshes wallet and invoices. | `contracts.ts`, `ports.ts`, `adapters/*`, `hooks.ts`, `query-keys.ts`, `Home.tsx` |
 | Profile-photo guardrails | Client validation allows supported image MIME types up to 5 MB, releases blob preview URLs, and uses the modeled upload flow. | `ProfilePhoto.tsx` |
@@ -55,7 +55,7 @@ The items below are not defects that a static frontend can safely solve. They ar
 
 ## HTTP-mode activation gate
 
-Do not set `VITE_NWC_DATA_MODE=http` in production until every gate below is demonstrated in staging.
+Keep the frontend on the fixed same-origin gateway and demonstrate every gate below in staging/production validation.
 
 1. The versioned `/api/v1` service is deployed and reachable from the portal origin through the approved proxy/CORS design.
 2. Session-derived authorization is enforced for every protected resource, including nested invoice, shipment, document, return, pickup, and support routes.

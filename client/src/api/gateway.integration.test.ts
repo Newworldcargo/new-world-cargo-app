@@ -52,34 +52,29 @@ describe("server-side BFF to Laravel integration", () => {
     vi.restoreAllMocks();
   });
 
-  it("exchanges the HttpOnly portal session and forwards Laravel API calls under /api/v1", async () => {
-    vi.stubEnv("NWC_BACKEND_ORIGIN", "https://laravel-staging.example.test");
-    vi.stubEnv("NWC_BACKEND_API_PREFIX", "/api");
-    vi.stubEnv("NWC_BFF_SERVICE_TOKEN", "test-service-token");
-    vi.stubEnv("NWC_BFF_ALLOWED_ORIGIN", "https://portal-staging.example.test");
-
-    const exchangeResponse = new Response(JSON.stringify({ data: null }), {
-      status: 200,
-      headers: { "x-nwc-customer-assertion": "signed-customer-assertion" },
-    });
+  it("forwards same-origin portal cookies to Laravel API calls under /api/v1", async () => {
     const upstreamResponse = new Response(JSON.stringify({ data: { id: "customer-1" } }), {
       status: 200,
       headers: { "content-type": "application/json", "x-request-id": "upstream-request" },
     });
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(exchangeResponse)
-      .mockResolvedValueOnce(upstreamResponse);
+    const fetchMock = vi.fn().mockResolvedValueOnce(upstreamResponse);
     vi.stubGlobal("fetch", fetchMock);
 
     const result = response();
-    await nodeHandler(request(), result as never);
+    await nodeHandler(request({
+      url: "https://portal-staging.example.test/api/gateway?path=v1/session",
+      headers: {
+        cookie: "newworldcargo_session=session-token; nwc_csrf=csrf-token",
+        origin: "https://portal-staging.example.test",
+        host: "portal-staging.example.test",
+      },
+    }), result as never);
 
     expect(result.statusCode).toBe(200);
     expect(JSON.parse(result.body)).toEqual({ data: { id: "customer-1" } });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0][0].toString()).toBe("https://laravel-staging.example.test/internal/bff/session-exchange");
-    expect(fetchMock.mock.calls[1][0].toString()).toBe("https://laravel-staging.example.test/api/v1/session");
-    expect(fetchMock.mock.calls[1][1].headers.get("authorization")).toBe("Bearer test-service-token");
-    expect(fetchMock.mock.calls[1][1].headers.get("x-nwc-customer-assertion")).toBe("signed-customer-assertion");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0].toString()).toBe("https://api.newworldcargo.com/api/v1/session");
+    expect(fetchMock.mock.calls[0][1].headers.get("authorization")).toBeNull();
+    expect(fetchMock.mock.calls[0][1].headers.get("cookie")).toBe("newworldcargo_session=session-token; nwc_csrf=csrf-token");
   });
 });

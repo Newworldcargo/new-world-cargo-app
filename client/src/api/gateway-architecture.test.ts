@@ -37,12 +37,13 @@ describe("server-side BFF gateway architecture", () => {
     expect(`${clientTransport}\n${clientRepository}`).not.toContain("VITE_NWC_API_BASE_URL");
   });
 
-  it("uses server-only settings, header filtering, and a route allow-list instead of an open proxy", () => {
+  it("uses fixed backend routing, header filtering, and a route allow-list instead of frontend env or an open proxy", () => {
     const gatewaySource = readFileSync(new URL("../../../api/gateway.ts", import.meta.url), "utf8");
-    expect(gatewaySource).toContain("NWC_BACKEND_ORIGIN");
-    expect(gatewaySource).toContain("NWC_BFF_SERVICE_TOKEN");
+    expect(gatewaySource).toContain('"https://api.newworldcargo.com"');
     expect(gatewaySource).toContain("matchGatewayRoute");
     expect(gatewaySource).toContain("safeResponseHeaders");
+    expect(gatewaySource).not.toContain("process.env");
+    expect(gatewaySource).not.toContain("NWC_BFF");
     expect(gatewaySource).not.toContain("VITE_NWC_");
   });
 

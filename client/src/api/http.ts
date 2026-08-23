@@ -1,10 +1,9 @@
 import { apiProblemSchema, type ApiSuccess } from "./contracts";
 import { CustomerApiError } from "./errors";
 
-// Deliberately relative: browser code never receives the backend host or BFF credential.
+// Deliberately relative: browser code never receives backend env or credentials.
 const apiBaseUrl = "/api/gateway/v1";
-const configuredTimeout = Number(import.meta.env.VITE_NWC_API_TIMEOUT_MS || 15_000);
-export const apiRequestTimeoutMs = Number.isFinite(configuredTimeout) ? Math.min(Math.max(configuredTimeout, 1_000), 60_000) : 15_000;
+export const apiRequestTimeoutMs = 15_000;
 
 type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown; signal?: AbortSignal };
 

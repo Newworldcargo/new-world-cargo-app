@@ -2,17 +2,17 @@
 
 > **Implementation package:** [`BACKEND_IMPLEMENTATION_SPEC.md`](./BACKEND_IMPLEMENTATION_SPEC.md) is the definitive build brief for the backend team. It expands this adapter matrix into workflow definitions, data ownership, security, operational requirements, acceptance tests, delivery order, and the additional APIs required to complete currently local-only shipment, quote, document, payment-method, and notification-preference workflows.
 
-> **Gateway decision:** [`SERVER_SIDE_GATEWAY_ARCHITECTURE.md`](./SERVER_SIDE_GATEWAY_ARCHITECTURE.md) defines the Vercel same-origin BFF boundary. The browser calls `/api/gateway/v1/...`; only the Function knows the real backend origin and BFF credential.
+> **Gateway decision:** [`SERVER_SIDE_GATEWAY_ARCHITECTURE.md`](./SERVER_SIDE_GATEWAY_ARCHITECTURE.md) defines the Vercel same-origin gateway boundary. The browser calls `/api/gateway/v1/...`; Laravel owns the customer API env, secrets, sessions, and authorization.
 
-**Status:** The customer portal is now **adapter-ready**. Customer pages read through typed query hooks and write through typed mutation hooks. No page imports shared mock fixtures or browser mock persistence directly. The remaining mock data is isolated inside the development adapter and can be replaced by the HTTP adapter through configuration.
+**Status:** The customer portal is now **server-backed by default**. Customer pages read through typed query hooks and write through typed mutation hooks. Browser code calls only the same-origin gateway, and the gateway forwards allow-listed requests to Laravel `/api/v1`.
 
-> **Activation rule:** Configure the server-only BFF variables and its backend session-exchange contract, then set `VITE_NWC_DATA_MODE=http`. The browser transport is fixed to the relative `/api/gateway/v1` path and must not receive a backend-origin setting. The pages, routes, form UX, cache ownership, and customer-scoped data hooks do not change.
+> **Activation rule:** Keep API configuration in Laravel. The frontend deployment does not require API environment variables. The browser transport is fixed to the relative `/api/gateway/v1` path and must not receive a backend-origin setting.
 
 ## 1. Implemented Frontend Boundaries
 
 | Frontend layer | Implemented location | Backend responsibility when activated |
 |---|---|---|
-| HTTP transport | `client/src/api/http.ts` | Serve HTTPS JSON beneath backend `/api/v1` through the same-origin BFF. Implement the BFF session exchange, honour request IDs, and return the documented envelope. |
+| HTTP transport | `client/src/api/http.ts` | Serve HTTPS JSON beneath backend `/api/v1` through the same-origin gateway. Honour request IDs and return the documented envelope. |
 | Typed DTO contracts | `client/src/api/contracts.ts` | Keep response fields compatible with the Zod schemas; prefer additive changes and version breaking changes. |
 | Customer resource port | `client/src/api/ports.ts` | Implement every method with ownership enforcement based on the authenticated session—not a customer ID supplied by the browser. |
 | Live adapter | `client/src/api/adapters/http.ts` | Match the endpoint, request body, header, and response-shape matrix below. |
@@ -35,7 +35,7 @@ All authenticated resource endpoints must derive the **customer ID from the serv
 
 ## 3. Required Transport Contract
 
-The browser base URL is fixed to `/api/gateway/v1`. The BFF maps that prefix to the backend `/api/v1` namespace using server-only configuration. Every response should be JSON in one of these shapes.
+The browser base URL is fixed to `/api/gateway/v1`. The gateway maps that prefix to the backend `/api/v1` namespace without frontend env variables. Every response should be JSON in one of these shapes.
 
 ```ts
 type ApiSuccess<T> = {
@@ -55,7 +55,7 @@ type ApiProblem = {
 };
 ```
 
-The browser sends `Accept: application/json`, `X-Request-ID`, a same-origin portal session cookie through `credentials: include`, and, where applicable, `X-CSRF-Token`, `Idempotency-Key`, plus `If-Match`. The BFF must exchange the portal session server-to-server for a short-lived customer assertion and must not forward arbitrary browser cookies or authorization headers to the backend. The backend must return `401` for a missing/expired session, `403` for lack of permission, `404` for an unavailable owned record, `409` for an out-of-date revision or invalid transition, `422` for field validation failures, and `429` for public-tracking abuse limits.
+The browser sends `Accept: application/json`, `X-Request-ID`, a same-origin portal session cookie through `credentials: include`, and, where applicable, `X-CSRF-Token`, `Idempotency-Key`, plus `If-Match`. The gateway must forward only reviewed request headers and reviewed Laravel customer-session cookies. The backend must return `401` for a missing/expired session, `403` for lack of permission, `404` for an unavailable owned record, `409` for an out-of-date revision or invalid transition, `422` for field validation failures, and `429` for public-tracking abuse limits.
 
 ## 4. Endpoint Matrix Implemented by the Live Adapter
 
@@ -99,12 +99,12 @@ Server storage is authoritative for all customer and operational data. The front
 
 ## 6. Adapter Activation and Mock Removal
 
-The application currently defaults to `mock` mode. This preserves local UX testing while the backend is built. The backend activation sequence is intentionally gradual.
+The application now defaults to the live HTTP gateway. Mock data remains isolated in development-only files until the team decides to remove it.
 
 1. Implement `/session`, profile, shipments, invoices, addresses, recipients, and reference data in a staging environment.
 2. Verify every response against the Zod schemas in `client/src/api/contracts.ts` and run contract tests against staging.
-3. Deploy the BFF with `NWC_BACKEND_ORIGIN`, `NWC_BFF_SERVICE_TOKEN`, `NWC_BFF_ALLOWED_ORIGIN`, and `NWC_BFF_TIMEOUT_MS` set only in Vercel Preview/Production. Verify the backend session-exchange endpoint and internal login/session handoff first.
-4. Start the frontend with `VITE_NWC_DATA_MODE=http`; do not define a browser backend-base variable.
+3. Deploy the frontend without API env variables. Verify the gateway forwards to Laravel `/api/v1`.
+4. Do not define a browser backend-base variable.
 5. Run the customer smoke flows: login, customer-specific home/list/detail, address CRUD, recipient reuse, public tracking, notification read, support case, return, pickup, and sign-in-session management.
 6. Enable payment, upload, and shipment-action endpoints only after idempotency, webhook, malware-scan, and authorization tests pass.
 7. Remove the mock adapter, legacy mock fixtures, and browser mock repository only after the live adapter is exercised by the full regression and staging suites.

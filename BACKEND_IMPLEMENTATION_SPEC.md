@@ -2,7 +2,7 @@
 
 **Document owner:** Backend delivery team with frontend review  
 **Audience:** Backend engineers, QA engineers, DevOps, payment and operations integrators  
-**Status:** Build specification — required before the customer portal switches from `mock` to `http` data mode  
+**Status:** Build specification for the Laravel customer API consumed by the live frontend gateway  
 **API namespace:** `/api/v1`
 
 ## 1. Delivery Objective
@@ -23,26 +23,20 @@ The implementation should publish an **OpenAPI 3.1** contract and test the runni
 
 ## 2. Boundary and Integration Model
 
-The customer portal has two modes. `mock` is development-only. `http` calls the fixed same-origin BFF path `/api/gateway/v1`; the BFF then invokes the private backend `/api/v1` namespace with server-only configuration. The live configuration **must not** be enabled until the current-adapter APIs pass staging contract and authorization tests. See [`SERVER_SIDE_GATEWAY_ARCHITECTURE.md`](./SERVER_SIDE_GATEWAY_ARCHITECTURE.md) for the Vercel boundary.
+The customer portal calls the fixed same-origin gateway path `/api/gateway/v1`; the gateway then invokes the Laravel backend `/api/v1` namespace. Frontend/Vercel API environment variables are not required. See [`SERVER_SIDE_GATEWAY_ARCHITECTURE.md`](./SERVER_SIDE_GATEWAY_ARCHITECTURE.md) for the Vercel boundary.
 
 | Layer | Existing frontend behavior | Backend delivery requirement |
 |---|---|---|
-| Session gateway | Uses a same-origin portal session cookie for session, auth, profile, verification, password, and logout calls. | Support the BFF's server-to-server session exchange and customer-assertion contract; do not require the BFF to forward arbitrary browser cookies. |
-| HTTP transport | Sends `Accept: application/json`, `X-Request-ID`, `credentials: include`, an optional `X-CSRF-Token`, and a bounded request timeout to the BFF. | Trust only the BFF service credential plus its short-lived customer assertion, return JSON envelopes, echo/correlate request IDs, and validate CSRF/origin protections for unsafe calls. |
+| Session gateway | Uses a same-origin portal session cookie for session, auth, profile, verification, password, and logout calls. | Own and validate the Laravel customer session; do not trust browser-supplied customer IDs. |
+| HTTP transport | Sends `Accept: application/json`, `X-Request-ID`, `credentials: include`, an optional `X-CSRF-Token`, and a bounded request timeout to the gateway. | Return JSON envelopes, echo/correlate request IDs, and validate CSRF/origin protections for unsafe calls. |
 | Resource adapter | Calls the concrete paths in Section 5. | Match method, path, query parameter, headers, body, status, and response schema exactly. |
 | React Query | Invalidates affected customer data after writes. | Return committed server state promptly and make reads consistent enough for post-write refresh. |
 | Zustand workflow store | Holds only unsent local cargo drafts, quote handoff, and a non-sensitive last payment-method preference. | Do not treat browser values as authoritative; introduce server draft and quote resources before relying on them for operations. |
 | Files | Requests signed upload intent, uploads directly, then calls completion. | Authorize purpose, issue short-lived object-storage upload URL, scan/validate, and only then associate the file with a business record. |
 
-### 2.1 Environments and activation variables
+### 2.1 Environment ownership
 
-| Environment | `VITE_NWC_DATA_MODE` | BFF configuration | Purpose |
-|---|---:|---|---|
-| Local development | `mock` | Not required | UI and workflow development without a backend. |
-| Backend staging | `http` | `NWC_BACKEND_ORIGIN=https://api-staging.<domain>` plus the BFF service/session settings | Contract, authorization, integration, and smoke testing. |
-| Production | `http` | `NWC_BACKEND_ORIGIN=https://api.<domain>` plus the BFF service/session settings | Customer traffic after all go-live gates pass. |
-
-The frontend static host is not the Cargo business API. Deploy the API as a separately managed HTTPS service; the Vercel Function is a constrained BFF rather than the authoritative business backend. The browser should never target that backend origin directly. The backend should restrict service authentication to the BFF and accept only a verified BFF-issued customer assertion for private data access.
+The frontend static host is not the Cargo business API. Deploy the API as a separately managed HTTPS Laravel service and keep all backend environment variables there. The Vercel Function is a constrained gateway, not the authoritative business backend. The browser should never target the backend origin directly.
 
 ## 3. Global HTTP Contract
 
@@ -367,9 +361,9 @@ The backend team must deliver automated tests, not only manual API checks.
 | Public tracking | Valid tracking gives only public fields; unknown tracking has safe response; rate limits and abuse controls return `429` + `Retry-After`. |
 | Staging E2E | Register/verify/login; customer-specific dashboard; address/recipient CRUD; shipment tracking; draft→quote→upload→submit; payment pending/success/failure; invoice/receipt; support/return/pickup; logout/revoked session. |
 
-### 11.1 Production switch checklist
+### 11.1 Production checklist
 
-The frontend configuration may switch to `VITE_NWC_DATA_MODE=http` only when all conditions below are true.
+Keep the frontend on the fixed same-origin gateway and verify all conditions below.
 
 1. The API base URL uses HTTPS and responds under `/api/v1` with the required envelope.
 2. The exported OpenAPI contract and endpoint fixtures validate against the frontend DTOs.
@@ -377,7 +371,7 @@ The frontend configuration may switch to `VITE_NWC_DATA_MODE=http` only when all
 4. Payment is webhook-confirmed, file uploads are scanned, and no raw financial credentials or server-authoritative data are placed in browser storage.
 5. `/healthz`, `/readyz`, request-ID logs, alerts, migrations, backup/restore, and rollback runbook are tested.
 6. A real staging account has completed the end-to-end acceptance flows above with expected frontend cache refresh and feedback states.
-7. The production rollout keeps a rapid rollback path: revert the frontend data-mode deployment or point it to a safe prior API version while investigating an incident.
+7. The production rollout keeps a rapid rollback path: revert the frontend deployment or point the gateway to a safe prior API version while investigating an incident.
 
 ## 12. Business Decisions Still Needed Before Build Completion
 

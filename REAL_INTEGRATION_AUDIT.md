@@ -2,7 +2,7 @@
 
 ## Scope
 
-The React customer portal now defaults to the server-backed same-origin BFF. Mock mode is available only when `VITE_NWC_DATA_MODE=mock` is explicitly set for an isolated demo.
+The React customer portal now uses the server-backed same-origin gateway by default. API environment variables are owned by Laravel, not the frontend deployment.
 
 ## Completed changes
 
