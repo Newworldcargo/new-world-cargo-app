@@ -75,7 +75,7 @@ export default function Home() {
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden">
-      <section className="border-b border-ink/10 pb-6 sm:pb-8">
+      <section data-sidebar-section="/" className="border-b border-ink/10 pb-6 sm:pb-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-cargo-yellow">
@@ -120,7 +120,7 @@ export default function Home() {
           </div>
         </button>
 
-        <div className="rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6">
+        <div data-sidebar-section="/invoices" className="rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Wallet & payments</p>
@@ -167,7 +167,7 @@ export default function Home() {
       </section>
 
       <section className="mt-9 grid min-w-0 gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <div>
+        <div data-sidebar-section="/shipments">
           <div className="mb-4 flex items-end justify-between">
             <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Open bookings</p><h2 className="mt-1 font-heading text-2xl font-bold tracking-tight text-foreground">Keep an eye on it</h2></div>
             <button onClick={() => navigate("/shipments")} className="flex items-center gap-1 text-xs font-bold text-cargo-yellow">View all <ChevronRight className="size-4" /></button>
@@ -182,7 +182,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mt-10 rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-7">
+      <section data-sidebar-section="/send" className="mt-10 rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-7">
         <div className="grid gap-6 sm:grid-cols-[1fr_auto] sm:items-end">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-cargo-yellow"><Sparkles className="size-4" /> More with New World Cargo</div>

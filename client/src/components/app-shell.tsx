@@ -1,8 +1,8 @@
 // New World Cargo style reminder: Poppins, white canvas, Cargo Yellow actions, navy route accents, mobile-first.
 
 import type { LucideIcon } from "lucide-react";
-import { Bell, ChevronDown, CircleHelp, House, LogOut, Package, Plus, ReceiptText, Settings2, UserRound, X } from "lucide-react";
-import { useState } from "react";
+import { Bell, ChevronDown, CircleHelp, House, LogOut, Package, PanelLeftClose, PanelLeftOpen, Plus, ReceiptText, Settings2, UserRound, X } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { feedback } from "@/lib/feedback";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,18 +20,18 @@ const desktopNavItems: NavItem[] = [
   { label: "Settings", href: "/settings", icon: Settings2 },
 ];
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
-  const [, navigate] = useLocation();
+function NavLink({ item, active, pageActive, collapsed, onNavigate }: { item: NavItem; active: boolean; pageActive: boolean; collapsed: boolean; onNavigate: (href: string) => void }) {
   const Icon = item.icon;
   return (
     <button
-      onClick={() => navigate(item.href)}
-      className={`group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition duration-200 ${active ? "bg-cargo-yellow text-ink shadow-[0_10px_24px_rgba(255,200,61,0.2)]" : "text-white/55 hover:bg-white/6 hover:text-white"}`}
-      aria-current={active ? "page" : undefined}
+      onClick={() => onNavigate(item.href)}
+      className={`group flex w-full items-center rounded-2xl py-3 text-sm font-semibold transition duration-200 ${collapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "bg-cargo-yellow text-ink shadow-[0_10px_24px_rgba(255,200,61,0.2)]" : "text-white/55 hover:bg-white/6 hover:text-white"}`}
+      aria-current={pageActive ? "page" : undefined}
+      aria-label={collapsed ? item.label : undefined}
+      title={collapsed ? item.label : undefined}
     >
       <Icon className="size-[18px]" strokeWidth={active ? 2.4 : 1.8} />
-      <span>{item.label}</span>
-
+      <span className={collapsed ? "sr-only" : undefined}>{item.label}</span>
     </button>
   );
 }
@@ -40,31 +40,91 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const [supportOpen, setSupportOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [scrollActiveHref, setScrollActiveHref] = useState<string | null>(null);
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const sidebarScrollPositions = useRef<Record<string, number>>({});
   const { user, logout } = useAuth();
-  const activeHref = location === "/" ? "/" : `/${location.split("/")[1]}`;
+  const routeActiveHref = location === "/" ? "/" : `/${location.split("/")[1]}`;
+  const activeHref = scrollActiveHref ?? routeActiveHref;
   const showMobileNavigation = isPrimaryMobileTabRoute(location);
   const handleLogout = () => { logout(); feedback.success("Signed out successfully."); navigate("/login"); };
+  const navigateWithSidebarState = (href: string) => { navigate(href); };
+
+  useLayoutEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (sidebar) sidebar.scrollTop = sidebarScrollPositions.current[location] ?? 0;
+    return () => { sidebarScrollPositions.current[location] = sidebar?.scrollTop ?? 0; };
+  }, [location]);
+
+  useEffect(() => {
+    const wideScreen = window.matchMedia("(min-width: 1280px)");
+    const expandOnWideScreens = () => { if (wideScreen.matches) setSidebarCollapsed(false); };
+    expandOnWideScreens();
+    wideScreen.addEventListener("change", expandOnWideScreens);
+    return () => wideScreen.removeEventListener("change", expandOnWideScreens);
+  }, []);
+
+  useEffect(() => {
+    setScrollActiveHref(null);
+    const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-sidebar-section]")).filter((section) => desktopNavItems.some((item) => item.href === section.dataset.sidebarSection));
+    if (!sections.length) return;
+
+    let frame: number | null = null;
+    const updateVisibleSection = () => {
+      frame = null;
+      const marker = window.innerHeight * 0.24;
+      const visibleSection = sections.find((section) => {
+        const bounds = section.getBoundingClientRect();
+        return bounds.top <= marker && bounds.bottom >= marker;
+      }) ?? sections.find((section) => section.getBoundingClientRect().top > marker);
+      setScrollActiveHref(visibleSection?.dataset.sidebarSection ?? null);
+    };
+    const scheduleVisibleSectionUpdate = () => {
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(updateVisibleSection);
+    };
+
+    scheduleVisibleSectionUpdate();
+    window.addEventListener("scroll", scheduleVisibleSectionUpdate, { passive: true });
+    window.addEventListener("resize", scheduleVisibleSectionUpdate);
+    return () => {
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", scheduleVisibleSectionUpdate);
+      window.removeEventListener("resize", scheduleVisibleSectionUpdate);
+    };
+  }, [location]);
 
   return (
     <div className="nwc-light min-h-screen overflow-x-hidden bg-background text-foreground">
-      <div className="mx-auto min-h-screen max-w-[1600px] lg:pl-[236px]">
-        <aside className="fixed inset-y-0 left-0 z-40 hidden h-screen w-[236px] flex-col overflow-y-auto overscroll-contain border-r border-ink/10 bg-white px-5 py-7 lg:flex">
-          <BrandMark />
-          <div className="mt-14 flex flex-1 flex-col gap-1">
-            {desktopNavItems.map((item) => <NavLink key={item.href} item={item} active={activeHref === item.href} />)}
+      <div className={`mx-auto min-h-screen max-w-[1600px] transition-[padding] duration-200 ${sidebarCollapsed ? "lg:pl-[76px]" : "lg:pl-[236px]"}`}>
+        <aside ref={sidebarRef} className={`fixed inset-y-0 left-0 z-40 hidden h-screen flex-col overflow-y-auto overscroll-contain border-r border-ink/10 bg-white py-7 transition-[width,padding] duration-200 lg:flex ${sidebarCollapsed ? "w-[76px] px-3" : "w-[236px] px-5"}`}>
+          <div className={sidebarCollapsed ? "grid place-items-center" : undefined}>{sidebarCollapsed ? <div className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow text-xs font-extrabold text-ink" aria-label="New World Cargo">NW</div> : <BrandMark />}</div>
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+            className="absolute -right-3 top-8 z-10 hidden size-7 place-items-center rounded-full border border-ink/15 bg-white text-ink shadow-sm transition hover:border-cargo-yellow hover:bg-cargo-yellow lg:grid xl:hidden"
+            aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+            aria-pressed={sidebarCollapsed}
+            title={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen className="size-3.5" /> : <PanelLeftClose className="size-3.5" />}
+          </button>
+          <div className={`mt-14 flex flex-1 flex-col gap-1 ${sidebarCollapsed ? "items-center" : ""}`}>
+            {desktopNavItems.map((item) => <NavLink key={item.href} item={item} active={activeHref === item.href} pageActive={routeActiveHref === item.href} collapsed={sidebarCollapsed} onNavigate={navigateWithSidebarState} />)}
             <div className="my-6 h-px bg-white/8" />
-            <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-white/25">Shortcuts</p>
-            <button onClick={() => navigate("/quote")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-white/55 transition hover:bg-white/6 hover:text-white">
-              <ReceiptText className="size-[18px]" strokeWidth={1.8} /> Get a quote
+            <p className={sidebarCollapsed ? "sr-only" : "mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-white/25"}>Shortcuts</p>
+            <button onClick={() => navigateWithSidebarState("/quote")} className={`flex w-full items-center rounded-2xl py-3 text-left text-sm font-semibold text-white/55 transition hover:bg-white/6 hover:text-white ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"}`} aria-label={sidebarCollapsed ? "Get a quote" : undefined} title={sidebarCollapsed ? "Get a quote" : undefined}>
+              <ReceiptText className="size-[18px]" strokeWidth={1.8} /> <span className={sidebarCollapsed ? "sr-only" : undefined}>Get a quote</span>
             </button>
-            <button onClick={() => setSupportOpen(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-white/55 transition hover:bg-white/6 hover:text-white">
-              <CircleHelp className="size-[18px]" strokeWidth={1.8} /> Support
+            <button onClick={() => setSupportOpen(true)} className={`flex w-full items-center rounded-2xl py-3 text-left text-sm font-semibold text-white/55 transition hover:bg-white/6 hover:text-white ${sidebarCollapsed ? "justify-center px-2" : "gap-3 px-3"}`} aria-label={sidebarCollapsed ? "Support" : undefined} title={sidebarCollapsed ? "Support" : undefined}>
+              <CircleHelp className="size-[18px]" strokeWidth={1.8} /> <span className={sidebarCollapsed ? "sr-only" : undefined}>Support</span>
             </button>
           </div>
           <div className="mt-8">
-            <button onClick={() => { handleLogout(); }} className="flex w-full items-center gap-3 rounded-2xl border border-ink/10 bg-white p-3 text-left text-ink transition hover:border-cargo-yellow hover:bg-cargo-yellow/10">
+            <button onClick={() => { handleLogout(); }} className={`flex w-full items-center rounded-2xl border border-ink/10 bg-white text-left text-ink transition hover:border-cargo-yellow hover:bg-cargo-yellow/10 ${sidebarCollapsed ? "justify-center p-2" : "gap-3 p-3"}`} aria-label={sidebarCollapsed ? "Log out" : undefined} title={sidebarCollapsed ? "Log out" : undefined}>
               <div className="grid size-9 place-items-center rounded-xl bg-cargo-yellow text-ink"><LogOut className="size-4" /></div>
-              <p className="text-xs font-bold">Log out</p>
+              <p className={sidebarCollapsed ? "sr-only" : "text-xs font-bold"}>Log out</p>
             </button>
           </div>
         </aside>
