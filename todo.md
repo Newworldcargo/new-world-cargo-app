@@ -327,3 +327,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Replace the public tracking sourced imagery with two New World Cargo-owned, desktop-only campaign columns—one on each side of the centered tracking area—with no third-party advertising integration.
 - [x] Restore the two compact, non-image service cards below the public tracking form and move first-party campaign inventory into full-height desktop rails outside the centered tracking content.
 - [x] Restyle the two public tracking service cards in #012642 navy and add approved New World Cargo logo and promotional imagery to the central header and desktop campaign rails.
+- [x] Add a vertical dashed route connector between successive tracking-result status circles so the shipment timeline reads as a mapped journey.
