@@ -1,5 +1,5 @@
 import { apiRequest } from "../http";
-import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto, WalletDto } from "../contracts";
+import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, ShipmentDraftDto, SupportCaseDto, SupportCaseInput, UploadedFileDto, WalletDto } from "../contracts";
 import type { CustomerPortalPort, CustomerScope, InvoiceListFilters, ShipmentListFilters } from "../ports";
 
 function queryString(params: Record<string, string | undefined>) {
@@ -18,7 +18,7 @@ export const httpCustomerPortalPort: CustomerPortalPort = {
     return apiRequest<ShipmentDto | null>(`/public/tracking/${encodeURIComponent(trackingNumber)}`);
   },
   async listInvoices(_scope, filters: InvoiceListFilters = {}) {
-    return apiRequest<InvoiceDto[]>(`/invoices${queryString({ status: filters.status === "all" ? undefined : filters.status })}`);
+    return apiRequest<InvoiceDto[]>(`/invoices${queryString({ q: filters.query?.trim() || undefined, status: filters.status === "all" ? undefined : filters.status })}`);
   },
   async getInvoice(_scope, invoiceId) {
     return apiRequest<InvoiceDto | null>(`/invoices/${encodeURIComponent(invoiceId)}`);
@@ -31,6 +31,15 @@ export const httpCustomerPortalPort: CustomerPortalPort = {
   },
   async listRecipients(_scope, query = "") {
     return apiRequest<RecipientDto[]>(`/recipients${queryString({ q: query || undefined })}`);
+  },
+  async listShipmentDrafts() {
+    return apiRequest<ShipmentDraftDto[]>("/shipment-drafts");
+  },
+  async createShipmentDraft(_scope, input) {
+    return apiRequest<ShipmentDraftDto>("/shipment-drafts", { method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() }, body: input });
+  },
+  async deleteShipmentDraft(_scope, draftId, revision) {
+    await apiRequest<void>(`/shipment-drafts/${encodeURIComponent(draftId)}`, { method: "DELETE", headers: { "If-Match": String(revision), "Idempotency-Key": crypto.randomUUID() } });
   },
   async getReferenceData() {
     return apiRequest<CustomerReferenceData>("/reference-data");

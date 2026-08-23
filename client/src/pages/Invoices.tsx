@@ -59,9 +59,9 @@ export default function Invoices() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paidMethods, setPaidMethods] = useState<Record<string, string>>({});
-  const { data: invoices = [], isLoading, isError, refetch } = useCustomerInvoices({ status: filter });
+  const { data: invoices = [], isLoading, isError, refetch } = useCustomerInvoices({ query, status: filter });
   const ledger = useMemo(() => invoices.map((invoice) => paidMethods[invoice.id] ? { ...invoice, status: "paid" as const, paidAt: "Just now", paymentMethod: paidMethods[invoice.id] } : invoice), [paidMethods]);
-  const matching = useMemo(() => ledger.filter((invoice) => filter === "all" || invoice.status === filter).filter((invoice) => `${invoice.invoiceNumber} ${invoice.shipmentLabel} ${invoice.route}`.toLowerCase().includes(query.toLowerCase())), [filter, ledger, query]);
+  const matching = useMemo(() => ledger.filter((invoice) => filter === "all" || invoice.status === filter), [filter, ledger]);
   const recent = matching.slice(0, 3);
   const older = matching.slice(3);
   const unpaidTotal = ledger.filter((invoice) => invoice.status === "unpaid").reduce((total, invoice) => total + invoice.amountValue, 0);
@@ -81,6 +81,6 @@ export default function Invoices() {
     {older.length > 0 && <section className="mt-9"><div className="flex items-end justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-ink/40">Archive</p><h2 className="mt-2 font-heading text-xl font-extrabold">Older invoices</h2></div><CalendarDays className="size-5 text-ink/35" /></div><div className="mt-4 rounded-[24px] border border-ink/10 bg-white px-3 sm:px-4">{older.map((invoice) => <InvoiceRow key={invoice.id} invoice={invoice} onOpen={() => setSelectedInvoice(invoice)} />)}</div></section>}
     <div className="mt-8 flex items-start gap-3 rounded-2xl border border-ink/10 bg-white p-4 text-ink/55"><ArrowDownToLine className="mt-0.5 size-4 shrink-0 text-ink/45" /><p className="text-xs leading-5">Open any invoice to download a copy. Paid invoices also include a receipt for your records.</p></div>
     {selectedInvoice && <InvoiceDetail invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} onPay={() => setPaymentInvoice(selectedInvoice)} />}
-    <PaymentModal open={Boolean(paymentInvoice)} amount={paymentInvoice?.amount ?? ""} reference={paymentInvoice?.invoiceNumber ?? ""} onClose={() => setPaymentInvoice(null)} onSuccess={completePayment} />
+    <PaymentModal open={Boolean(paymentInvoice)} invoiceId={paymentInvoice?.id} amount={paymentInvoice?.amount ?? ""} reference={paymentInvoice?.invoiceNumber ?? ""} onClose={() => setPaymentInvoice(null)} onSuccess={completePayment} />
   </div>;
 }

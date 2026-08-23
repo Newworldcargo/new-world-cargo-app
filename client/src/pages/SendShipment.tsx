@@ -26,9 +26,8 @@ import {
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { feedback } from "@/lib/feedback";
-import { PaymentModal } from "@/components/payment-modal";
 import { SubpageBackButton } from "@/components/subpage-back-button";
-import { useCustomerRecipients, useCustomerReferenceData } from "@/api/hooks";
+import { useCustomerDrafts, useCustomerRecipients, useCustomerReferenceData, useShipmentDraftMutations } from "@/api/hooks";
 import { useCustomerWorkflowStore } from "@/stores/customer-workflow-store";
 
 const steps = ["Pickup", "Recipient", "Cargo", "Transport", "Review"];
@@ -48,13 +47,13 @@ export default function SendShipment() {
   const [location, navigate] = useLocation();
   const { data: referenceData, isLoading: isReferenceDataLoading } = useCustomerReferenceData();
   const { data: savedRecipients = [] } = useCustomerRecipients();
-  const shipmentDrafts = useCustomerWorkflowStore((state) => state.shipmentDrafts);
+  const draftsQuery = useCustomerDrafts();
+  const draftMutations = useShipmentDraftMutations();
   const latestQuote = useCustomerWorkflowStore((state) => state.latestQuote);
-  const saveShipmentDraft = useCustomerWorkflowStore((state) => state.saveShipmentDraft);
   const setLatestQuote = useCustomerWorkflowStore((state) => state.setLatestQuote);
   const [step, setStep] = useState(0);
   const [success, setSuccess] = useState(false);
-  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [savedDraftId, setSavedDraftId] = useState<string | null>(null);
   const [transport, setTransport] = useState<"air" | "sea">("air");
   const [handover, setHandover] = useState<"collect" | "delivery">("collect");
   const [evidence, setEvidence] = useState<EvidenceState>({ photos: [], documents: [] });
@@ -73,17 +72,18 @@ export default function SendShipment() {
     packages: "",
   });
   useEffect(() => {
-    if (location.includes("draft=latest")) {
-      const saved = Object.values(shipmentDrafts).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+    if (location.includes("draft=")) {
+      const draftId = new URLSearchParams(location.split("?")[1] || "").get("draft");
+      const saved = draftsQuery.data?.find((draft) => draft.id === draftId) || draftsQuery.data?.[0];
       if (!saved) return;
-      const payload = saved.payload as Partial<{ form: typeof form; cargoRows: CargoRow[]; transport: "air" | "sea"; handover: "collect" | "delivery"; evidence: EvidenceState }>;
+      const payload = saved.payload as Partial<{ step: number; form: typeof form; cargoRows: CargoRow[]; transport: "air" | "sea"; handover: "collect" | "delivery"; evidence: EvidenceState }>;
       if (payload.form) setForm(payload.form);
       if (payload.cargoRows) setCargoRows(payload.cargoRows);
       if (payload.transport) setTransport(payload.transport);
       if (payload.handover) setHandover(payload.handover);
       if (payload.evidence) setEvidence(payload.evidence);
-      setStep(saved.step);
-      feedback.success("Your saved draft is ready to continue.");
+      if (typeof payload.step === "number") setStep(payload.step);
+      feedback.success("Your server-saved draft is ready to continue.");
     }
     if (location.includes("quote=latest")) {
       if (!latestQuote) return;
@@ -91,7 +91,7 @@ export default function SendShipment() {
       setForm((current) => ({ ...current, pickup: latestQuote.from || current.pickup, destination: latestQuote.to || current.destination, packages: String(latestQuote.weightKg || current.packages) }));
       feedback.success(`Your ${latestQuote.serviceName} quote has been added. You can edit all details.`);
     }
-  }, [latestQuote, location, setLatestQuote, shipmentDrafts]);
+  }, [draftsQuery.data, latestQuote, location, setLatestQuote]);
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -119,10 +119,27 @@ export default function SendShipment() {
     setEvidence((current) => ({ ...current, [type]: current[type].filter((item) => item !== name) }));
 
   const goBack = () => (step ? setStep((current) => current - 1) : navigate("/"));
-  const next = () => (step < steps.length - 1 ? setStep((current) => current + 1) : setPaymentOpen(true));
-  const saveDraft = () => {
-    saveShipmentDraft({ id: "latest", step, payload: { form, cargoRows, transport, handover, evidence }, updatedAt: new Date().toISOString() });
-    feedback.success("Your cargo request draft has been saved.");
+  const saveDraft = async () => {
+    try {
+      const draft = await draftMutations.create.mutateAsync({ payload: { step, form, cargoRows, transport, handover, evidence } });
+      setSavedDraftId(draft.id);
+      feedback.success("Your cargo request draft has been saved to your account.");
+    } catch {
+      feedback.error("We could not save your draft. Please try again.");
+    }
+  };
+  const next = async () => {
+    if (step < steps.length - 1) {
+      setStep((current) => current + 1);
+      return;
+    }
+    try {
+      const draft = await draftMutations.create.mutateAsync({ payload: { step, form, cargoRows, transport, handover, evidence } });
+      setSavedDraftId(draft.id);
+      setSuccess(true);
+    } catch {
+      feedback.error("We could not save this cargo request. No payment was collected.");
+    }
   };
   const useCurrentLocation = () => {
     if (!navigator.geolocation) { feedback.error("Location services are not available in this browser."); return; }
@@ -147,15 +164,15 @@ export default function SendShipment() {
           <div className="mx-auto grid size-16 place-items-center rounded-3xl bg-cargo-yellow text-ink">
             <Check className="size-8" strokeWidth={2.5} />
           </div>
-          <p className="mt-6 text-xs font-bold text-ink">Cargo request created</p>
-          <h1 className="mt-3 font-heading text-3xl font-extrabold tracking-tight">We’re ready for it.</h1>
+          <p className="mt-6 text-xs font-bold text-ink">Cargo request saved</p>
+          <h1 className="mt-3 font-heading text-3xl font-extrabold tracking-tight">We’re ready for the next step.</h1>
           <p className="mx-auto mt-3 max-w-sm text-sm text-white/48">
-            We’ll register your cargo when it reaches the selected New World Cargo office and notify you at every stage.
+            Your request is saved to your customer account. Operations must quote and confirm the service before any payment is collected.
           </p>
           <div className="mt-7 rounded-2xl bg-cargo-yellow p-5 text-left text-ink">
-            <p className="text-[10px] font-bold text-ink/50">Cargo reference</p>
+            <p className="text-[10px] font-bold text-ink/50">Server draft reference</p>
             <div className="mt-2 flex items-center justify-between">
-              <p className="font-heading text-2xl font-extrabold tracking-tight">NWC90418ZM</p>
+              <p className="font-heading text-2xl font-extrabold tracking-tight">{savedDraftId || "Pending"}</p>
               <Package className="size-6 opacity-50" />
             </div>
             <div className="mt-4 flex justify-between border-t border-ink/15 pt-3 text-xs font-semibold">
@@ -163,7 +180,7 @@ export default function SendShipment() {
               <span>{handover === "collect" ? "Office collection" : "Home delivery"}</span>
             </div>
           </div>
-          <p className="mt-4 text-xs text-white/45">Your final charge is shared when the cargo reaches its final service stage.</p>
+          <p className="mt-4 text-xs text-white/45">No payment was collected. You will be asked to pay only after the server provides an official invoice or quote.</p>
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
             <button onClick={() => navigate("/shipments/shipment-48291")} className="rounded-2xl bg-white py-3 text-sm font-bold text-ink">
               Track cargo
@@ -395,12 +412,11 @@ export default function SendShipment() {
             </button>
           </div>
           <button onClick={next} className="flex items-center justify-center gap-2 rounded-2xl bg-cargo-yellow px-6 py-3 text-sm font-bold text-ink transition hover:brightness-105">
-            {step === 4 ? "Pay K 320 & create request" : "Continue"}
+            {step === 4 ? draftMutations.create.isPending ? "Saving request…" : "Save request" : "Continue"}
             <ArrowRight className="size-4" />
           </button>
         </div>
       </div>
-      <PaymentModal open={paymentOpen} amount="K 320" reference="Cargo request booking deposit" onClose={() => setPaymentOpen(false)} onSuccess={() => { setPaymentOpen(false); feedback.success("Booking deposit received."); setSuccess(true); }} />
     </div>
   );
 }

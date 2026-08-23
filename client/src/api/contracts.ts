@@ -254,6 +254,24 @@ export const returnRequestInputSchema = z.object({
   idempotencyKey: z.string().uuid(),
 });
 
+export const shipmentDraftStatusSchema = z.enum(["draft", "quoted", "submitted", "deleted"]);
+export const shipmentDraftDtoSchema = z.object({
+  id: z.string(),
+  customerId: z.string(),
+  status: shipmentDraftStatusSchema,
+  payload: z.record(z.string(), z.unknown()),
+  quoteId: z.string().nullable(),
+  shipmentId: z.string().nullable(),
+  expiresAt: z.string().datetime().nullable(),
+  revision: z.number().int().nonnegative(),
+  createdAt: z.string().datetime().nullable(),
+  updatedAt: z.string().datetime().nullable(),
+});
+export const shipmentDraftInputSchema = z.object({
+  payload: z.record(z.string(), z.unknown()),
+  expiresAt: z.string().datetime().nullable().optional(),
+});
+
 export const pickupStatusSchema = z.enum(["not_scheduled", "scheduled", "completed", "cancelled", "failed"]);
 export const pickupDtoSchema = z.object({
   id: z.string(),
@@ -317,6 +335,8 @@ export type SupportCaseInput = z.infer<typeof supportCaseInputSchema>;
 export type SupportCaseStatus = z.infer<typeof supportCaseStatusSchema>;
 export type ReturnRequestDto = z.infer<typeof returnRequestDtoSchema>;
 export type ReturnRequestInput = z.infer<typeof returnRequestInputSchema>;
+export type ShipmentDraftDto = z.infer<typeof shipmentDraftDtoSchema>;
+export type ShipmentDraftInput = z.infer<typeof shipmentDraftInputSchema>;
 export type PickupDto = z.infer<typeof pickupDtoSchema>;
 export type PickupInput = z.infer<typeof pickupInputSchema>;
 export type SessionActivityDto = z.infer<typeof sessionActivityDtoSchema>;

@@ -93,6 +93,26 @@ export function useCustomerRecipients(query = "") {
   });
 }
 
+export function useCustomerDrafts() {
+  const scope = useCustomerScope();
+  return useQuery({
+    queryKey: ["customer", scope.customerId, "shipment-drafts"],
+    queryFn: () => customerPortalRepository.listShipmentDrafts({ customerId: scope.customerId }),
+    enabled: scope.enabled,
+    staleTime: 30_000,
+  });
+}
+
+export function useShipmentDraftMutations() {
+  const scope = useCustomerScope();
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["customer", scope.customerId, "shipment-drafts"] });
+  return {
+    create: useMutation({ mutationFn: (input: { payload: Record<string, unknown>; expiresAt?: string | null }) => customerPortalRepository.createShipmentDraft(requireCustomerScope(scope), input), onSuccess: invalidate }),
+    remove: useMutation({ mutationFn: ({ id, revision }: { id: string; revision: number }) => customerPortalRepository.deleteShipmentDraft(requireCustomerScope(scope), id, revision), onSuccess: invalidate }),
+  };
+}
+
 export function useCustomerReferenceData() {
   return useQuery({
     queryKey: queryKeys.referenceData(),

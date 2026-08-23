@@ -1,5 +1,5 @@
 import { ASSETS, addresses, cargoTransportOptions, deliveryOptions, invoices, pickupOfficeSuggestions, recipients, shipments } from "@/lib/mock-data";
-import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto, WalletDto } from "../contracts";
+import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, ShipmentDraftDto, ShipmentDraftInput, SupportCaseDto, SupportCaseInput, UploadedFileDto, WalletDto } from "../contracts";
 import type { CustomerPortalPort, CustomerScope, InvoiceListFilters, ShipmentListFilters } from "../ports";
 
 const DEMO_CUSTOMER_ID = "nwc-001";
@@ -74,6 +74,7 @@ function mapRecipient(input: (typeof recipients)[number]): RecipientDto {
 
 let mockAddresses = addresses.map(mapAddress);
 let mockRecipients = recipients.map(mapRecipient);
+let mockDrafts: ShipmentDraftDto[] = [];
 let mockNotifications: NotificationDto[] = [
   { id: "notification-1", customerId: DEMO_CUSTOMER_ID, type: "progress", title: "Your package is in transit", body: "NWC48291ZM is moving through our delivery network.", occurredAt: "2026-08-23T07:35:00.000Z", displayTime: "12 min ago", shipmentId: "shipment-48291", unread: true, revision: 1 },
   { id: "notification-2", customerId: DEMO_CUSTOMER_ID, type: "arrival", title: "Courier is nearby", body: "NWC19034ZM is arriving today in Ndola.", occurredAt: "2026-08-23T06:47:00.000Z", displayTime: "1 hr ago", shipmentId: "shipment-19034", unread: true, revision: 1 },
@@ -148,6 +149,22 @@ export const mockCustomerPortalPort: CustomerPortalPort = {
     if (!ownsDemoRecords(scope)) return [];
     const needle = query.trim().toLowerCase();
     return mockRecipients.filter((recipient) => !needle || `${recipient.name} ${recipient.phone} ${recipient.location}`.toLowerCase().includes(needle));
+  },
+  async listShipmentDrafts(scope) {
+    return ownsDemoRecords(scope) ? mockDrafts : [];
+  },
+  async createShipmentDraft(scope, input: ShipmentDraftInput) {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    const now = new Date().toISOString();
+    const draft: ShipmentDraftDto = { id: newId("draft"), customerId: scope.customerId, status: "draft", payload: input.payload, quoteId: null, shipmentId: null, expiresAt: input.expiresAt ?? null, revision: 1, createdAt: now, updatedAt: now };
+    mockDrafts = [draft, ...mockDrafts];
+    return draft;
+  },
+  async deleteShipmentDraft(scope, draftId, revision) {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    const current = mockDrafts.find((draft) => draft.id === draftId);
+    if (!current || current.revision !== revision) throw new Error("Draft was changed elsewhere. Refresh and try again.");
+    mockDrafts = mockDrafts.filter((draft) => draft.id !== draftId);
   },
   async getReferenceData(): Promise<CustomerReferenceData> {
     return {

@@ -1,11 +1,11 @@
-import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto, WalletDto } from "./contracts";
+import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, ShipmentDraftDto, ShipmentDraftInput, SupportCaseDto, SupportCaseInput, UploadedFileDto, WalletDto } from "./contracts";
 
 export type ShipmentListFilters = {
   query?: string;
   status?: "all" | "active" | "delivered";
 };
 
-export type InvoiceListFilters = { status?: "all" | "paid" | "unpaid" };
+export type InvoiceListFilters = { query?: string; status?: "all" | "paid" | "unpaid" };
 
 export type CustomerScope = { customerId: string };
 
@@ -18,6 +18,9 @@ export interface CustomerPortalPort {
   getWallet(scope: CustomerScope): Promise<WalletDto | null>;
   listAddresses(scope: CustomerScope): Promise<AddressDto[]>;
   listRecipients(scope: CustomerScope, query?: string): Promise<RecipientDto[]>;
+  listShipmentDrafts(scope: CustomerScope): Promise<ShipmentDraftDto[]>;
+  createShipmentDraft(scope: CustomerScope, input: ShipmentDraftInput): Promise<ShipmentDraftDto>;
+  deleteShipmentDraft(scope: CustomerScope, draftId: string, revision: number): Promise<void>;
   getReferenceData(): Promise<CustomerReferenceData>;
   createAddress(scope: CustomerScope, input: AddressInput): Promise<AddressDto>;
   updateAddress(scope: CustomerScope, addressId: string, revision: number, input: AddressInput): Promise<AddressDto>;

@@ -3,8 +3,9 @@ import { mockCustomerPortalPort } from "./adapters/mock";
 
 export type PortalDataMode = "mock" | "http";
 
-export const portalDataMode: PortalDataMode = import.meta.env.VITE_NWC_DATA_MODE === "http" ? "http" : "mock";
+// Production is server-backed by default. Mock mode is opt-in for isolated UI demos only.
+export const portalDataMode: PortalDataMode = import.meta.env.VITE_NWC_DATA_MODE === "mock" ? "mock" : "http";
 
-// This is the only adapter-selection point. Set VITE_NWC_DATA_MODE=http after
-// the same-origin Vercel gateway and its server-only backend configuration are ready.
+// This is the only adapter-selection point. Set VITE_NWC_DATA_MODE=mock only for
+// an isolated local demo; production and staging use the same-origin BFF by default.
 export const customerPortalRepository = portalDataMode === "http" ? httpCustomerPortalPort : mockCustomerPortalPort;

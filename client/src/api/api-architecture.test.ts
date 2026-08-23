@@ -3,8 +3,8 @@ import { fileUploadIntentInputSchema, paymentIntentInputSchema, shipmentDtoSchem
 import { customerPortalRepository, portalDataMode } from "./repository";
 
 describe("customer portal API architecture", () => {
-  it("uses the mock port only as the development default and retains a single adapter seam", () => {
-    expect(portalDataMode).toBe("mock");
+  it("uses the HTTP/BFF port by default and retains a single adapter seam", () => {
+    expect(portalDataMode).toBe("http");
     expect(customerPortalRepository).toHaveProperty("listShipments");
     expect(customerPortalRepository).toHaveProperty("createPaymentIntent");
     expect(customerPortalRepository).toHaveProperty("createFileUploadIntent");
