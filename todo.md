@@ -323,3 +323,5 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Add a public privacy-safe tracking page at /shipments/tracking with tracking-number search and complete loading, invalid, not-found, and result states.
 - [x] Add a polished, non-intrusive promotional placement to the public tracking page that preserves the tracking task as the primary focus.
 - [x] Source suitable New World Cargo website imagery and add it to the public tracking service cards with responsive, accessible presentation.
+- [x] Supersede the Google Ads-ready side-column request with New World Cargo-owned campaign columns; do not add third-party advertising integration.
+- [x] Replace the public tracking sourced imagery with two New World Cargo-owned, desktop-only campaign columns—one on each side of the centered tracking area—with no third-party advertising integration.
