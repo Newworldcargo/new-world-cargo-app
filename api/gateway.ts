@@ -253,46 +253,4 @@ export async function nodeHandler(request: GatewayRequest, response: ServerRespo
   }
 }
 
-class WebResponseAdapter {
-  statusCode = 200;
-  private headers = new Headers();
-
-  constructor(private readonly resolve: (response: Response) => void) {}
-
-  setHeader(name: string, value: string | string[]) {
-    this.headers.delete(name);
-    if (Array.isArray(value)) {
-      value.forEach((item) => this.headers.append(name, item));
-      return;
-    }
-    this.headers.set(name, value);
-  }
-
-  end(body?: string | Buffer) {
-    const responseBody = body instanceof Buffer ? new Uint8Array(body) : body;
-    this.resolve(new Response(responseBody === undefined ? null : responseBody, { status: this.statusCode, headers: this.headers }));
-  }
-}
-
-export default {
-  async fetch(request: Request) {
-    const url = new URL(request.url);
-    const headers: Record<string, string> = {};
-    request.headers.forEach((value, key) => { headers[key] = value; });
-    const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.text();
-    const gatewayRequest = {
-      method: request.method,
-      url: request.url,
-      headers,
-      query: Object.fromEntries(url.searchParams.entries()),
-      body,
-      once() { return this; },
-      removeListener() { return this; },
-    } as unknown as GatewayRequest;
-
-    return new Promise<Response>((resolve) => {
-      const gatewayResponse = new WebResponseAdapter(resolve);
-      void nodeHandler(gatewayRequest, gatewayResponse as unknown as ServerResponse);
-    });
-  },
-};
+export default nodeHandler;
