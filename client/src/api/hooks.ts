@@ -63,6 +63,16 @@ export function useCustomerInvoice(invoiceId: string | undefined) {
   });
 }
 
+export function useCustomerWallet() {
+  const scope = useCustomerScope();
+  return useQuery({
+    queryKey: queryKeys.wallet.detail(scope.customerId),
+    queryFn: () => customerPortalRepository.getWallet({ customerId: scope.customerId }),
+    enabled: scope.enabled,
+    staleTime: 30_000,
+  });
+}
+
 export function useCustomerAddresses() {
   const scope = useCustomerScope();
   return useQuery({
@@ -214,8 +224,14 @@ export function useShipmentActionMutation() {
 
 export function usePaymentIntentMutation() {
   const scope = useCustomerScope();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: Omit<PaymentIntentInput, "idempotencyKey">) => customerPortalRepository.createPaymentIntent(requireCustomerScope(scope), { ...input, idempotencyKey: crypto.randomUUID() }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all(scope.customerId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.wallet.detail(scope.customerId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(scope.customerId) }),
+    ]),
   });
 }
 

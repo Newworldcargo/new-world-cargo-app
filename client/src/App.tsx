@@ -1,34 +1,41 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch, useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AppShell } from "./components/app-shell";
-import Home from "./pages/Home";
-import Shipments from "./pages/Shipments";
-import ShipmentDetail from "./pages/ShipmentDetail";
-import SendShipment from "./pages/SendShipment";
-import Quote from "./pages/Quote";
-import Notifications from "./pages/Notifications";
-import Settings from "./pages/Settings";
-import SettingsDetail from "./pages/SettingsDetail";
-import SignInActivity from "./pages/SignInActivity";
-import Recipients from "./pages/Recipients";
-import Drafts from "./pages/Drafts";
-import Tracking from "./pages/Tracking";
-import Support from "./pages/Support";
-import Returns from "./pages/Returns";
-import Pickup from "./pages/Pickup";
-import ProofOfDelivery from "./pages/ProofOfDelivery";
-import ProfilePhoto from "./pages/ProfilePhoto";
-import Legal from "./pages/Legal";
-import Invoices from "./pages/Invoices";
-import NotFound from "./pages/NotFound";
-import { CompleteProfile, ForgotPassword, Login, Register, ResetPassword, SessionExpired, Verify } from "./pages/AuthPages";
 import { AppPreloader, EmptyState, ErrorState, OfflineBanner } from "./components/async-state";
 import { getCustomerPageState } from "./lib/page-state";
+
+const Home = lazy(() => import("./pages/Home"));
+const Shipments = lazy(() => import("./pages/Shipments"));
+const ShipmentDetail = lazy(() => import("./pages/ShipmentDetail"));
+const SendShipment = lazy(() => import("./pages/SendShipment"));
+const Quote = lazy(() => import("./pages/Quote"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Settings = lazy(() => import("./pages/Settings"));
+const SettingsDetail = lazy(() => import("./pages/SettingsDetail"));
+const SignInActivity = lazy(() => import("./pages/SignInActivity"));
+const Recipients = lazy(() => import("./pages/Recipients"));
+const Drafts = lazy(() => import("./pages/Drafts"));
+const Tracking = lazy(() => import("./pages/Tracking"));
+const Support = lazy(() => import("./pages/Support"));
+const Returns = lazy(() => import("./pages/Returns"));
+const Pickup = lazy(() => import("./pages/Pickup"));
+const ProofOfDelivery = lazy(() => import("./pages/ProofOfDelivery"));
+const ProfilePhoto = lazy(() => import("./pages/ProfilePhoto"));
+const Legal = lazy(() => import("./pages/Legal"));
+const Invoices = lazy(() => import("./pages/Invoices"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Login = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.Login })));
+const Register = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.Register })));
+const Verify = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.Verify })));
+const ForgotPassword = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.ForgotPassword })));
+const ResetPassword = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.ResetPassword })));
+const CompleteProfile = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.CompleteProfile })));
+const SessionExpired = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.SessionExpired })));
 
 function CustomerRouter() {
   const [location, navigate] = useLocation();
@@ -70,4 +77,4 @@ function RoutedApp() {
   return <AppShell><CustomerRouter /></AppShell>;
 }
 
-export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster theme="light" position="top-center" /><AuthProvider><OfflineBanner /><RoutedApp /></AuthProvider></TooltipProvider></ThemeProvider></ErrorBoundary>; }
+export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster theme="light" position="top-center" /><AuthProvider><OfflineBanner /><Suspense fallback={<AppPreloader label="Loading New World Cargo…" />}><RoutedApp /></Suspense></AuthProvider></TooltipProvider></ThemeProvider></ErrorBoundary>; }

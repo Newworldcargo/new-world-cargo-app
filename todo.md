@@ -317,3 +317,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Provide mutation contracts, invalidation rules, field-error handling, idempotency support, and recovery states for every write workflow.
 - [x] Add local-only Zustand stores for unsent drafts and transient UI state while keeping server records, identities, and payment outcomes out of browser persistence.
 - [x] Add API-ready upload, payment-intent, public-tracking, session, authorization, and cache-reset boundaries with a backend handoff contract for each.
+- [x] Re-audit the API-ready portal for missing security, identity, data, transport, resilience, observability, deployment, and test infrastructure; remediate frontend-owned gaps.

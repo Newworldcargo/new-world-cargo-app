@@ -65,6 +65,7 @@ The browser sends `Accept: application/json`, `X-Request-ID`, cookies through `c
 | `POST` | `/shipments/:id/actions` | `If-Match`, `Idempotency-Key`, `{ action }` | `ShipmentDto` | Cancel, duplicate, pickup/delivery operations, issue workflows |
 | `GET` | `/public/tracking/:trackingNumber` | Rate limited; no session required | Public-safe `ShipmentDto` | Tracking page |
 | `GET` | `/invoices?status=` and `/invoices/:id` | Session cookie | `InvoiceDto[]` / `InvoiceDto` | Invoices, unpaid shipment payment eligibility |
+| `GET` | `/wallet` | Session cookie; derive balances from the authoritative ledger only | `WalletDto` | Home balance, payment and refund visibility |
 | `POST` | `/payments/intents` | `Idempotency-Key`, `PaymentIntentInput` | `PaymentIntentDto` | Payment modal |
 | `GET` | `/addresses`, `/recipients?q=` | Session cookie | `AddressDto[]`, `RecipientDto[]` | Settings and Send |
 | `POST` / `PUT` / `DELETE` | `/addresses`, `/addresses/:id` | `If-Match` for update/delete | `AddressDto` | Address CRUD |
@@ -109,7 +110,7 @@ The application currently defaults to `mock` mode. This preserves local UX testi
 |---|---|
 | Contract compatibility | OpenAPI/DTO contract tests pass against staging and production candidate. |
 | Ownership enforcement | Cross-customer access tests return `403` or `404` without leaking record existence. |
-| Reliability | Health/readiness endpoints, request-ID logs, bounded retries, and alerting are in place. |
+| Reliability | The static portal exposes `GET /healthz`; the live API exposes authenticated-independent `/healthz` and dependency-aware `/readyz`, with request-ID logs, bounded retries, and alerting. |
 | Financial correctness | Payment statuses originate from verified webhooks and duplicate payment-intent tests pass. |
 | File safety | Upload authorization, type/size validation, malware scan, and signed URL expiration tests pass. |
 | Privacy | No token, payment credential, or server-owned data is persisted in browser storage. |
@@ -117,4 +118,4 @@ The application currently defaults to `mock` mode. This preserves local UX testi
 
 ## 8. Current Readiness Statement
 
-The frontend **is prepared to plug into live APIs without page rewrites**. It is not a live backend: the current default adapter still supplies development fixture data. The backend team must implement the documented routes, cookies, ownership checks, revision and idempotency rules, and response DTOs before a production data-mode switch.
+The frontend **is prepared to plug into live APIs without page rewrites**. It is not a live backend: the current default adapter still supplies development fixture data. The backend team must implement the documented routes, cookies, ownership checks, revision and idempotency rules, wallet ledger, readiness endpoints, and response DTOs before a production data-mode switch.

@@ -109,6 +109,17 @@ export const invoiceDtoSchema = z.object({
   revision: z.number().int().nonnegative(),
 });
 
+export const walletDtoSchema = z.object({
+  id: z.string(),
+  customerId: z.string(),
+  currency: z.string().length(3),
+  availableBalance: moneySchema,
+  pendingBalance: moneySchema,
+  status: z.enum(["active", "restricted", "closed"]),
+  updatedAt: z.string().datetime(),
+  revision: z.number().int().nonnegative(),
+});
+
 export const officeDtoSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -290,6 +301,7 @@ export type ShipmentAction = z.infer<typeof shipmentActionSchema>;
 export type AddressDto = z.infer<typeof addressDtoSchema>;
 export type RecipientDto = z.infer<typeof recipientDtoSchema>;
 export type InvoiceDto = z.infer<typeof invoiceDtoSchema>;
+export type WalletDto = z.infer<typeof walletDtoSchema>;
 export type CustomerReferenceData = z.infer<typeof customerReferenceDataSchema>;
 export type AddressInput = z.infer<typeof addressInputSchema>;
 export type RecipientInput = z.infer<typeof recipientInputSchema>;

@@ -20,16 +20,18 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { ShipmentCard, StatusBadge } from "@/components/shipment-ui";
-import { useCustomerInvoices, useCustomerShipments } from "@/api/hooks";
+import { useCustomerInvoices, useCustomerShipments, useCustomerWallet } from "@/api/hooks";
 
 export default function Home() {
   const [, navigate] = useLocation();
   const [tracking, setTracking] = useState("");
   const { data: shipments = [], isLoading: shipmentsLoading } = useCustomerShipments();
   const { data: invoices = [] } = useCustomerInvoices();
+  const { data: wallet } = useCustomerWallet();
   const arriving = shipments.find((shipment) => shipment.status === "out_for_delivery") ?? shipments.find((shipment) => shipment.status !== "delivered") ?? shipments[0];
   const inTransit = shipments.find((shipment) => shipment.status === "in_transit") ?? shipments.find((shipment) => shipment.id !== arriving?.id) ?? arriving;
   const outstandingInvoice = invoices.find((invoice) => invoice.status === "unpaid");
+  const walletBalance = wallet ? `${wallet.currency} ${(wallet.availableBalance.amountMinor / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null;
 
   const track = () => {
     if (!tracking.trim()) {
@@ -122,8 +124,8 @@ export default function Home() {
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Wallet & payments</p>
-              <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">{outstandingInvoice ? `${outstandingInvoice.amount} due` : "No balance due"}</h2>
-              <p className="mt-2 break-words text-sm leading-6 text-white/55">{outstandingInvoice ? `For your ${outstandingInvoice.route} order.` : "Your latest invoice status will appear here."}</p>
+              <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">{walletBalance ?? (outstandingInvoice ? `${outstandingInvoice.amount} due` : "Wallet loading…")}</h2>
+              <p className="mt-2 break-words text-sm leading-6 text-white/55">{outstandingInvoice ? `${outstandingInvoice.amount} due for your ${outstandingInvoice.route} order.` : "Your assigned cargo wallet is ready for payments and refunds."}</p>
             </div>
             <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-cargo-yellow/15 text-cargo-yellow"><CreditCard className="size-5" /></div>
           </div>

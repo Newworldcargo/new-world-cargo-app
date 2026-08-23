@@ -1,4 +1,4 @@
-import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto } from "./contracts";
+import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto, WalletDto } from "./contracts";
 
 export type ShipmentListFilters = {
   query?: string;
@@ -15,6 +15,7 @@ export interface CustomerPortalPort {
   getPublicTracking(trackingNumber: string): Promise<ShipmentDto | null>;
   listInvoices(scope: CustomerScope, filters?: InvoiceListFilters): Promise<InvoiceDto[]>;
   getInvoice(scope: CustomerScope, invoiceId: string): Promise<InvoiceDto | null>;
+  getWallet(scope: CustomerScope): Promise<WalletDto | null>;
   listAddresses(scope: CustomerScope): Promise<AddressDto[]>;
   listRecipients(scope: CustomerScope, query?: string): Promise<RecipientDto[]>;
   getReferenceData(): Promise<CustomerReferenceData>;

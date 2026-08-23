@@ -1,5 +1,5 @@
 import { ASSETS, addresses, cargoTransportOptions, deliveryOptions, invoices, pickupOfficeSuggestions, recipients, shipments } from "@/lib/mock-data";
-import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto } from "../contracts";
+import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto, WalletDto } from "../contracts";
 import type { CustomerPortalPort, CustomerScope, InvoiceListFilters, ShipmentListFilters } from "../ports";
 
 const DEMO_CUSTOMER_ID = "nwc-001";
@@ -87,6 +87,16 @@ let mockSessions: SessionActivityDto[] = [
   { id: "session-current", customerId: DEMO_CUSTOMER_ID, device: "This device", location: "Lusaka, Zambia", lastActiveAt: "2026-08-23T07:50:00.000Z", displayLastActiveAt: "Active now", current: true, trusted: true, revision: 1 },
   { id: "session-previous", customerId: DEMO_CUSTOMER_ID, device: "Chrome on Windows", location: "Lusaka, Zambia", lastActiveAt: "2026-08-21T11:00:00.000Z", displayLastActiveAt: "2 days ago", current: false, trusted: false, revision: 1 },
 ];
+const mockWallet: WalletDto = {
+  id: "wallet-nwc-001",
+  customerId: DEMO_CUSTOMER_ID,
+  currency: "ZMW",
+  availableBalance: { currency: "ZMW", amountMinor: 0 },
+  pendingBalance: { currency: "ZMW", amountMinor: 0 },
+  status: "active",
+  updatedAt: "2026-08-23T08:00:00.000Z",
+  revision: 1,
+};
 
 function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -127,6 +137,9 @@ export const mockCustomerPortalPort: CustomerPortalPort = {
     if (!ownsDemoRecords(scope)) return null;
     const invoice = invoices.find((item) => item.id === invoiceId);
     return invoice ? mapInvoice(invoice) : null;
+  },
+  async getWallet(scope) {
+    return ownsDemoRecords(scope) ? mockWallet : null;
   },
   async listAddresses(scope) {
     return ownsDemoRecords(scope) ? mockAddresses : [];

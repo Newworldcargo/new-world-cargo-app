@@ -1,5 +1,5 @@
 import { apiRequest } from "../http";
-import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto } from "../contracts";
+import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, SupportCaseDto, SupportCaseInput, UploadedFileDto, WalletDto } from "../contracts";
 import type { CustomerPortalPort, CustomerScope, InvoiceListFilters, ShipmentListFilters } from "../ports";
 
 function queryString(params: Record<string, string | undefined>) {
@@ -22,6 +22,9 @@ export const httpCustomerPortalPort: CustomerPortalPort = {
   },
   async getInvoice(_scope, invoiceId) {
     return apiRequest<InvoiceDto | null>(`/invoices/${encodeURIComponent(invoiceId)}`);
+  },
+  async getWallet() {
+    return apiRequest<WalletDto | null>("/wallet");
   },
   async listAddresses() {
     return apiRequest<AddressDto[]>("/addresses");
