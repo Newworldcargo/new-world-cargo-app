@@ -35,8 +35,10 @@ describe("auth workflow helpers", () => {
 
   it("recognizes public auth and legal routes", () => {
     expect(isPublicAuthPath("/login")).toBe(true);
+    expect(isPublicAuthPath("/shipments/tracking")).toBe(true);
     expect(isPublicAuthPath("/settings/legal/privacy")).toBe(true);
     expect(isPublicAuthPath("/shipments")).toBe(false);
+    expect(isProtectedRoute("/shipments/tracking")).toBe(false);
     expect(isProtectedRoute("/shipments")).toBe(true);
     expect(isProtectedRoute("/session-expired")).toBe(false);
   });

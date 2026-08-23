@@ -15,5 +15,6 @@ describe("primary mobile navigation routing", () => {
     expect(isPrimaryMobileTabRoute("/settings/addresses")).toBe(false);
     expect(isPrimaryMobileTabRoute("/notifications")).toBe(false);
     expect(isPrimaryMobileTabRoute("/track")).toBe(false);
+    expect(isPrimaryMobileTabRoute("/shipments/tracking")).toBe(false);
   });
 });

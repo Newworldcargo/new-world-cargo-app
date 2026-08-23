@@ -31,7 +31,7 @@ export function isProtectedRoute(pathname: string) {
 }
 
 export function isPublicAuthPath(pathname: string) {
-  return AUTH_PUBLIC_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`)) || pathname.startsWith("/settings/legal");
+  return AUTH_PUBLIC_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`)) || pathname === "/track" || pathname === "/shipments/tracking" || pathname.startsWith("/settings/legal");
 }
 
 export function validateSignedInPasswordChange(currentPassword: string, nextPassword: string, confirmation: string, expectedCurrentPassword = "password123") {

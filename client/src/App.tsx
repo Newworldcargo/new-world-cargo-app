@@ -50,7 +50,7 @@ function CustomerRouter() {
 function PublicTrackingRoute() {
   const [location] = useLocation();
   const pageState = getCustomerPageState(typeof window === "undefined" ? "" : window.location.search);
-  const retry = () => window.location.assign(location.split("?")[0] || "/track");
+  const retry = () => window.location.assign(location.split("?")[0] || "/shipments/tracking");
   if (pageState === "loading") return <AppPreloader label="Loading tracking details…" />;
   if (pageState === "empty") return <EmptyState title="No tracking activity yet" detail="Enter your tracking number to find the latest shipment update." action={{ label: "Start tracking", onClick: retry }} />;
   if (pageState === "error") return <ErrorState title="We could not load tracking" detail="Please check your connection and try again." action={{ label: "Try again", onClick: retry }} />;
@@ -58,7 +58,7 @@ function PublicTrackingRoute() {
 }
 
 function PublicRouter() {
-  return <Switch><Route path="/login" component={Login} /><Route path="/register" component={Register} /><Route path="/verify" component={Verify} /><Route path="/forgot-password" component={ForgotPassword} /><Route path="/reset-password" component={ResetPassword} /><Route path="/auth/complete-profile" component={CompleteProfile} /><Route path="/session-expired" component={SessionExpired} /><Route path="/track" component={PublicTrackingRoute} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/login" component={Login} /><Route path="/register" component={Register} /><Route path="/verify" component={Verify} /><Route path="/forgot-password" component={ForgotPassword} /><Route path="/reset-password" component={ResetPassword} /><Route path="/auth/complete-profile" component={CompleteProfile} /><Route path="/session-expired" component={SessionExpired} /><Route path="/shipments/tracking" component={PublicTrackingRoute} /><Route path="/track" component={PublicTrackingRoute} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route component={NotFound} /></Switch>;
 }
 
 function RoutedApp() {
@@ -69,7 +69,7 @@ function RoutedApp() {
     const timer = window.setTimeout(() => setBooting(false), 180);
     return () => window.clearTimeout(timer);
   }, []);
-  const isPublic = ["/login", "/register", "/verify", "/forgot-password", "/reset-password", "/auth/complete-profile", "/session-expired", "/track"].some(path => location.startsWith(path)) || location.startsWith("/settings/legal");
+  const isPublic = ["/login", "/register", "/verify", "/forgot-password", "/reset-password", "/auth/complete-profile", "/session-expired", "/shipments/tracking", "/track"].some(path => location.startsWith(path)) || location.startsWith("/settings/legal");
   useEffect(() => { if (!isAuthenticated && !isPublic) navigate(`/login?returnTo=${encodeURIComponent(location)}`); }, [isAuthenticated, isPublic, location, navigate]);
   if (booting || sessionLoading) return <AppPreloader />;
   if (isPublic) return <PublicRouter />;

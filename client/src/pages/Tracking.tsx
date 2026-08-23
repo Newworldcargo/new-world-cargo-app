@@ -1,5 +1,6 @@
 import { Camera, CheckCircle2, Copy, PackageSearch, Share2, XCircle } from "lucide-react";
 import { useState } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { usePublicTracking } from "@/api/hooks";
 
@@ -9,7 +10,20 @@ export default function Tracking() {
   const [code, setCode] = useState("");
   const [searched, setSearched] = useState(false);
   const [scanState, setScanState] = useState<ScanState>("idle");
-  const { data: result, isLoading, isError, refetch } = usePublicTracking(searched ? code : "");
+  const [inputError, setInputError] = useState("");
+  const trackingNumber = code.trim().toUpperCase();
+  const { data: result, isLoading, isError, refetch } = usePublicTracking(searched ? trackingNumber : "");
+
+  const submitTracking = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!trackingNumber) {
+      setSearched(false);
+      setInputError("Enter your tracking number to continue.");
+      return;
+    }
+    setInputError("");
+    setSearched(true);
+  };
 
   const startScan = () => {
     setScanState("permission");
@@ -18,6 +32,7 @@ export default function Tracking() {
 
   const useSampleScan = () => {
     setCode("NWC48291ZM");
+    setInputError("");
     setSearched(true);
     setScanState("idle");
   };
@@ -25,14 +40,18 @@ export default function Tracking() {
   return (
     <main className="min-h-screen bg-white px-4 py-8 text-ink sm:px-6">
       <div className="mx-auto max-w-2xl">
-        <header className="flex items-center gap-3">
+        <header className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
           <span className="grid size-11 place-items-center rounded-2xl bg-cargo-yellow"><PackageSearch className="size-5" /></span>
           <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-cargo-yellow">New World Cargo</p><h1 className="font-heading text-3xl font-extrabold">Track a shipment</h1></div>
+          </div>
+          <Link href="/login" className="shrink-0 text-sm font-bold text-ink underline decoration-cargo-yellow underline-offset-4">Sign in</Link>
         </header>
-        <form onSubmit={(event) => { event.preventDefault(); setSearched(true); }} className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <input autoFocus value={code} onChange={(event) => { setCode(event.target.value); setSearched(false); }} placeholder="Enter tracking number, e.g. NWC48291ZM" className="h-13 min-w-0 flex-1 rounded-2xl border border-ink/15 px-4 text-sm font-semibold outline-none focus:border-cargo-yellow" />
+        <form onSubmit={submitTracking} className="mt-8 flex flex-col gap-3 sm:flex-row" noValidate>
+          <input autoFocus value={code} onChange={(event) => { setCode(event.target.value); setSearched(false); setInputError(""); }} placeholder="Enter tracking number, e.g. NWC48291ZM" aria-label="Tracking number" aria-invalid={Boolean(inputError)} aria-describedby={inputError ? "tracking-number-error" : undefined} className="h-13 min-w-0 flex-1 rounded-2xl border border-ink/15 px-4 text-sm font-semibold outline-none focus:border-cargo-yellow" />
           <Button className="h-13 rounded-2xl bg-cargo-yellow font-bold text-ink">Track shipment</Button>
         </form>
+        {inputError && <p id="tracking-number-error" role="alert" className="mt-2 text-sm font-semibold text-red-700">{inputError}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <button onClick={startScan} className="inline-flex items-center gap-2 text-xs font-bold text-ink/65 hover:text-ink"><Camera className="size-4 text-cargo-yellow" />Scan a tracking QR code</button>
           {scanState === "permission" && <span className="text-xs text-ink/50">Requesting camera permission…</span>}

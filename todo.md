@@ -320,3 +320,4 @@ Keep the established New World Cargo design: light mode, white canvas, Poppins t
 - [x] Re-audit the API-ready portal for missing security, identity, data, transport, resilience, observability, deployment, and test infrastructure; remediate frontend-owned gaps.
 - [x] Add reusable Sonner feedback conventions for successful, warning, error, and informational outcomes across primary customer workflows and pages.
 - [x] Produce a complete backend implementation specification: API list, schemas, authorization, customer workflows, operational requirements, integration sequence, and acceptance tests for plug-in frontend activation.
+- [x] Add a public privacy-safe tracking page at /shipments/tracking with tracking-number search and complete loading, invalid, not-found, and result states.
