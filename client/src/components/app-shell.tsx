@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { Bell, ChevronDown, CircleHelp, House, LogOut, Package, Plus, ReceiptText, Settings2, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { toast } from "sonner";
+import { feedback } from "@/lib/feedback";
 import { useAuth } from "@/contexts/AuthContext";
 import { isPrimaryMobileTabRoute } from "@/lib/primary-mobile-navigation";
 import { BrandMark } from "./BrandMark";
@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const activeHref = location === "/" ? "/" : `/${location.split("/")[1]}`;
   const showMobileNavigation = isPrimaryMobileTabRoute(location);
-  const handleLogout = () => { logout(); toast("Signed out successfully."); navigate("/login"); };
+  const handleLogout = () => { logout(); feedback.success("Signed out successfully."); navigate("/login"); };
 
   return (
     <div className="nwc-light min-h-screen overflow-x-hidden bg-background text-foreground">

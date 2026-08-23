@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { toast } from "sonner";
+import { feedback } from "@/lib/feedback";
 import { PaymentModal } from "@/components/payment-modal";
 import { SubpageBackButton } from "@/components/subpage-back-button";
 import { useCustomerRecipients, useCustomerReferenceData } from "@/api/hooks";
@@ -83,13 +83,13 @@ export default function SendShipment() {
       if (payload.handover) setHandover(payload.handover);
       if (payload.evidence) setEvidence(payload.evidence);
       setStep(saved.step);
-      toast("Your saved draft is ready to continue.");
+      feedback.success("Your saved draft is ready to continue.");
     }
     if (location.includes("quote=latest")) {
       if (!latestQuote) return;
-      if (Date.now() > new Date(latestQuote.expiresAt).getTime()) { setLatestQuote(null); toast("This quote has expired. Please request a fresh estimate."); return; }
+      if (Date.now() > new Date(latestQuote.expiresAt).getTime()) { setLatestQuote(null); feedback.warning("This quote has expired. Please request a fresh estimate."); return; }
       setForm((current) => ({ ...current, pickup: latestQuote.from || current.pickup, destination: latestQuote.to || current.destination, packages: String(latestQuote.weightKg || current.packages) }));
-      toast(`Your ${latestQuote.serviceName} quote has been added. You can edit all details.`);
+      feedback.success(`Your ${latestQuote.serviceName} quote has been added. You can edit all details.`);
     }
   }, [latestQuote, location, setLatestQuote, shipmentDrafts]);
 
@@ -112,7 +112,7 @@ export default function SendShipment() {
     if (!files?.length) return;
     const names = Array.from(files).map((file) => file.name);
     setEvidence((current) => ({ ...current, [type]: [...current[type], ...names] }));
-    toast(`${names.length} ${type === "photos" ? "photo" : "document"}${names.length > 1 ? "s" : ""} added.`);
+    feedback.success(`${names.length} ${type === "photos" ? "photo" : "document"}${names.length > 1 ? "s" : ""} added.`);
   };
 
   const removeEvidence = (type: keyof EvidenceState, name: string) =>
@@ -122,19 +122,19 @@ export default function SendShipment() {
   const next = () => (step < steps.length - 1 ? setStep((current) => current + 1) : setPaymentOpen(true));
   const saveDraft = () => {
     saveShipmentDraft({ id: "latest", step, payload: { form, cargoRows, transport, handover, evidence }, updatedAt: new Date().toISOString() });
-    toast("Your cargo request draft has been saved.");
+    feedback.success("Your cargo request draft has been saved.");
   };
   const useCurrentLocation = () => {
-    if (!navigator.geolocation) { toast.error("Location services are not available in this browser."); return; }
+    if (!navigator.geolocation) { feedback.error("Location services are not available in this browser."); return; }
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => { update("pickup", `Current location · ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`); toast.success("Your current pickup location was added."); },
-      () => toast.error("We could not access your location. Choose an office or enter an address instead."),
+      ({ coords }) => { update("pickup", `Current location · ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`); feedback.success("Your current pickup location was added."); },
+      () => feedback.error("We could not access your location. Choose an office or enter an address instead."),
       { enableHighAccuracy: false, timeout: 8000 },
     );
   };
   const saveRecipient = () => {
-    if (!form.recipient.trim() || !form.phone.trim()) { toast.error("Add a cargo owner and phone number before saving this contact."); return; }
-    toast.info("This contact is ready to be saved through the customer API when it is enabled.");
+    if (!form.recipient.trim() || !form.phone.trim()) { feedback.error("Add a cargo owner and phone number before saving this contact."); return; }
+    feedback.info("This contact is ready to be saved through the customer API when it is enabled.");
   };
   const transportOptions = referenceData?.cargoTransportOptions ?? [];
   const pickupOffices = referenceData?.pickupOfficeSuggestions ?? [];
@@ -400,7 +400,7 @@ export default function SendShipment() {
           </button>
         </div>
       </div>
-      <PaymentModal open={paymentOpen} amount="K 320" reference="Cargo request booking deposit" onClose={() => setPaymentOpen(false)} onSuccess={() => { setPaymentOpen(false); toast("Booking deposit received."); setSuccess(true); }} />
+      <PaymentModal open={paymentOpen} amount="K 320" reference="Cargo request booking deposit" onClose={() => setPaymentOpen(false)} onSuccess={() => { setPaymentOpen(false); feedback.success("Booking deposit received."); setSuccess(true); }} />
     </div>
   );
 }

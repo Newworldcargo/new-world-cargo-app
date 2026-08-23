@@ -1,5 +1,6 @@
 import { AlertTriangle, CloudOff, Inbox, RefreshCw } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { feedback } from "@/lib/feedback";
 
 type StateAction = { label: string; onClick: () => void };
 
@@ -25,11 +26,21 @@ export function AppPreloader({ label = APP_PRELOADER_LABEL }: { label?: string }
 
 export function LoadingState({ label = "Loading your details…" }: { label?: string }) { return <section className="grid min-h-52 place-items-center rounded-[28px] border border-ink/10 bg-white"><div className="flex items-center gap-3 text-sm font-semibold text-ink/60"><div className="size-4 animate-spin rounded-full border-2 border-cargo-yellow border-t-transparent" aria-hidden="true" />{label}</div></section>; }
 export function EmptyState({ title, detail, action }: { title: string; detail: string; action?: StateAction }) { return <StateFrame icon={<Inbox className="size-5" />} title={title} detail={detail} action={action} />; }
-export function ErrorState({ title = "We could not load this yet", detail = "Please check your connection and try again.", action }: { title?: string; detail?: string; action?: StateAction }) { return <StateFrame icon={<AlertTriangle className="size-5" />} title={title} detail={detail} action={action} />; }
+export function ErrorState({ title = "We could not load this yet", detail = "Please check your connection and try again.", action }: { title?: string; detail?: string; action?: StateAction }) {
+  useEffect(() => { feedback.error(title, { description: detail }); }, [detail, title]);
+  return <StateFrame icon={<AlertTriangle className="size-5" />} title={title} detail={detail} action={action} />;
+}
 
 export function OfflineBanner() {
   const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
+  const previousOnline = useRef(online);
   useEffect(() => { const update = () => setOnline(navigator.onLine); window.addEventListener("online", update); window.addEventListener("offline", update); return () => { window.removeEventListener("online", update); window.removeEventListener("offline", update); }; }, []);
+  useEffect(() => {
+    if (previousOnline.current === online) return;
+    previousOnline.current = online;
+    if (online) feedback.success("You are back online", { description: "You can continue with new requests and updates." });
+    else feedback.warning("You are offline", { description: "Saved details remain available; new changes will need a connection." });
+  }, [online]);
   if (online) return null;
   return <div role="status" className="fixed inset-x-3 top-3 z-[100] mx-auto flex max-w-xl items-center justify-center gap-2 rounded-xl bg-ink px-4 py-3 text-center text-sm font-semibold text-white shadow-lg"><CloudOff className="size-4 shrink-0 text-cargo-yellow" />You are offline. Saved details remain available; new changes will need a connection.</div>;
 }

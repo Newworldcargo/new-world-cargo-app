@@ -77,4 +77,4 @@ function RoutedApp() {
   return <AppShell><CustomerRouter /></AppShell>;
 }
 
-export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster theme="light" position="top-center" /><AuthProvider><OfflineBanner /><Suspense fallback={<AppPreloader label="Loading New World Cargo…" />}><RoutedApp /></Suspense></AuthProvider></TooltipProvider></ThemeProvider></ErrorBoundary>; }
+export default function App() { return <ThemeProvider defaultTheme="light"><TooltipProvider><Toaster theme="light" position="top-center" closeButton richColors /><ErrorBoundary><AuthProvider><OfflineBanner /><Suspense fallback={<AppPreloader label="Loading New World Cargo…" />}><RoutedApp /></Suspense></AuthProvider></ErrorBoundary></TooltipProvider></ThemeProvider>; }

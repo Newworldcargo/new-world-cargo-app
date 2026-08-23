@@ -1,7 +1,11 @@
-import { QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryClient } from "@tanstack/react-query";
+import { feedback } from "@/lib/feedback";
 import { isCustomerApiError } from "./errors";
 
 export const customerQueryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error) => feedback.fromError(error),
+  }),
   defaultOptions: {
     queries: {
       staleTime: 60_000,
@@ -11,4 +15,3 @@ export const customerQueryClient = new QueryClient({
     mutations: { retry: false },
   },
 });
-

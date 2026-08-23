@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { toast } from "sonner";
+import { feedback } from "@/lib/feedback";
 import { ShipmentCard, StatusBadge } from "@/components/shipment-ui";
 import { useCustomerInvoices, useCustomerShipments, useCustomerWallet } from "@/api/hooks";
 
@@ -35,7 +35,7 @@ export default function Home() {
 
   const track = () => {
     if (!tracking.trim()) {
-      toast.error("Enter a tracking number to continue");
+      feedback.error("Enter a tracking number to continue");
       return;
     }
     const matchingShipment = shipments.find((shipment) => shipment.trackingNumber.toLowerCase() === tracking.trim().toLowerCase());

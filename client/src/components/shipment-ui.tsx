@@ -2,7 +2,7 @@
 
 /* Design reminder: shipment surfaces use only Cargo Yellow for air cargo and #012642 blue for sea cargo; white and opacity values are neutral contrast aids. */
 import { ArrowUpRight, Check, ChevronRight, Clock3, Copy, MapPin, PackageCheck, Plane, RefreshCw, Share2, Ship, Truck, Zap } from "lucide-react";
-import { toast } from "sonner";
+import { feedback } from "@/lib/feedback";
 import type { Shipment, ShipmentStatus } from "@/lib/domain";
 
 const statusStyles: Record<ShipmentStatus, string> = {
@@ -53,8 +53,8 @@ export function Timeline({ shipment }: { shipment: Shipment }) {
 }
 
 export function ShipmentActions({ shipment, onReschedule, onDeliveryInstructions }: { shipment: Shipment; onReschedule?: () => void; onDeliveryInstructions?: () => void }) {
-  const copyTracking = () => { navigator.clipboard?.writeText(shipment.trackingNumber); toast.success("Tracking number copied"); };
-  const shareTracking = () => { navigator.share?.({ title: "Track my New World Cargo shipment", text: shipment.trackingNumber, url: window.location.href }).catch(() => undefined); toast("Tracking link ready to share"); };
+  const copyTracking = () => { navigator.clipboard?.writeText(shipment.trackingNumber); feedback.success("Tracking number copied"); };
+  const shareTracking = () => { navigator.share?.({ title: "Track my New World Cargo shipment", text: shipment.trackingNumber, url: window.location.href }).catch(() => undefined); feedback.info("Tracking link ready to share"); };
   const isDelayed = shipment.status === "delayed";
   return <div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><button onClick={copyTracking} className="flex items-center justify-center gap-2 rounded-2xl bg-white/8 px-3 py-3 text-xs font-bold text-white/75 transition hover:bg-white/12"><Copy className="size-4" />Copy ID</button><button onClick={shareTracking} className="flex items-center justify-center gap-2 rounded-2xl bg-white/8 px-3 py-3 text-xs font-bold text-white/75 transition hover:bg-white/12"><Share2 className="size-4" />Share</button>{(isDelayed || shipment.status === "out_for_delivery") && <button onClick={onReschedule} className="col-span-2 flex items-center justify-center gap-2 rounded-2xl bg-cargo-yellow px-3 py-3 text-xs font-bold text-ink transition hover:brightness-105 sm:col-span-2"><RefreshCw className="size-4" />Reschedule delivery</button>}{!isDelayed && shipment.status !== "out_for_delivery" && <button onClick={onDeliveryInstructions} className="col-span-2 flex items-center justify-center gap-2 rounded-2xl bg-cargo-yellow px-3 py-3 text-xs font-bold text-ink transition hover:brightness-105 sm:col-span-2"><MapPin className="size-4" />Delivery instructions</button>}</div>;
 }

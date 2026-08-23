@@ -2,6 +2,7 @@
 
 import { Check, ChevronLeft, CircleAlert, CreditCard, Landmark, LockKeyhole, Smartphone, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { feedback } from "@/lib/feedback";
 import { shouldMockPaymentFail } from "@/lib/workflow-completion";
 
 export type PaymentMethodKind = "mobile_money" | "card";
@@ -56,7 +57,7 @@ export function PaymentModal({ open, amount, reference, onClose, onSuccess }: Pa
     window.setTimeout(() => {
       setSubmitting(false);
       const enteredDigits = method === "mobile_money" ? phone.replace(/\D/g, "") : cardNumber.replace(/\D/g, "");
-      if (shouldMockPaymentFail(enteredDigits)) { setPaymentState("failed"); return; }
+      if (shouldMockPaymentFail(enteredDigits)) { setPaymentState("failed"); feedback.error("Payment could not be completed", { description: "No money was collected. Check your details, retry, or choose another payment method." }); return; }
       window.localStorage.setItem(LAST_PAYMENT_KEY, method);
       onSuccess({ kind: method, label: methodLabel });
     }, 650);

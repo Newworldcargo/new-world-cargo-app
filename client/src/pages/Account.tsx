@@ -2,7 +2,6 @@
 
 import { Bell, ChevronRight, CreditCard, MapPin, Pencil, Plus, ShieldCheck, UsersRound, WalletCards } from "lucide-react";
 import { useLocation } from "wouter";
-import { toast } from "sonner";
 import { CargoRail } from "@/components/shipment-ui";
 import { useCustomerAddresses, useCustomerRecipients } from "@/api/hooks";
 import { useAuth } from "@/contexts/AuthContext";

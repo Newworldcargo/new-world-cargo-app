@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import type { Invoice, InvoiceStatus } from "@/lib/domain";
 import { PaymentModal, type PaymentConfirmation } from "@/components/payment-modal";
-import { toast } from "sonner";
+import { feedback } from "@/lib/feedback";
 import { useCustomerInvoices } from "@/api/hooks";
 
 function downloadDocument(invoice: Invoice, kind: "invoice" | "receipt") {
@@ -22,7 +22,7 @@ function downloadDocument(invoice: Invoice, kind: "invoice" | "receipt") {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
-  toast(`${title} downloaded.`);
+  feedback.success(`${title} downloaded.`);
 }
 
 function StatusChip({ status }: { status: InvoiceStatus }) {
@@ -70,7 +70,7 @@ export default function Invoices() {
     setPaidMethods((current) => ({ ...current, [paymentInvoice.id]: payment.label }));
     setSelectedInvoice((current) => current?.id === paymentInvoice.id ? { ...current, status: "paid", paidAt: "Just now", paymentMethod: payment.label } : current);
     setPaymentInvoice(null);
-    toast("Payment received. Your receipt is ready to download.");
+    feedback.success("Payment received. Your receipt is ready to download.");
   };
 
   return <div className="mx-auto max-w-5xl text-ink">

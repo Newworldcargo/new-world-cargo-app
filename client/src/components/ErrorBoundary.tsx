@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { feedback } from "@/lib/feedback";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Component, ReactNode } from "react";
 
@@ -19,6 +20,10 @@ class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error) {
+    feedback.fromError(error, "We couldn't open this page");
   }
 
   render() {
