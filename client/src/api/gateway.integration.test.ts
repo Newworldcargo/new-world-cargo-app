@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import handler from "../../../api/gateway";
+import { nodeHandler } from "../../../api/gateway";
 
 type MockRequest = EventEmitter & {
   method: string;
@@ -72,7 +72,7 @@ describe("server-side BFF to Laravel integration", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = response();
-    await handler(request(), result as never);
+    await nodeHandler(request(), result as never);
 
     expect(result.statusCode).toBe(200);
     expect(JSON.parse(result.body)).toEqual({ data: { id: "customer-1" } });
