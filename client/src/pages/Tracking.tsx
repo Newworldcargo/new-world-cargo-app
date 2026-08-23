@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { usePublicTracking } from "@/api/hooks";
+import { PublicTrackingPromotions } from "@/components/public-tracking-promotions";
 
 type ScanState = "idle" | "permission" | "ready";
 
@@ -61,6 +62,7 @@ export default function Tracking() {
         {searched && isError && <section className="mt-6 rounded-[26px] border border-ink/10 bg-[#f7f8fb] p-6 text-center"><XCircle className="mx-auto size-8 text-ink/45" /><p className="mt-3 text-sm font-bold">Tracking is temporarily unavailable</p><button onClick={() => refetch()} className="mt-3 text-xs font-bold text-ink underline decoration-cargo-yellow">Try again</button></section>}
         {searched && !isLoading && !isError && !result && <section className="mt-6 rounded-[26px] border border-ink/10 bg-[#f7f8fb] p-6 text-center"><XCircle className="mx-auto size-8 text-ink/45" /><p className="mt-3 text-sm font-bold">Shipment not found</p><p className="mt-1 text-xs leading-5 text-ink/55">Check the tracking number and try again. If it was just created, allow a few minutes for the first scan.</p></section>}
         {result && <section className="mt-6 rounded-[28px] border border-ink/10 bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold text-ink/45">{result.trackingNumber}</p><h2 className="mt-1 text-lg font-extrabold">{result.packageName}</h2><p className="mt-1 text-xs text-ink/55">{result.origin} → {result.destination}</p></div><span className="rounded-full bg-cargo-yellow/25 px-3 py-1 text-xs font-bold">{result.statusLabel}</span></div><div className="mt-6 space-y-4">{result.events.map((event, index) => <div key={`${event.label}-${index}`} className="flex gap-3"><span className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ${event.complete || event.current ? "bg-cargo-yellow text-ink" : "border border-ink/20 bg-white"}`}>{(event.complete || event.current) && <CheckCircle2 className="size-3" />}</span><div><p className="text-sm font-bold">{event.label}</p><p className="mt-0.5 text-xs text-ink/55">{event.detail} · {event.time}</p></div></div>)}</div><div className="mt-6 flex flex-wrap gap-2"><Button onClick={() => navigator.clipboard?.writeText(result.trackingNumber)} variant="outline" className="rounded-xl font-bold"><Copy className="mr-2 size-4" />Copy number</Button><Button onClick={() => navigator.share?.({ title: "New World Cargo tracking", text: result.trackingNumber })} variant="outline" className="rounded-xl font-bold"><Share2 className="mr-2 size-4" />Share tracking</Button></div></section>}
+        <PublicTrackingPromotions />
         <p className="mt-8 text-center text-xs text-ink/45">Need help? Contact New World Cargo support by phone or email.</p>
       </div>
     </main>
