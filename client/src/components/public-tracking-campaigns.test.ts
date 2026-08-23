@@ -25,4 +25,13 @@ describe("public tracking campaigns", () => {
     expect(PUBLIC_TRACKING_BRAND_ASSETS.campaignSquare).toMatch(/^\/manus-storage\/new-world-cargo-campaign-111_/);
     expect(PUBLIC_TRACKING_CARD_THEME.surfaceClass).toBe("bg-[#012642]");
   });
+
+  it("provides the supplied courier advert above the cargo animation for the left campaign rail", () => {
+    expect(PUBLIC_TRACKING_BRAND_ASSETS.courierServicesAd).toBe(
+      "/manus-storage/new-world-cargo-courier-services-ad_4e1b1578.png",
+    );
+    expect(PUBLIC_TRACKING_BRAND_ASSETS.airCargoAnimation).toBe(
+      "/manus-storage/new-world-cargo-air-cargo-animation_b8d80832.gif",
+    );
+  });
 });

@@ -6,6 +6,8 @@ export const PUBLIC_TRACKING_BRAND_ASSETS = {
   logo: "/manus-storage/new-world-cargo-tracking-logo_1248486d.svg",
   campaignSquare: "/manus-storage/new-world-cargo-campaign-111_144a01f3.jpg",
   campaignWarehouse: "/manus-storage/new-world-cargo-warehouse-campaign_fa33d540.jpg",
+  courierServicesAd: "/manus-storage/new-world-cargo-courier-services-ad_4e1b1578.png",
+  airCargoAnimation: "/manus-storage/new-world-cargo-air-cargo-animation_b8d80832.gif",
 } as const;
 
 export const PUBLIC_TRACKING_CARD_THEME = {
@@ -49,6 +51,41 @@ export const PUBLIC_TRACKING_RAILS = {
  */
 export function PublicTrackingCampaignRail({ side }: { side: "left" | "right" }) {
   const campaign = PUBLIC_TRACKING_RAILS[side];
+
+  if (side === "left") {
+    return (
+      <aside
+        aria-label="Courier services campaign rail"
+        data-campaign-rail={side}
+        className="hidden min-h-screen bg-[#012642] xl:block"
+      >
+        <div className="flex min-h-screen flex-col gap-4 p-4">
+          <a
+            href={SERVICES_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="block overflow-hidden rounded-2xl border border-white/20 bg-cargo-yellow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cargo-yellow"
+          >
+            <img
+              src={PUBLIC_TRACKING_BRAND_ASSETS.courierServicesAd}
+              alt="New World Cargo Courier Services advert for sending and receiving parcels"
+              className="block aspect-square w-full object-cover"
+            />
+          </a>
+          <figure className="overflow-hidden rounded-2xl border border-white/20 bg-ink">
+            <img
+              src={PUBLIC_TRACKING_BRAND_ASSETS.airCargoAnimation}
+              alt="Animated air cargo loading inside an aircraft"
+              className="block aspect-video w-full object-cover"
+            />
+            <figcaption className="border-t border-white/15 px-4 py-3 text-xs font-semibold text-white/80">
+              Moving cargo safely, every mile.
+            </figcaption>
+          </figure>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside
