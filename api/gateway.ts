@@ -6,7 +6,7 @@ import {
   gatewayResponseCacheControl,
   matchGatewayRoute,
   normalizeGatewayPath,
-} from "../server/gateway/policy";
+} from "../server/gateway/policy.js";
 
 type GatewayRequest = IncomingMessage & {
   body?: unknown;
