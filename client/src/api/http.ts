@@ -5,7 +5,9 @@ const adminApiOrigin = "https://admin.newworldcargo.com";
 const apiBaseUrl = `${adminApiOrigin}/api`;
 export const apiRequestTimeoutMs = 15_000;
 const csrfHeaderName = "X-CSRF-Token";
+const csrfBootstrapPath = "/v1/auth/csrf";
 let cachedCsrfToken: string | undefined;
+let csrfBootstrapPromise: Promise<void> | null = null;
 
 type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown; signal?: AbortSignal };
 
@@ -41,6 +43,49 @@ function rememberCsrfToken(response: Response) {
   }
 }
 
+function isUnsafeMethod(method?: string) {
+  return ["POST", "PUT", "PATCH", "DELETE"].includes((method || "GET").toUpperCase());
+}
+
+async function bootstrapCsrfToken() {
+  if (csrfToken()) return;
+  if (csrfBootstrapPromise) {
+    await csrfBootstrapPromise;
+    return;
+  }
+
+  csrfBootstrapPromise = (async () => {
+    const response = await fetch(`${apiBaseUrl}${csrfBootstrapPath}`, {
+      method: "GET",
+      credentials: "include",
+      mode: "cors",
+      headers: {
+        Accept: "application/json",
+        "X-Request-ID": requestId(),
+      },
+    });
+
+    rememberCsrfToken(response);
+
+    if (!response.ok) {
+      const payload: unknown = await response.json().catch(() => null);
+      const parsedProblem = apiProblemSchema.safeParse(payload);
+      throw new CustomerApiError(
+        response.status,
+        parsedProblem.success
+          ? parsedProblem.data
+          : { error: { code: `HTTP_${response.status}`, message: "We could not prepare a secure request.", retryable: response.status >= 500 } },
+      );
+    }
+  })();
+
+  try {
+    await csrfBootstrapPromise;
+  } finally {
+    csrfBootstrapPromise = null;
+  }
+}
+
 function createRequestSignal(externalSignal?: AbortSignal) {
   const controller = new AbortController();
   let timedOut = false;
@@ -62,10 +107,10 @@ function createRequestSignal(externalSignal?: AbortSignal) {
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const requestSignal = createRequestSignal(options.signal);
-  let response: Response;
   const resolvedPath = resolveAdminApiPath(path);
-  try {
-    response = await fetch(`${apiBaseUrl}${resolvedPath}`, {
+
+  const performRequest = async () => {
+    const response = await fetch(`${apiBaseUrl}${resolvedPath}`, {
       ...options,
       signal: requestSignal.signal,
       credentials: "include",
@@ -80,6 +125,16 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
     rememberCsrfToken(response);
+    return response;
+  };
+
+  if (isUnsafeMethod(options.method) && !csrfToken()) {
+    await bootstrapCsrfToken();
+  }
+
+  let response: Response;
+  try {
+    response = await performRequest();
   } catch (error) {
     if (requestSignal.didTimeout()) {
       throw new CustomerApiError(408, { error: { code: "REQUEST_TIMEOUT", message: "The request took too long. Please try again.", retryable: true } });
@@ -88,6 +143,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     throw new CustomerApiError(503, { error: { code: "NETWORK_UNAVAILABLE", message: "We could not reach New World Cargo. Please check your connection and try again.", retryable: true } });
   } finally {
     requestSignal.cleanup();
+  }
+
+  if (response.status === 419 && isUnsafeMethod(options.method)) {
+    await bootstrapCsrfToken();
+    response = await performRequest();
   }
 
   const payload: unknown = await response.json().catch(() => null);
