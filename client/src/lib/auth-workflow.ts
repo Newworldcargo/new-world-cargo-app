@@ -1,4 +1,7 @@
 export const AUTH_PUBLIC_PATHS = ["/login", "/register", "/verify", "/forgot-password", "/reset-password", "/auth/complete-profile", "/session-expired"] as const;
+export const ADMIN_AUTH_ORIGIN = "https://admin.newworldcargo.com";
+const VERIFY_PENDING_KEY = "nwc_auth_verify_pending";
+const RESET_TOKEN_KEYS = ["token", "reset_token"] as const;
 
 export function passwordRequirements(password: string) {
   return { length: password.length >= 8, uppercase: /[A-Z]/.test(password), number: /\d/.test(password) };
@@ -31,7 +34,7 @@ export function isProtectedRoute(pathname: string) {
 }
 
 export function isPublicAuthPath(pathname: string) {
-  return AUTH_PUBLIC_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`)) || pathname === "/track" || pathname === "/shipments/tracking" || pathname.startsWith("/settings/legal");
+  return AUTH_PUBLIC_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`)) || pathname === "/track" || pathname === "/shipments/tracking" || pathname.startsWith("/settings/legal") || pathname.startsWith("/password/reset");
 }
 
 export function validateSignedInPasswordChange(currentPassword: string, nextPassword: string, confirmation: string, expectedCurrentPassword = "password123") {
@@ -41,4 +44,40 @@ export function validateSignedInPasswordChange(currentPassword: string, nextPass
   if (nextPassword === currentPassword) return "next-must-differ" as const;
   if (nextPassword !== confirmation) return "confirmation-mismatch" as const;
   return null;
+}
+
+export function markVerificationPending() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(VERIFY_PENDING_KEY, "1");
+}
+
+export function clearVerificationPending() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(VERIFY_PENDING_KEY);
+}
+
+export function hasVerificationPending() {
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem(VERIFY_PENDING_KEY) === "1";
+}
+
+export function extractResetToken(pathname: string, search: string) {
+  const params = new URLSearchParams(search);
+  for (const key of RESET_TOKEN_KEYS) {
+    const value = params.get(key)?.trim();
+    if (value) return value;
+  }
+
+  const pathMatch = pathname.match(/^\/(?:password\/reset|reset-password)\/([^/?#]+)/i);
+  return pathMatch?.[1] ? decodeURIComponent(pathMatch[1]) : null;
+}
+
+export function extractResetEmail(search: string) {
+  const params = new URLSearchParams(search);
+  const email = params.get("email")?.trim();
+  return email || null;
+}
+
+export function buildAdminResetPasswordUrl(token: string, email: string) {
+  return `${ADMIN_AUTH_ORIGIN}/reset-password/${encodeURIComponent(token)}?email=${encodeURIComponent(email)}`;
 }

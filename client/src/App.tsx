@@ -58,7 +58,7 @@ function PublicTrackingRoute() {
 }
 
 function PublicRouter() {
-  return <Switch><Route path="/login" component={Login} /><Route path="/register" component={Register} /><Route path="/verify" component={Verify} /><Route path="/forgot-password" component={ForgotPassword} /><Route path="/reset-password" component={ResetPassword} /><Route path="/auth/complete-profile" component={CompleteProfile} /><Route path="/session-expired" component={SessionExpired} /><Route path="/shipments/tracking" component={PublicTrackingRoute} /><Route path="/shipments/tracking/:code" component={PublicTrackingRoute} /><Route path="/:locale/shipments/tracking" component={PublicTrackingRoute} /><Route path="/:locale/shipments/tracking/:code" component={PublicTrackingRoute} /><Route path="/track" component={PublicTrackingRoute} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/login" component={Login} /><Route path="/register" component={Register} /><Route path="/verify" component={Verify} /><Route path="/forgot-password" component={ForgotPassword} /><Route path="/reset-password" component={ResetPassword} /><Route path="/reset-password/:token" component={ResetPassword} /><Route path="/password/reset/:token" component={ResetPassword} /><Route path="/auth/complete-profile" component={CompleteProfile} /><Route path="/session-expired" component={SessionExpired} /><Route path="/shipments/tracking" component={PublicTrackingRoute} /><Route path="/shipments/tracking/:code" component={PublicTrackingRoute} /><Route path="/:locale/shipments/tracking" component={PublicTrackingRoute} /><Route path="/:locale/shipments/tracking/:code" component={PublicTrackingRoute} /><Route path="/track" component={PublicTrackingRoute} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route component={NotFound} /></Switch>;
 }
 
 function RoutedApp() {
@@ -70,7 +70,7 @@ function RoutedApp() {
     return () => window.clearTimeout(timer);
   }, []);
   const isLegacyPublicTracking = /^\/[a-z]{2}\/shipments\/tracking(\/|$)/i.test(location);
-  const isPublic = ["/login", "/register", "/verify", "/forgot-password", "/reset-password", "/auth/complete-profile", "/session-expired", "/shipments/tracking", "/track"].some(path => location.startsWith(path)) || isLegacyPublicTracking || location.startsWith("/settings/legal");
+  const isPublic = ["/login", "/register", "/verify", "/forgot-password", "/reset-password", "/password/reset", "/auth/complete-profile", "/session-expired", "/shipments/tracking", "/track"].some(path => location.startsWith(path)) || isLegacyPublicTracking || location.startsWith("/settings/legal");
   useEffect(() => { if (!isAuthenticated && !isPublic) navigate(`/login?returnTo=${encodeURIComponent(location)}`); }, [isAuthenticated, isPublic, location, navigate]);
   if (booting || sessionLoading) return <AppPreloader />;
   if (isPublic) return <PublicRouter />;

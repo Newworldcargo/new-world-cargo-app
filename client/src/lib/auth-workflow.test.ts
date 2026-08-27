@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isProtectedRoute, isPublicAuthPath, isStrongPassword, otpAttemptResult, passwordRequirements, validateOtp, validateSignedInPasswordChange } from "./auth-workflow";
+import { buildAdminResetPasswordUrl, extractResetEmail, extractResetToken, isProtectedRoute, isPublicAuthPath, isStrongPassword, otpAttemptResult, passwordRequirements, validateOtp, validateSignedInPasswordChange } from "./auth-workflow";
 
 describe("auth workflow helpers", () => {
   it("evaluates password requirements", () => {
@@ -37,9 +37,17 @@ describe("auth workflow helpers", () => {
     expect(isPublicAuthPath("/login")).toBe(true);
     expect(isPublicAuthPath("/shipments/tracking")).toBe(true);
     expect(isPublicAuthPath("/settings/legal/privacy")).toBe(true);
+    expect(isPublicAuthPath("/password/reset/token-123")).toBe(true);
     expect(isPublicAuthPath("/shipments")).toBe(false);
     expect(isProtectedRoute("/shipments/tracking")).toBe(false);
     expect(isProtectedRoute("/shipments")).toBe(true);
     expect(isProtectedRoute("/session-expired")).toBe(false);
+  });
+
+  it("extracts reset link context from legacy and app routes", () => {
+    expect(extractResetToken("/reset-password", "?token=abc123&email=user@example.com")).toBe("abc123");
+    expect(extractResetToken("/password/reset/legacy-token", "")).toBe("legacy-token");
+    expect(extractResetEmail("?token=abc123&email=user@example.com")).toBe("user@example.com");
+    expect(buildAdminResetPasswordUrl("abc123", "user@example.com")).toBe("https://admin.newworldcargo.com/reset-password/abc123?email=user%40example.com");
   });
 });

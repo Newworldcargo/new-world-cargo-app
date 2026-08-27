@@ -28,7 +28,7 @@ export function AuthLayout({
           </Link>
           <Link href="/shipments/tracking" className="shrink-0 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/15">Track shipment</Link>
         </div>
-        <main className="my-auto rounded-[28px] border border-white/15 bg-white/95 p-5 text-ink shadow-[0_20px_80px_rgba(1,17,30,0.35)] backdrop-blur-sm sm:p-8">
+        <main className="my-auto rounded-[30px] border border-ink/10 bg-white p-5 text-ink shadow-[0_20px_60px_rgba(1,38,66,0.12)] sm:p-8">
           {title && <div className="mb-7">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-cargo-yellow">{eyebrow}</p>
             <h1 className="mt-2 font-heading text-3xl font-bold text-ink">{title}</h1>
