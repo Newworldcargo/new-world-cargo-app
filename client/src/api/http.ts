@@ -1,8 +1,8 @@
 import { apiProblemSchema, type ApiSuccess } from "./contracts";
 import { CustomerApiError } from "./errors";
 
-// Deliberately relative: browser code never receives backend env or credentials.
-const apiBaseUrl = "/api/gateway/v1";
+const adminApiOrigin = "https://admin.newworldcargo.com";
+const apiBaseUrl = `${adminApiOrigin}/api`;
 export const apiRequestTimeoutMs = 15_000;
 
 type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown; signal?: AbortSignal };
@@ -14,6 +14,26 @@ function requestId() {
 function csrfToken() {
   if (typeof document === "undefined") return undefined;
   return document.cookie.split("; ").find((entry) => entry.startsWith("nwc_csrf="))?.split("=").slice(1).join("=");
+}
+
+function unsupportedAdminRoute(path: string, method: string) {
+  throw new CustomerApiError(501, {
+    error: {
+      code: "ADMIN_API_ROUTE_UNAVAILABLE",
+      message: `The admin API does not currently expose ${method.toUpperCase()} ${path} for the customer app.`,
+      retryable: false,
+    },
+  });
+}
+
+function resolveAdminApiPath(path: string, method: string) {
+  const normalizedMethod = method.toUpperCase();
+
+  if (normalizedMethod === "GET" && /^\/v1\/public\/tracking\/[^/]+$/i.test(`/v1${path}`)) {
+    return `/v1${path}`;
+  }
+
+  unsupportedAdminRoute(path, normalizedMethod);
 }
 
 function createRequestSignal(externalSignal?: AbortSignal) {
@@ -38,11 +58,14 @@ function createRequestSignal(externalSignal?: AbortSignal) {
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const requestSignal = createRequestSignal(options.signal);
   let response: Response;
+  const method = (options.method || "GET").toUpperCase();
+  const resolvedPath = resolveAdminApiPath(path, method);
   try {
-    response = await fetch(`${apiBaseUrl}${path}`, {
+    response = await fetch(`${apiBaseUrl}${resolvedPath}`, {
       ...options,
       signal: requestSignal.signal,
       credentials: "include",
+      mode: "cors",
       headers: {
         Accept: "application/json",
         "X-Request-ID": requestId(),

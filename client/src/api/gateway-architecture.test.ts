@@ -9,7 +9,7 @@ import {
 
 const projectRoot = new URL("../../../", import.meta.url);
 
-describe("server-side BFF gateway architecture", () => {
+describe("customer API architecture", () => {
   it("allows only adapter-backed endpoint and method pairs", () => {
     expect(matchGatewayRoute("GET", "/v1/shipments")).toMatchObject({ routeClass: "shipments", access: "session" });
     expect(matchGatewayRoute("POST", "/v1/shipments/SH-102/actions")).toMatchObject({ routeClass: "shipment-action" });
@@ -30,10 +30,11 @@ describe("server-side BFF gateway architecture", () => {
     expect(gatewayResponseCacheControl).toContain("no-store");
   });
 
-  it("does not expose a configurable backend origin to client source", () => {
+  it("uses a fixed admin API origin and does not expose a configurable frontend override", () => {
     const clientTransport = readFileSync(new URL("http.ts", import.meta.url), "utf8");
     const clientRepository = readFileSync(new URL("repository.ts", import.meta.url), "utf8");
-    expect(clientTransport).toContain('"/api/gateway/v1"');
+    expect(clientTransport).toContain('"https://admin.newworldcargo.com"');
+    expect(clientTransport).toContain("ADMIN_API_ROUTE_UNAVAILABLE");
     expect(`${clientTransport}\n${clientRepository}`).not.toContain("VITE_NWC_API_BASE_URL");
   });
 
