@@ -4,6 +4,8 @@ import { CustomerApiError } from "./errors";
 const adminApiOrigin = "https://admin.newworldcargo.com";
 const apiBaseUrl = `${adminApiOrigin}/api`;
 export const apiRequestTimeoutMs = 15_000;
+const csrfHeaderName = "X-CSRF-Token";
+let cachedCsrfToken: string | undefined;
 
 type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown; signal?: AbortSignal };
 
@@ -12,28 +14,31 @@ function requestId() {
 }
 
 function csrfToken() {
-  if (typeof document === "undefined") return undefined;
-  return document.cookie.split("; ").find((entry) => entry.startsWith("nwc_csrf="))?.split("=").slice(1).join("=");
-}
-
-function unsupportedAdminRoute(path: string, method: string) {
-  throw new CustomerApiError(501, {
-    error: {
-      code: "ADMIN_API_ROUTE_UNAVAILABLE",
-      message: `The admin API does not currently expose ${method.toUpperCase()} ${path} for the customer app.`,
-      retryable: false,
-    },
-  });
-}
-
-function resolveAdminApiPath(path: string, method: string) {
-  const normalizedMethod = method.toUpperCase();
-
-  if (normalizedMethod === "GET" && /^\/v1\/public\/tracking\/[^/]+$/i.test(`/v1${path}`)) {
-    return `/v1${path}`;
+  if (typeof document !== "undefined") {
+    const cookieToken = document.cookie.split("; ").find((entry) => entry.startsWith("nwc_csrf="))?.split("=").slice(1).join("=");
+    if (cookieToken) {
+      cachedCsrfToken = cookieToken;
+      return cookieToken;
+    }
   }
 
-  unsupportedAdminRoute(path, normalizedMethod);
+  return cachedCsrfToken;
+}
+
+function resolveAdminApiPath(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  if (normalizedPath.startsWith("/v1/")) {
+    return normalizedPath;
+  }
+
+  return `/v1${normalizedPath}`;
+}
+
+function rememberCsrfToken(response: Response) {
+  const responseToken = response.headers.get(csrfHeaderName);
+  if (responseToken) {
+    cachedCsrfToken = responseToken;
+  }
 }
 
 function createRequestSignal(externalSignal?: AbortSignal) {
@@ -58,8 +63,7 @@ function createRequestSignal(externalSignal?: AbortSignal) {
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const requestSignal = createRequestSignal(options.signal);
   let response: Response;
-  const method = (options.method || "GET").toUpperCase();
-  const resolvedPath = resolveAdminApiPath(path, method);
+  const resolvedPath = resolveAdminApiPath(path);
   try {
     response = await fetch(`${apiBaseUrl}${resolvedPath}`, {
       ...options,
@@ -69,12 +73,13 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       headers: {
         Accept: "application/json",
         "X-Request-ID": requestId(),
-        ...(csrfToken() ? { "X-CSRF-Token": csrfToken() } : {}),
+        ...(csrfToken() ? { [csrfHeaderName]: csrfToken() } : {}),
         ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
         ...options.headers,
       },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
+    rememberCsrfToken(response);
   } catch (error) {
     if (requestSignal.didTimeout()) {
       throw new CustomerApiError(408, { error: { code: "REQUEST_TIMEOUT", message: "The request took too long. Please try again.", retryable: true } });

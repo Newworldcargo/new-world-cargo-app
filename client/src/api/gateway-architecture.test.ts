@@ -34,7 +34,8 @@ describe("customer API architecture", () => {
     const clientTransport = readFileSync(new URL("http.ts", import.meta.url), "utf8");
     const clientRepository = readFileSync(new URL("repository.ts", import.meta.url), "utf8");
     expect(clientTransport).toContain('"https://admin.newworldcargo.com"');
-    expect(clientTransport).toContain("ADMIN_API_ROUTE_UNAVAILABLE");
+    expect(clientTransport).toContain('return `/v1${normalizedPath}`');
+    expect(clientTransport).toContain("X-CSRF-Token");
     expect(`${clientTransport}\n${clientRepository}`).not.toContain("VITE_NWC_API_BASE_URL");
   });
 
