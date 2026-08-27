@@ -80,7 +80,7 @@ type GatewayConfig = {
   timeoutMs: number;
 };
 
-const backendOrigin = "https://api.newworldcargo.com";
+const backendOrigin = "https://admin.newworldcargo.com";
 const backendApiPrefix = "/api";
 const timeoutMs = 8_000;
 const safeResponseHeaders = new Set(["content-type", "retry-after"]);

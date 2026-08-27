@@ -39,7 +39,7 @@ describe("server-side BFF gateway architecture", () => {
 
   it("uses fixed backend routing, header filtering, and a route allow-list instead of frontend env or an open proxy", () => {
     const gatewaySource = readFileSync(new URL("../../../api/gateway.ts", import.meta.url), "utf8");
-    expect(gatewaySource).toContain('"https://api.newworldcargo.com"');
+    expect(gatewaySource).toContain('"https://admin.newworldcargo.com"');
     expect(gatewaySource).toContain("matchGatewayRoute");
     expect(gatewaySource).toContain("safeResponseHeaders");
     expect(gatewaySource).not.toContain("process.env");

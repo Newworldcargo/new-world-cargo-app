@@ -1,10 +1,59 @@
-import { apiRequest } from "../http";
-import type { AddressDto, AddressInput, CustomerReferenceData, FileUploadIntentDto, FileUploadIntentInput, InvoiceDto, NotificationDto, PaymentIntentDto, PaymentIntentInput, PickupDto, PickupInput, RecipientDto, RecipientInput, ReturnRequestDto, ReturnRequestInput, SessionActivityDto, ShipmentAction, ShipmentDto, ShipmentDraftDto, SupportCaseDto, SupportCaseInput, UploadedFileDto, WalletDto } from "../contracts";
+import { apiProblemSchema, shipmentDtoSchema, type AddressDto, type AddressInput, type CustomerReferenceData, type FileUploadIntentDto, type FileUploadIntentInput, type InvoiceDto, type NotificationDto, type PaymentIntentDto, type PaymentIntentInput, type PickupDto, type PickupInput, type RecipientDto, type RecipientInput, type ReturnRequestDto, type ReturnRequestInput, type SessionActivityDto, type ShipmentAction, type ShipmentDto, type ShipmentDraftDto, type SupportCaseDto, type SupportCaseInput, type UploadedFileDto, type WalletDto } from "../contracts";
+import { CustomerApiError } from "../errors";
+import { apiRequest, apiRequestTimeoutMs } from "../http";
 import type { CustomerPortalPort, CustomerScope, InvoiceListFilters, ShipmentListFilters } from "../ports";
+
+const publicTrackingBaseUrl = "https://admin.newworldcargo.com/api/v1/public/tracking";
 
 function queryString(params: Record<string, string | undefined>) {
   const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined) as [string, string][]);
   return query.size ? `?${query.toString()}` : "";
+}
+
+async function fetchPublicTracking(trackingNumber: string): Promise<ShipmentDto | null> {
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => controller.abort(), apiRequestTimeoutMs);
+
+  try {
+    const response = await fetch(`${publicTrackingBaseUrl}/${encodeURIComponent(trackingNumber)}`, {
+      method: "GET",
+      signal: controller.signal,
+      credentials: "omit",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const payload: unknown = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const parsedProblem = apiProblemSchema.safeParse(payload);
+      throw new CustomerApiError(
+        response.status,
+        parsedProblem.success
+          ? parsedProblem.data
+          : { error: { code: String(response.status), message: "We could not load tracking right now.", retryable: response.status >= 500 } },
+      );
+    }
+
+    if (payload === null) return null;
+    if (typeof payload === "object" && payload !== null && Object.keys(payload as Record<string, unknown>).length === 0) return null;
+
+    const parsedShipment = shipmentDtoSchema.safeParse(payload);
+    if (!parsedShipment.success) {
+      throw new CustomerApiError(502, { error: { code: "INVALID_TRACKING_PAYLOAD", message: "Tracking data is not in the expected format.", retryable: true } });
+    }
+
+    return parsedShipment.data;
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new CustomerApiError(408, { error: { code: "REQUEST_TIMEOUT", message: "The request took too long. Please try again.", retryable: true } });
+    }
+    if (error instanceof CustomerApiError) throw error;
+    throw new CustomerApiError(503, { error: { code: "NETWORK_UNAVAILABLE", message: "We could not reach New World Cargo. Please check your connection and try again.", retryable: true } });
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
 }
 
 export const httpCustomerPortalPort: CustomerPortalPort = {
@@ -15,7 +64,7 @@ export const httpCustomerPortalPort: CustomerPortalPort = {
     return apiRequest<ShipmentDto | null>(`/shipments/${encodeURIComponent(shipmentId)}`);
   },
   async getPublicTracking(trackingNumber) {
-    return apiRequest<ShipmentDto | null>(`/public/tracking/${encodeURIComponent(trackingNumber)}`);
+    return fetchPublicTracking(trackingNumber);
   },
   async listInvoices(_scope, filters: InvoiceListFilters = {}) {
     return apiRequest<InvoiceDto[]>(`/invoices${queryString({ q: filters.query?.trim() || undefined, status: filters.status === "all" ? undefined : filters.status })}`);

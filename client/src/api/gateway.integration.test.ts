@@ -73,7 +73,7 @@ describe("server-side BFF to Laravel integration", () => {
     expect(result.statusCode).toBe(200);
     expect(JSON.parse(result.body)).toEqual({ data: { id: "customer-1" } });
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0].toString()).toBe("https://api.newworldcargo.com/api/v1/session");
+    expect(fetchMock.mock.calls[0][0].toString()).toBe("https://admin.newworldcargo.com/api/v1/session");
     expect(fetchMock.mock.calls[0][1].headers.get("authorization")).toBeNull();
     expect(fetchMock.mock.calls[0][1].headers.get("cookie")).toBe("newworldcargo_session=session-token; nwc_csrf=csrf-token");
   });

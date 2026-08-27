@@ -1,5 +1,5 @@
 import { Camera, CheckCircle2, Copy, PackageSearch, Share2, UserRound, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { usePublicTracking } from "@/api/hooks";
 import {
@@ -29,6 +29,21 @@ export default function Tracking() {
   const [inputError, setInputError] = useState("");
   const trackingNumber = code.trim().toUpperCase();
   const { data: result, isLoading, isError, refetch } = usePublicTracking(searched ? trackingNumber : "");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const queryCode = params.get("code") || params.get("number");
+    const pathMatch = window.location.pathname.match(/\/shipments\/tracking\/([^/?#]+)/i);
+    const seedCode = decodeURIComponent((queryCode || pathMatch?.[1] || "").trim()).toUpperCase();
+
+    if (!seedCode) return;
+
+    setCode(seedCode);
+    setInputError("");
+    setSearched(true);
+  }, []);
 
   const submitTracking = (event: React.FormEvent) => {
     event.preventDefault();
