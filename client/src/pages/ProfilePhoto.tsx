@@ -4,6 +4,8 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompleteFileUploadMutation, useFileUploadIntentMutation } from "@/api/hooks";
 import { portalDataMode } from "@/api/repository";
+import { apiRequest } from "@/api/http";
+import type { AuthUser } from "@/api/auth-gateway";
 import { Button } from "@/components/ui/button";
 
 const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -61,10 +63,15 @@ export default function ProfilePhoto() {
         });
         const response = await fetch(intent.uploadUrl, { method: "PUT", headers: intent.headers, body: selectedFile });
         if (!response.ok) throw new Error("The photo could not be uploaded. Please try again.");
-        const uploaded = await completeUpload.mutateAsync(intent.fileId);
-        updateUser({ avatar: uploaded.url });
+        const updated = await apiRequest<AuthUser>("/profile", { method: "PATCH", body: { avatarFileId: intent.fileId } });
+        updateUser({ avatar: updated.avatar });
       } else {
-        updateUser({ avatar: preview || undefined });
+        if (portalDataMode === "http") {
+          const updated = await apiRequest<AuthUser>("/profile", { method: "PATCH", body: { avatarFileId: null } });
+          updateUser({ avatar: updated.avatar });
+        } else {
+          updateUser({ avatar: preview || undefined });
+        }
       }
       navigate("/settings/account");
     } catch (error) {
