@@ -69,7 +69,7 @@ function mapAddress(input: (typeof addresses)[number]): AddressDto {
 }
 
 function mapRecipient(input: (typeof recipients)[number]): RecipientDto {
-  return { id: input.id, customerId: DEMO_CUSTOMER_ID, name: input.name, location: input.location, phone: input.phone, initials: input.initials, revision: 1 };
+  return { id: input.id, name: input.name, address: input.location, phone: input.phone, revision: 1 };
 }
 
 let mockAddresses = addresses.map(mapAddress);
@@ -101,10 +101,6 @@ const mockWallet: WalletDto = {
 
 function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-}
-
-function initials(name: string) {
-  return name.split(/\s+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "C";
 }
 
 function ownsDemoRecords(scope: CustomerScope) {
@@ -148,7 +144,7 @@ export const mockCustomerPortalPort: CustomerPortalPort = {
   async listRecipients(scope, query = "") {
     if (!ownsDemoRecords(scope)) return [];
     const needle = query.trim().toLowerCase();
-    return mockRecipients.filter((recipient) => !needle || `${recipient.name} ${recipient.phone} ${recipient.location}`.toLowerCase().includes(needle));
+    return mockRecipients.filter((recipient) => !needle || `${recipient.name} ${recipient.phone} ${recipient.address}`.toLowerCase().includes(needle));
   },
   async listShipmentDrafts(scope) {
     return ownsDemoRecords(scope) ? mockDrafts : [];
@@ -203,7 +199,7 @@ export const mockCustomerPortalPort: CustomerPortalPort = {
   },
   async createRecipient(scope, input: RecipientInput) {
     if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
-    const record: RecipientDto = { id: newId("recipient"), customerId: scope.customerId, name: input.name, location: input.location, phone: input.phone, initials: initials(input.name), revision: 1 };
+    const record: RecipientDto = { id: newId("recipient"), name: input.name, address: input.address, phone: input.phone, revision: 1 };
     mockRecipients = [...mockRecipients, record];
     return record;
   },
@@ -211,7 +207,7 @@ export const mockCustomerPortalPort: CustomerPortalPort = {
     if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
     const current = mockRecipients.find((item) => item.id === recipientId);
     if (!current || current.revision !== revision) throw new Error("Recipient was changed elsewhere. Refresh and try again.");
-    const updated = { ...current, ...input, initials: initials(input.name), revision: current.revision + 1 };
+    const updated = { ...current, ...input, revision: current.revision + 1 };
     mockRecipients = mockRecipients.map((item) => item.id === recipientId ? updated : item);
     return updated;
   },

@@ -109,7 +109,7 @@ export const httpCustomerPortalPort: CustomerPortalPort = {
     return apiRequest<RecipientDto>("/recipients", { method: "POST", body: input });
   },
   async updateRecipient(_scope, recipientId, revision, input) {
-    return apiRequest<RecipientDto>(`/recipients/${encodeURIComponent(recipientId)}`, { method: "PUT", headers: { "If-Match": String(revision) }, body: input });
+    return apiRequest<RecipientDto>(`/recipients/${encodeURIComponent(recipientId)}`, { method: "PATCH", headers: { "If-Match": String(revision) }, body: input });
   },
   async deleteRecipient(_scope, recipientId, revision) {
     await apiRequest<void>(`/recipients/${encodeURIComponent(recipientId)}`, { method: "DELETE", headers: { "If-Match": String(revision) } });

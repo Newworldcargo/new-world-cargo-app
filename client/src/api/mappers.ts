@@ -51,7 +51,8 @@ export function addressToViewModel(dto: AddressDto): Address {
 }
 
 export function recipientToViewModel(dto: RecipientDto): Recipient {
-  return { id: dto.id, name: dto.name, location: dto.location, phone: dto.phone, initials: dto.initials, revision: dto.revision };
+  const initials = dto.name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "NW";
+  return { id: dto.id, name: dto.name, location: dto.address, phone: dto.phone, initials, revision: dto.revision };
 }
 
 export function referenceDataToViewModel(data: CustomerReferenceData) {

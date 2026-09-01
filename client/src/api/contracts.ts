@@ -75,12 +75,13 @@ export const addressDtoSchema = z.object({
 
 export const recipientDtoSchema = z.object({
   id: z.string(),
-  customerId: z.string(),
   name: z.string(),
-  location: z.string(),
+  countryCode: z.string().nullable().optional(),
+  address: z.string(),
   phone: z.string(),
-  initials: z.string(),
   revision: z.number().int().nonnegative(),
+  createdAt: z.string().datetime().nullable().optional(),
+  updatedAt: z.string().datetime().nullable().optional(),
 });
 
 export const invoiceStatusSchema = z.enum(["paid", "unpaid", "pending", "failed", "refunded"]);
@@ -158,7 +159,7 @@ export const addressInputSchema = z.object({
 
 export const recipientInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  location: z.string().trim().min(1).max(240),
+  address: z.string().trim().min(1).max(1000),
   phone: z.string().trim().min(4).max(32),
 });
 
