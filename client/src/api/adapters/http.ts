@@ -10,6 +10,43 @@ function queryString(params: Record<string, string | undefined>) {
   return query.size ? `?${query.toString()}` : "";
 }
 
+export function parsePublicTrackingPayload(payload: unknown): ShipmentDto | null {
+  if (payload === null) return null;
+  if (typeof payload === "object" && payload !== null && Object.keys(payload as Record<string, unknown>).length === 0) return null;
+
+  const responseData = payload && typeof payload === "object" && "data" in payload
+    ? (payload as { data: unknown }).data
+    : payload;
+  if (!responseData || typeof responseData !== "object") return null;
+
+  const shipment = responseData as Record<string, unknown>;
+  const normalizeDate = (value: unknown) => {
+    if (typeof value !== "string") return value;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toISOString();
+  };
+  const normalized = {
+    ...shipment,
+    customerId: shipment.customerId ?? "public",
+    carrier: shipment.carrier ?? "New World Cargo",
+    packageName: shipment.packageName ?? "Shipment",
+    price: shipment.price ?? { currency: "USD", amountMinor: 0 },
+    imageUrl: shipment.imageUrl ?? undefined,
+    nextAction: shipment.nextAction ?? undefined,
+    allowedActions: shipment.allowedActions ?? [],
+    etaAt: normalizeDate(shipment.etaAt),
+    events: Array.isArray(shipment.events)
+      ? shipment.events.map((event) => ({ ...event as Record<string, unknown>, occurredAt: normalizeDate((event as Record<string, unknown>).occurredAt) }))
+      : shipment.events,
+  };
+  const parsedShipment = shipmentDtoSchema.safeParse(normalized);
+  if (!parsedShipment.success) {
+    throw new CustomerApiError(502, { error: { code: "INVALID_TRACKING_PAYLOAD", message: "Tracking data is not in the expected format.", retryable: true } });
+  }
+
+  return parsedShipment.data;
+}
+
 async function fetchPublicTracking(trackingNumber: string): Promise<ShipmentDto | null> {
   const controller = new AbortController();
   const timeout = globalThis.setTimeout(() => controller.abort(), apiRequestTimeoutMs);
@@ -36,18 +73,7 @@ async function fetchPublicTracking(trackingNumber: string): Promise<ShipmentDto 
       );
     }
 
-    if (payload === null) return null;
-    if (typeof payload === "object" && payload !== null && Object.keys(payload as Record<string, unknown>).length === 0) return null;
-
-    const responseData = payload && typeof payload === "object" && "data" in payload
-      ? (payload as { data: unknown }).data
-      : payload;
-    const parsedShipment = shipmentDtoSchema.safeParse(responseData);
-    if (!parsedShipment.success) {
-      throw new CustomerApiError(502, { error: { code: "INVALID_TRACKING_PAYLOAD", message: "Tracking data is not in the expected format.", retryable: true } });
-    }
-
-    return parsedShipment.data;
+    return parsePublicTrackingPayload(payload);
   } catch (error) {
     if (controller.signal.aborted) {
       throw new CustomerApiError(408, { error: { code: "REQUEST_TIMEOUT", message: "The request took too long. Please try again.", retryable: true } });
