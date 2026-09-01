@@ -64,8 +64,8 @@ export default function SendShipment() {
   const [nextCargoId, setNextCargoId] = useState(3);
   const [form, setForm] = useState({
     pickup: "",
-    recipient: "Amina Banda",
-    phone: "+260 977 123 456",
+    recipient: "",
+    phone: "",
     recipientNotes: "",
     destination: "",
     contents: "",
