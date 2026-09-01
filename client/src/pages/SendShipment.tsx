@@ -27,7 +27,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { feedback } from "@/lib/feedback";
 import { SubpageBackButton } from "@/components/subpage-back-button";
-import { useCustomerDrafts, useCustomerRecipients, useCustomerReferenceData, useShipmentDraftMutations } from "@/api/hooks";
+import { useCustomerAddresses, useCustomerDrafts, useCustomerRecipients, useCustomerReferenceData, useShipmentDraftMutations } from "@/api/hooks";
 import { useCustomerWorkflowStore } from "@/stores/customer-workflow-store";
 
 const steps = ["Pickup", "Recipient", "Cargo", "Transport", "Review"];
@@ -47,6 +47,7 @@ export default function SendShipment() {
   const [location, navigate] = useLocation();
   const { data: referenceData, isLoading: isReferenceDataLoading } = useCustomerReferenceData();
   const { data: savedRecipients = [] } = useCustomerRecipients();
+  const savedAddressesQuery = useCustomerAddresses();
   const draftsQuery = useCustomerDrafts();
   const draftMutations = useShipmentDraftMutations();
   const latestQuote = useCustomerWorkflowStore((state) => state.latestQuote);
@@ -54,6 +55,7 @@ export default function SendShipment() {
   const [step, setStep] = useState(0);
   const [success, setSuccess] = useState(false);
   const [savedDraftId, setSavedDraftId] = useState<string | null>(null);
+  const [savedAddressOpen, setSavedAddressOpen] = useState(false);
   const [transport, setTransport] = useState<"air" | "sea">("air");
   const [handover, setHandover] = useState<"collect" | "delivery">("collect");
   const [evidence, setEvidence] = useState<EvidenceState>({ photos: [], documents: [] });
@@ -64,6 +66,7 @@ export default function SendShipment() {
   const [nextCargoId, setNextCargoId] = useState(3);
   const [form, setForm] = useState({
     pickup: "",
+    pickupBranchId: "",
     recipient: "",
     phone: "",
     recipientNotes: "",
@@ -129,6 +132,10 @@ export default function SendShipment() {
     }
   };
   const next = async () => {
+    if (step === 0 && !form.pickup.trim()) { feedback.error("Choose a branch, saved address, or collection point before continuing."); return; }
+    if (step === 1 && (!form.recipient.trim() || !form.phone.trim())) { feedback.error("Add the cargo owner and a phone number before continuing."); return; }
+    if (step === 2 && !cargoRows.some((row) => row.name.trim() && Number(row.quantity) > 0)) { feedback.error("Add at least one cargo item with a quantity before continuing."); return; }
+    if (step === 3 && (!transport || (handover === "delivery" && !form.destination.trim()))) { feedback.error(handover === "delivery" ? "Add a final delivery address before continuing." : "Choose a transport option before continuing."); return; }
     if (step < steps.length - 1) {
       setStep((current) => current + 1);
       return;
@@ -144,7 +151,7 @@ export default function SendShipment() {
   const useCurrentLocation = () => {
     if (!navigator.geolocation) { feedback.error("Location services are not available in this browser."); return; }
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => { update("pickup", `Current location · ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`); feedback.success("Your current pickup location was added."); },
+      ({ coords }) => { update("pickup", `Current location · ${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`); update("pickupBranchId", ""); feedback.success("Your current pickup location was added."); },
       () => feedback.error("We could not access your location. Choose an office or enter an address instead."),
       { enableHighAccuracy: false, timeout: 8000 },
     );
@@ -218,13 +225,13 @@ export default function SendShipment() {
       <div className="rounded-[30px] border border-white/8 bg-white/[0.035] p-5 sm:p-8">
         {step === 0 && (
           <StepBlock icon={MapPin} title="Where should we collect it?">
-            <PickupAddressField value={form.pickup} onChange={(value) => update("pickup", value)} offices={pickupOffices} />
+            <PickupAddressField value={form.pickup} onChange={(value) => { update("pickup", value); update("pickupBranchId", ""); }} onSelectOffice={(office) => { update("pickup", `${office.name} — ${office.address}`); update("pickupBranchId", office.id); }} offices={pickupOffices} />
             <div className="mt-3 grid grid-cols-2 gap-3">
               <button onClick={useCurrentLocation} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left text-xs font-bold text-white/70">
                 Use my location
                 <span className="mt-1 block text-[11px] font-normal text-white/35">For a custom collection point</span>
               </button>
-              <button onClick={() => navigate("/settings/addresses")} className="rounded-2xl border border-cargo-yellow/30 bg-cargo-yellow/10 p-4 text-left text-xs font-bold text-cargo-yellow">
+              <button onClick={() => setSavedAddressOpen(true)} className="rounded-2xl border border-cargo-yellow/30 bg-cargo-yellow/10 p-4 text-left text-xs font-bold text-cargo-yellow">
                 Saved address
                 <span className="mt-1 block text-[11px] font-normal text-white/35">Choose a previously used location</span>
               </button>
@@ -394,8 +401,8 @@ export default function SendShipment() {
             <div className="mt-4 flex items-start gap-3 rounded-2xl border border-cargo-yellow/20 bg-cargo-yellow/8 p-4">
               <FileText className="mt-0.5 size-5 shrink-0 text-cargo-yellow" />
               <div>
-                <p className="text-sm font-bold">Pay your booking deposit now</p>
-                <p className="mt-1 text-xs text-white/40">A K 320 booking deposit secures your cargo request. You can pay by mobile money or ATM/debit card; any final service charge is confirmed later.</p>
+                <p className="text-sm font-bold">Operations will confirm your request</p>
+                <p className="mt-1 text-xs text-white/40">No payment is collected here. New World Cargo will provide an official quote and payment instructions after reviewing your request.</p>
               </div>
             </div>
           </StepBlock>
@@ -417,6 +424,7 @@ export default function SendShipment() {
           </button>
         </div>
       </div>
+      {savedAddressOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4"><div role="dialog" aria-modal="true" aria-label="Choose a saved address" className="w-full max-w-lg rounded-[28px] bg-white p-5 text-ink shadow-2xl sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-cargo-yellow">Saved addresses</p><h2 className="mt-1 font-heading text-xl font-extrabold">Choose a collection point</h2><p className="mt-1 text-xs text-ink/55">Select an address without leaving this shipment request.</p></div><button onClick={() => setSavedAddressOpen(false)} className="grid size-9 place-items-center rounded-full border border-ink/10 text-ink/55" aria-label="Close saved addresses"><X className="size-4" /></button></div><div className="mt-5 space-y-2">{savedAddressesQuery.isLoading ? <p className="py-5 text-center text-sm text-ink/55">Loading your saved addresses…</p> : savedAddressesQuery.data?.length ? savedAddressesQuery.data.map((address) => <button key={address.id} type="button" onClick={() => { update("pickup", address.line); update("pickupBranchId", ""); setSavedAddressOpen(false); }} className="flex w-full items-start gap-3 rounded-2xl border border-ink/10 p-4 text-left transition hover:border-cargo-yellow hover:bg-cargo-yellow/10"><MapPin className="mt-0.5 size-4 shrink-0 text-ink/55" /><span><span className="block text-sm font-bold">{address.label}</span><span className="mt-1 block text-xs text-ink/60">{address.line}</span>{address.landmark && <span className="mt-1 block text-[11px] text-ink/45">{address.landmark}</span>}</span></button>) : <p className="rounded-2xl bg-[#f7f8fb] p-5 text-sm text-ink/60">You do not have a saved address yet. Type a custom collection point above or choose a branch.</p>}</div></div></div>}
     </div>
   );
 }
@@ -429,14 +437,14 @@ function Field({ label, icon: Icon, value, onChange, type = "text" }: { label: s
   return <label className="block"><span className="mb-2 block text-xs font-bold text-white/35">{label}</span><div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink/35 px-4"><Icon className="size-4 shrink-0 text-white/30" /><input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/30" /></div></label>;
 }
 
-function PickupAddressField({ value, onChange, offices }: { value: string; onChange: (value: string) => void; offices: { id: string; name: string; address: string; detail: string }[] }) {
+function PickupAddressField({ value, onChange, onSelectOffice, offices }: { value: string; onChange: (value: string) => void; onSelectOffice: (office: { id: string; name: string; address: string; detail: string }) => void; offices: { id: string; name: string; address: string; detail: string }[] }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const normalized = value.trim().toLowerCase();
   const suggestions = offices.filter((office) => !normalized || `${office.name} ${office.address} ${office.detail}`.toLowerCase().includes(normalized));
-  const selectOffice = (address: string) => { onChange(address); setOpen(false); setActiveIndex(-1); };
+  const selectOffice = (office: { id: string; name: string; address: string; detail: string }) => { onSelectOffice(office); setOpen(false); setActiveIndex(-1); };
   const optionId = (index: number) => `pickup-office-${index}`;
-  return <label className="relative block"><span className="mb-2 block text-xs font-bold text-white/35">Pickup address</span><div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink/35 px-4"><MapPin className="size-4 shrink-0 text-white/30" /><input value={value} onChange={(event) => { onChange(event.target.value); setOpen(true); setActiveIndex(-1); }} onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 120)} onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); setActiveIndex(-1); } if (event.key === "ArrowDown") { event.preventDefault(); setOpen(true); setActiveIndex((current) => Math.min(current + 1, suggestions.length - 1)); } if (event.key === "ArrowUp") { event.preventDefault(); setActiveIndex((current) => Math.max(current - 1, 0)); } if (event.key === "Enter" && open && activeIndex >= 0 && suggestions[activeIndex]) { event.preventDefault(); selectOffice(suggestions[activeIndex].address); } }} className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/30" placeholder="Select an office or type an address" role="combobox" aria-expanded={open} aria-controls="pickup-office-list" aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined} aria-autocomplete="list" /></div>{open && <div id="pickup-office-list" role="listbox" className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-white p-1.5">{suggestions.length ? <><p className="px-3 py-2 text-[11px] font-semibold text-white/45">New World Cargo offices</p>{suggestions.map((office, index) => <button key={office.id} id={optionId(index)} type="button" role="option" aria-selected={activeIndex === index} onMouseDown={(event) => event.preventDefault()} onClick={() => selectOffice(office.address)} className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition ${activeIndex === index ? "bg-cargo-yellow/15" : "hover:bg-white/8"}`}><span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl bg-cargo-yellow/15 text-cargo-yellow"><Building2 className="size-4" /></span><span className="min-w-0"><span className="block text-sm font-bold text-white">{office.name}</span><span className="mt-0.5 block text-xs text-white/45">{office.address}</span><span className="mt-1 block text-[11px] text-white/30">{office.detail}</span></span></button>)}</> : <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setOpen(false)} className="w-full rounded-xl px-3 py-3 text-left text-sm font-semibold text-white/65 hover:bg-white/8">Use “{value}” as the pickup address</button>}</div>}</label>;
+  return <label className="relative block"><span className="mb-2 block text-xs font-bold text-white/35">Pickup address</span><div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink/35 px-4"><MapPin className="size-4 shrink-0 text-white/30" /><input value={value} onChange={(event) => { onChange(event.target.value); setOpen(true); setActiveIndex(-1); }} onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 120)} onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); setActiveIndex(-1); } if (event.key === "ArrowDown") { event.preventDefault(); setOpen(true); setActiveIndex((current) => Math.min(current + 1, suggestions.length - 1)); } if (event.key === "ArrowUp") { event.preventDefault(); setActiveIndex((current) => Math.max(current - 1, 0)); } if (event.key === "Enter" && open && activeIndex >= 0 && suggestions[activeIndex]) { event.preventDefault(); selectOffice(suggestions[activeIndex]); } }} className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/30" placeholder="Select an office or type an address" role="combobox" aria-expanded={open} aria-controls="pickup-office-list" aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined} aria-autocomplete="list" /></div>{open && <div id="pickup-office-list" role="listbox" className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-white p-1.5 shadow-xl">{suggestions.length ? <><p className="px-3 py-2 text-[11px] font-semibold text-ink/50">New World Cargo branches</p>{suggestions.map((office, index) => <button key={office.id} id={optionId(index)} type="button" role="option" aria-selected={activeIndex === index} onMouseDown={(event) => event.preventDefault()} onClick={() => selectOffice(office)} className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left text-ink transition ${activeIndex === index ? "bg-cargo-yellow/20" : "hover:bg-ink/5"}`}><span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl bg-cargo-yellow/20 text-ink"><Building2 className="size-4" /></span><span className="min-w-0"><span className="block text-sm font-bold">{office.name}</span><span className="mt-0.5 block text-xs text-ink/60">{office.address}</span></span></button>)}</> : <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setOpen(false)} className="w-full rounded-xl px-3 py-3 text-left text-sm font-semibold text-ink/65 hover:bg-ink/5">Use “{value}” as the pickup address</button>}</div>}</label>;
 }
 
 function EvidenceUpload({ id, title, description, icon: Icon, accept, multiple = false, onFiles }: { id: string; title: string; description: string; icon: typeof Upload; accept: string; multiple?: boolean; onFiles: (files: FileList | null) => void }) {
