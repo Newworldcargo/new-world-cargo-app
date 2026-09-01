@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AuthError, AuthLayout, AuthSuccess, BackToSignIn, GoogleAuthButton, OtpInput, PasswordField, PasswordRequirements } from "@/components/auth-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ADMIN_AUTH_ORIGIN, buildAdminResetPasswordUrl, clearVerificationPending, extractResetEmail, extractResetToken, hasVerificationPending, markVerificationPending } from "@/lib/auth-workflow";
+import { clearVerificationPending, extractResetEmail, extractResetToken, hasVerificationPending, isStrongPassword, markVerificationPending } from "@/lib/auth-workflow";
 
 const Field = ({ label, value, onChange, type = "text", placeholder, autoComplete, error }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; autoComplete?: string; error?: string }) => <label className="grid gap-2 text-sm font-semibold text-ink"><span>{label}</span><Input value={value} onChange={e => onChange(e.target.value)} type={type} placeholder={placeholder} autoComplete={autoComplete} aria-invalid={Boolean(error)} className="h-12 rounded-xl border-ink/15" />{error && <span className="text-xs font-medium text-red-700" role="alert">{error}</span>}</label>;
 const Busy = () => <Loader2 className="mr-2 size-4 animate-spin" />;
@@ -32,23 +32,22 @@ export function Verify() {
 }
 
 export function ForgotPassword() {
-  return <AuthLayout title="Reset your password"><div className="grid gap-5"><p className="-mt-3 text-sm leading-6 text-ink/55">Password reset requests are completed on the secure New World Cargo auth portal.</p><Button onClick={() => window.location.assign(`${ADMIN_AUTH_ORIGIN}/forgot-password`)} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">Continue to secure reset</Button><BackToSignIn /></div></AuthLayout>;
+  const { requestPasswordReset } = useAuth(); const [email, setEmail] = useState(""); const [error, setError] = useState(""); const [sent, setSent] = useState(false); const [loading, setLoading] = useState(false);
+  const submit = async (event: React.FormEvent) => { event.preventDefault(); setError(""); if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { setError("Enter the email address for your customer account."); return; } setLoading(true); try { await requestPasswordReset(email); setSent(true); } catch { setError("We could not send the reset link. Please try again."); } finally { setLoading(false); } };
+  return <AuthLayout title="Reset your password"><form onSubmit={submit} className="grid gap-5"><p className="-mt-3 text-sm leading-6 text-ink/55">Enter your email and we will send a secure reset link.</p>{sent ? <AuthSuccess title="Check your email">If this address has a customer account, a reset link is on its way.</AuthSuccess> : <><Field label="Email address" value={email} onChange={setEmail} type="email" autoComplete="email" placeholder="you@example.com" error={error} /><Button disabled={loading} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">{loading && <Busy />}Send reset link</Button></>}<BackToSignIn /></form></AuthLayout>;
 }
 
 export function ResetPassword() {
-  const [, navigate] = useLocation();
-  const bridgeUrl = useMemo(() => {
+  const [, navigate] = useLocation(); const { resetPassword } = useAuth();
+  const reset = useMemo(() => {
     if (typeof window === "undefined") return null;
     const token = extractResetToken(window.location.pathname, window.location.search);
     const email = extractResetEmail(window.location.search);
-    return token && email ? buildAdminResetPasswordUrl(token, email) : null;
+    return token && email ? { token, email } : null;
   }, []);
-
-  useEffect(() => {
-    if (bridgeUrl) window.location.replace(bridgeUrl);
-  }, [bridgeUrl]);
-
-  return <AuthLayout title="Reset your password">{bridgeUrl ? <div className="grid gap-5"><AuthSuccess title="Redirecting to secure reset">We’re moving you to the secure password reset form now.</AuthSuccess><Button onClick={() => window.location.assign(bridgeUrl)} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">Continue</Button></div> : <div className="grid gap-5"><AuthError>This password reset link is incomplete or invalid. Request a fresh reset email to continue.</AuthError><Button onClick={() => window.location.assign(`${ADMIN_AUTH_ORIGIN}/forgot-password`)} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">Request a new reset link</Button><Button variant="outline" onClick={() => navigate("/login")} className="h-12 rounded-xl font-bold text-ink">Back to sign in</Button></div>}</AuthLayout>;
+  const [password, setPassword] = useState(""); const [confirmation, setConfirmation] = useState(""); const [error, setError] = useState(""); const [success, setSuccess] = useState(false); const [loading, setLoading] = useState(false);
+  const submit = async (event: React.FormEvent) => { event.preventDefault(); if (!reset) return; setError(""); if (!isStrongPassword(password)) { setError("Choose a password with at least 8 characters, one capital letter, and one number."); return; } if (password !== confirmation) { setError("Your passwords do not match."); return; } setLoading(true); try { await resetPassword({ ...reset, password, passwordConfirmation: confirmation }); setSuccess(true); } catch { setError("This reset link is invalid or has expired. Request a new one."); } finally { setLoading(false); } };
+  return <AuthLayout title="Choose a new password">{reset ? <form onSubmit={submit} className="grid gap-5"><p className="-mt-3 text-sm leading-6 text-ink/55">Set a new password for {reset.email}.</p>{success ? <><AuthSuccess title="Password updated">You can now sign in with your new password.</AuthSuccess><Button onClick={() => navigate("/login")} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">Sign in</Button></> : <>{error && <AuthError>{error}</AuthError>}<PasswordField label="New password" value={password} onChange={setPassword} autoComplete="new-password" /><PasswordRequirements password={password} /><PasswordField label="Confirm new password" value={confirmation} onChange={setConfirmation} autoComplete="new-password" /><Button disabled={loading} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">{loading && <Busy />}Update password</Button></>}</form> : <div className="grid gap-5"><AuthError>This password reset link is incomplete or invalid. Request a fresh reset email to continue.</AuthError><Button onClick={() => navigate("/forgot-password")} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">Request a new reset link</Button><BackToSignIn /></div>}</AuthLayout>;
 }
 
 export function CompleteProfile() {

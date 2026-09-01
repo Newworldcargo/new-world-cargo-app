@@ -16,7 +16,8 @@ const ID_SEGMENT = "[^/?#]+";
 export const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: /^\/v1\/session$/, methods: ["GET"], access: "session", routeClass: "session" },
   { pattern: /^\/v1\/auth\/(login|register)$/, methods: ["POST"], access: "bootstrap", routeClass: "authentication" },
-  { pattern: /^\/v1\/auth\/(verify|verify\/resend|password\/verify|password\/change|password\/reset|logout)$/, methods: ["POST"], access: "session", routeClass: "authentication" },
+  { pattern: /^\/v1\/auth\/password\/(forgot|reset)$/, methods: ["POST"], access: "bootstrap", routeClass: "authentication" },
+  { pattern: /^\/v1\/auth\/(verify|verify\/resend|password\/verify|password\/change|logout)$/, methods: ["POST"], access: "session", routeClass: "authentication" },
   { pattern: /^\/v1\/profile$/, methods: ["PATCH", "DELETE"], access: "session", routeClass: "profile" },
   { pattern: /^\/v1\/shipments$/, methods: ["GET"], access: "session", routeClass: "shipments" },
   { pattern: new RegExp(`^/v1/shipments/${ID_SEGMENT}$`), methods: ["GET"], access: "session", routeClass: "shipments" },
