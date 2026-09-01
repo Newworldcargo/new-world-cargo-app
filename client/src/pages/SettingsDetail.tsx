@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   Bell,
-  Camera,
   Check,
   ChevronRight,
   CircleUserRound,
@@ -20,7 +19,7 @@ import {
   UsersRound,
   WalletCards,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import type { Address } from "@/lib/domain";
 import { validateSignedInPasswordChange } from "@/lib/auth-workflow";
@@ -29,7 +28,12 @@ import {
   useAddressMutations,
   useCustomerAddresses,
   useCustomerRecipients,
+  useCompleteFileUploadMutation,
+  useFileUploadIntentMutation,
 } from "@/api/hooks";
+import { apiRequest } from "@/api/http";
+import type { AuthUser } from "@/api/auth-gateway";
+import { portalDataMode } from "@/api/repository";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -187,6 +191,10 @@ export default function SettingsDetail() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordBusy, setPasswordBusy] = useState(false);
+  const profilePhotoPicker = useRef<HTMLInputElement>(null);
+  const [profilePhotoError, setProfilePhotoError] = useState("");
+  const uploadProfilePhoto = useFileUploadIntentMutation();
+  const completeProfilePhoto = useCompleteFileUploadMutation();
   const addressesQuery = useCustomerAddresses();
   const recipientsQuery = useCustomerRecipients();
   const addressMutations = useAddressMutations();
@@ -201,6 +209,30 @@ export default function SettingsDetail() {
     landmark: "",
     default: false,
   });
+  const saveProfilePhoto = async (file?: File) => {
+    setProfilePhotoError("");
+    try {
+      if (!file) {
+        if (portalDataMode === "http") {
+          const updated = await apiRequest<AuthUser>("/profile", { method: "PATCH", body: { avatarFileId: null } });
+          updateUser({ avatar: updated.avatar });
+        } else updateUser({ avatar: undefined });
+        return;
+      }
+      if (!new Set(["image/png", "image/jpeg", "image/webp"]).has(file.type) || file.size > 5 * 1024 * 1024) {
+        setProfilePhotoError("Choose a PNG, JPG, or WebP image smaller than 5 MB.");
+        return;
+      }
+      const intent = await uploadProfilePhoto.mutateAsync({ filename: file.name, contentType: file.type, sizeBytes: file.size, purpose: "profile-photo" });
+      const response = await fetch(intent.uploadUrl, { method: "PUT", headers: intent.headers, body: file, credentials: intent.requiresPortalAuth ? "include" : "omit" });
+      if (!response.ok) throw new Error("The photo could not be uploaded.");
+      await completeProfilePhoto.mutateAsync(intent.fileId);
+      const updated = await apiRequest<AuthUser>("/profile", { method: "PATCH", body: { avatarFileId: intent.fileId } });
+      updateUser({ avatar: updated.avatar });
+    } catch (error) {
+      setProfilePhotoError(error instanceof Error ? error.message : "The photo could not be saved.");
+    }
+  };
   const openAddressDialog = (address?: Address) => {
     setEditingAddressId(address?.id || null);
     setAddressForm(
@@ -301,7 +333,12 @@ export default function SettingsDetail() {
         <div className="space-y-4">
           <Panel>
             <div className="flex items-center gap-4 p-5">
-              <span className="grid size-14 place-items-center rounded-3xl bg-cargo-yellow text-lg font-extrabold text-white">{`${user?.firstName?.[0] || "C"}${user?.lastName?.[0] || ""}`}</span>
+              <div className="relative shrink-0">
+                <span className="grid size-14 overflow-hidden rounded-3xl bg-cargo-yellow text-lg font-extrabold text-ink">
+                  {user?.avatar ? <img src={user.avatar} alt="Your profile" className="size-full object-cover" /> : `${user?.firstName?.[0] || "C"}${user?.lastName?.[0] || ""}`}
+                </span>
+                <input ref={profilePhotoPicker} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={event => { void saveProfilePhoto(event.target.files?.[0]); event.currentTarget.value = ""; }} />
+              </div>
               <div className="min-w-0 flex-1">
                 <p className="font-heading text-lg font-extrabold">
                   {user?.firstName} {user?.lastName}
@@ -310,14 +347,13 @@ export default function SettingsDetail() {
                   Personal account · Zambia
                 </p>
               </div>
-              <button
-                onClick={() => setEditingProfile(!editingProfile)}
-                className="grid size-10 place-items-center rounded-full border border-ink/10 text-ink/55 hover:bg-ink/5"
-                aria-label="Edit profile"
-              >
-                <Pencil className="size-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => profilePhotoPicker.current?.click()} disabled={uploadProfilePhoto.isPending || completeProfilePhoto.isPending} className="grid size-10 place-items-center rounded-full border border-ink/10 text-ink/55 hover:bg-ink/5 disabled:opacity-50" aria-label="Change profile photo"><Pencil className="size-4" /></button>
+                <button onClick={() => { void saveProfilePhoto(); }} disabled={!user?.avatar || uploadProfilePhoto.isPending || completeProfilePhoto.isPending} className="grid size-10 place-items-center rounded-full border border-ink/10 text-ink/55 hover:bg-ink/5 disabled:opacity-35" aria-label="Remove profile photo"><Trash2 className="size-4" /></button>
+                <button onClick={() => setEditingProfile(!editingProfile)} className="grid size-10 place-items-center rounded-full border border-ink/10 text-ink/55 hover:bg-ink/5" aria-label="Edit account details"><CircleUserRound className="size-4" /></button>
+              </div>
             </div>
+            {profilePhotoError ? <p role="alert" className="px-5 pb-4 text-xs font-semibold text-red-700">{profilePhotoError}</p> : null}
             {editingProfile && (
               <form
                 onSubmit={e => {
@@ -412,18 +448,6 @@ export default function SettingsDetail() {
             </div>
           </Panel>
           <Panel>
-            <Row onClick={() => navigate("/settings/profile-photo")}>
-              <span className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow/18 text-ink">
-                <Camera className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold">Profile photo</span>
-                <span className="mt-1 block text-xs text-ink/50">
-                  Choose or update your account photo
-                </span>
-              </span>
-              <ChevronRight className="size-4 text-ink/35" />
-            </Row>
             <Row onClick={openPasswordDialog}>
               <span className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow/15 text-ink">
                 <LockKeyhole className="size-4" />

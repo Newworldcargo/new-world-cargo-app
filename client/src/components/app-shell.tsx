@@ -139,7 +139,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
               <div className="relative hidden sm:block">
                 <button onClick={() => setProfileOpen((open) => !open)} className="flex items-center gap-2.5 rounded-full border border-white/10 py-1.5 pl-1.5 pr-2.5 transition hover:border-white/25" aria-haspopup="menu" aria-expanded={profileOpen}>
-                  <div className="grid size-7 place-items-center rounded-full bg-cargo-yellow text-xs font-bold text-ink">{`${user?.firstName?.[0] || "C"}${user?.lastName?.[0] || ""}`}</div>
+                  <div className="grid size-7 overflow-hidden rounded-full bg-cargo-yellow text-xs font-bold text-ink">
+                    {user?.avatar ? <img src={user.avatar} alt="" className="size-full object-cover" /> : `${user?.firstName?.[0] || "C"}${user?.lastName?.[0] || ""}`}
+                  </div>
                   <span className="text-xs font-semibold text-white/75">{user?.firstName || "Customer"}</span>
                   <ChevronDown className={`size-3.5 text-white/45 transition ${profileOpen ? "rotate-180" : ""}`} />
                 </button>
