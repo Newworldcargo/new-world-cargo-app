@@ -182,8 +182,8 @@ export default function SendShipment() {
           </div>
           <p className="mt-4 text-xs text-white/45">No payment was collected. You will be asked to pay only after the server provides an official invoice or quote.</p>
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
-            <button onClick={() => navigate("/shipments/shipment-48291")} className="rounded-2xl bg-white py-3 text-sm font-bold text-ink">
-              Track cargo
+            <button onClick={() => navigate("/shipments/drafts")} className="rounded-2xl bg-white py-3 text-sm font-bold text-ink">
+              View saved request
             </button>
             <button onClick={() => navigate("/")} className="rounded-2xl border border-white/10 py-3 text-sm font-bold text-white/70">
               Back home
