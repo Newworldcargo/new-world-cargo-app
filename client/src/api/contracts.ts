@@ -45,6 +45,7 @@ export const shipmentDtoSchema = z.object({
   id: z.string(),
   customerId: z.string(),
   trackingNumber: z.string(),
+  consignmentCode: z.string().nullable().optional(),
   carrier: z.string(),
   transportMode: z.enum(["air", "sea"]),
   packageName: z.string(),

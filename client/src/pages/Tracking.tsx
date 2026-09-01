@@ -171,8 +171,13 @@ export default function Tracking() {
                     <p className="mt-1 text-xs text-ink/55">
                       {result.origin} → {result.destination}
                     </p>
+                    {result.consignmentCode && <div className="mt-3 space-y-1 text-xs text-ink/60"><p><span className="font-bold text-ink">Container:</span> {result.consignmentCode}</p><p><span className="font-bold text-ink">Shipment (parcel) code:</span> {result.trackingNumber}</p></div>}
                   </div>
                   <span className="rounded-full bg-cargo-yellow/25 px-3 py-1 text-xs font-bold">{result.statusLabel}</span>
+                </div>
+                <div className="mt-6 rounded-2xl bg-[#f7f8fb] p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink/45">Delivery progress</p>
+                  <div className="mt-4 flex items-center gap-3"><div className="min-w-0 flex-1"><p className="text-xs font-bold text-ink">{result.origin}</p><p className="mt-1 text-[11px] text-ink/50">Origin</p></div><div className="flex flex-1 items-center gap-1"><span className="size-2 rounded-full bg-cargo-yellow" /><span className="h-0.5 flex-1 bg-cargo-yellow" /><span className="size-2 rounded-full border-2 border-ink/25 bg-white" /></div><div className="min-w-0 flex-1 text-right"><p className="text-xs font-bold text-ink">{result.destination}</p><p className="mt-1 text-[11px] text-ink/50">Destination</p></div></div>
                 </div>
                 <div className="mt-6">
                   {result.events.map((event, index) => (

@@ -22,6 +22,7 @@ export type TrackingEvent = {
 export type Shipment = {
   id: string;
   trackingNumber: string;
+  consignmentCode?: string;
   carrier: string;
   transportMode: "air" | "sea";
   packageName: string;

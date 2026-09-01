@@ -9,6 +9,7 @@ export function shipmentToViewModel(dto: ShipmentDto): Shipment {
   return {
     id: dto.id,
     trackingNumber: dto.trackingNumber,
+    consignmentCode: dto.consignmentCode ?? undefined,
     carrier: dto.carrier,
     transportMode: dto.transportMode,
     packageName: dto.packageName,
