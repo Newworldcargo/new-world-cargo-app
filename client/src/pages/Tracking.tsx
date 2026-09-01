@@ -8,6 +8,7 @@ import {
   PublicTrackingServiceCards,
 } from "@/components/public-tracking-campaigns";
 import { Button } from "@/components/ui/button";
+import { CustomerApiError } from "@/api/errors";
 
 type ScanState = "idle" | "permission" | "ready";
 
@@ -28,7 +29,8 @@ export default function Tracking() {
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [inputError, setInputError] = useState("");
   const trackingNumber = code.trim().toUpperCase();
-  const { data: result, isLoading, isError, refetch } = usePublicTracking(searched ? trackingNumber : "");
+  const { data: result, isLoading, isError, error, refetch } = usePublicTracking(searched ? trackingNumber : "");
+  const parcelNotFound = error instanceof CustomerApiError && error.status === 404;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -144,7 +146,15 @@ export default function Tracking() {
                 Looking up your shipment…
               </section>
             )}
-            {searched && isError && (
+            {searched && isError && parcelNotFound && (
+              <section className="mt-6 rounded-[26px] border border-ink/10 bg-[#f7f8fb] p-6 text-center">
+                <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-cargo-yellow text-ink"><PackageSearch className="size-5" /></span>
+                <p className="mt-4 text-sm font-extrabold">We could not find that parcel</p>
+                <p className="mx-auto mt-2 max-w-sm text-xs leading-5 text-ink/55">We checked the cargo desk and under the conveyor belt too—<strong>{trackingNumber}</strong> is not in the tracking system yet.</p>
+                <p className="mt-2 text-xs text-ink/45">Check the parcel code, or give a newly created shipment a few minutes for its first scan.</p>
+              </section>
+            )}
+            {searched && isError && !parcelNotFound && (
               <section className="mt-6 rounded-[26px] border border-ink/10 bg-[#f7f8fb] p-6 text-center">
                 <XCircle className="mx-auto size-8 text-ink/45" />
                 <p className="mt-3 text-sm font-bold">Tracking is temporarily unavailable</p>
