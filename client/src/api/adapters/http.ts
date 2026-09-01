@@ -121,7 +121,12 @@ export const httpCustomerPortalPort: CustomerPortalPort = {
     return apiRequest<PaymentIntentDto>("/payments/intents", { method: "POST", headers: { "Idempotency-Key": input.idempotencyKey }, body: input });
   },
   async createFileUploadIntent(_scope, input) {
-    return apiRequest<FileUploadIntentDto>("/files/upload-intents", { method: "POST", headers: { "Idempotency-Key": input.idempotencyKey }, body: input });
+    const { filename, ...payload } = input;
+    return apiRequest<FileUploadIntentDto>("/files/upload-intents", {
+      method: "POST",
+      headers: { "Idempotency-Key": input.idempotencyKey },
+      body: { ...payload, fileName: filename },
+    });
   },
   async completeFileUpload(_scope, fileId) {
     return apiRequest<UploadedFileDto>(`/files/${encodeURIComponent(fileId)}/complete`, { method: "POST" });
