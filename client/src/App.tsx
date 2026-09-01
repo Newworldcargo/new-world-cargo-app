@@ -62,7 +62,7 @@ function PublicRouter() {
 
 function RoutedApp() {
   const [location, navigate] = useLocation();
-  const { isAuthenticated, loading: sessionLoading } = useAuth();
+  const { isAuthenticated, loading: sessionLoading, sessionError, retrySession } = useAuth();
   const [booting, setBooting] = useState(true);
   useEffect(() => {
     const timer = window.setTimeout(() => setBooting(false), 180);
@@ -73,6 +73,7 @@ function RoutedApp() {
   useEffect(() => { if (!isAuthenticated && !isPublic) navigate(`/login?returnTo=${encodeURIComponent(location)}`); }, [isAuthenticated, isPublic, location, navigate]);
   if (booting || sessionLoading) return <AppPreloader />;
   if (isPublic) return <PublicRouter />;
+  if (sessionError) return <ErrorState title="We could not restore your session" detail="Your account has not been signed out. Check your connection and try again." action={{ label: "Try again", onClick: retrySession }} />;
   if (!isAuthenticated) return null;
   return <AppShell><CustomerRouter /></AppShell>;
 }

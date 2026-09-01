@@ -9,6 +9,8 @@ type AuthContextValue = {
   user: AuthUser | null;
   isAuthenticated: boolean;
   loading: boolean;
+  sessionError: boolean;
+  retrySession: () => void;
   login: (identifier: string, password: string) => ReturnType<typeof authGateway.login>;
   register: (input: Omit<AuthUser, "id" | "provider" | "verified"> & { password: string }) => ReturnType<typeof authGateway.register>;
   googleLogin: () => ReturnType<typeof authGateway.googleLogin>;
@@ -26,6 +28,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState(false);
+  const [sessionAttempt, setSessionAttempt] = useState(0);
   useEffect(() => {
     let active = true;
     const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
@@ -33,11 +37,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return () => { active = false; };
     }
-    authGateway.getSession().then((session) => { if (active) setUser(session); }).catch(() => { if (active) setUser(null); }).finally(() => { if (active) setLoading(false); });
+    setLoading(true);
+    setSessionError(false);
+    authGateway.getSession().then((session) => { if (active) setUser(session); }).catch(() => { if (active) setSessionError(true); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [sessionAttempt]);
   const value = useMemo<AuthContextValue>(() => ({
-    user, loading, isAuthenticated: Boolean(user),
+    user, loading, sessionError, isAuthenticated: Boolean(user), retrySession: () => setSessionAttempt((attempt) => attempt + 1),
     async login(identifier, password) { const result = await authGateway.login(identifier, password); if (result.ok && result.user) setUser(result.user); return result; },
     async register(input) { const result = await authGateway.register(input); if (result.ok && result.user) setUser(result.user); return result; },
     async googleLogin() { const result = await authGateway.googleLogin(); if (result.ok && result.user) setUser(result.user); return result; },
@@ -45,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout() { void authGateway.logout().finally(() => { setUser(null); customerQueryClient.clear(); useCustomerWorkflowStore.getState().clearCustomerWorkflowState(); }); },
     updateUser(input) { const previous = user; if (previous) setUser({ ...previous, ...input }); void authGateway.updateProfile(input).then(setUser).catch(() => setUser(previous)); },
     async deleteAccount() { const result = await authGateway.deleteAccount(); if (result.ok) { setUser(null); customerQueryClient.clear(); useCustomerWorkflowStore.getState().clearCustomerWorkflowState(); } return result; },
-  }), [loading, user]);
+  }), [loading, sessionError, user]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 export function useAuth() { const context = useContext(AuthContext); if (!context) throw new Error("useAuth must be used within AuthProvider"); return context; }

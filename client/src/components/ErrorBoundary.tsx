@@ -31,8 +31,8 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error) {
     if (isChunkLoadFailure(error)) {
       // A deployed release may remove a hashed lazy-load file held by an old tab.
-      // The sign-in route is the safe recovery point when the customer session has ended.
-      window.location.replace("/login?reason=refresh");
+      // Reload the current route; AuthProvider will retain a valid server session.
+      window.location.reload();
       return;
     }
     feedback.fromError(error, "We couldn't open this page");
