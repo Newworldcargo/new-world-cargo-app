@@ -24,7 +24,7 @@ describe("public tracking mapped timeline", () => {
     expect(getTrackingTimelineConnectorClass(false)).toContain("border-ink/20");
   });
 
-  it("keeps the final completed segment visibly yellow through the current in-transit event", () => {
+  it("keeps every completed or current journey leg visibly yellow", () => {
     const events = [
       { complete: true },
       { complete: true },
@@ -34,7 +34,7 @@ describe("public tracking mapped timeline", () => {
 
     expect(isTrackingTimelineSegmentComplete(events, 0)).toBe(true);
     expect(isTrackingTimelineSegmentComplete(events, 1)).toBe(true);
-    expect(isTrackingTimelineSegmentComplete(events, 2)).toBe(false);
+    expect(isTrackingTimelineSegmentComplete(events, 2)).toBe(true);
   });
 
   it("keeps the sign-in control labelled for an account affordance", () => {

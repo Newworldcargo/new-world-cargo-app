@@ -20,7 +20,7 @@ export function getTrackingTimelineConnectorClass(isComplete: boolean) {
 
 export const shouldRenderTrackingConnector = (eventIndex: number, eventCount: number) => eventIndex < eventCount - 1;
 
-export const isTrackingTimelineSegmentComplete = (events: Array<{ complete?: boolean; current?: boolean }>, eventIndex: number) => Boolean(events[eventIndex + 1]?.complete || events[eventIndex + 1]?.current);
+export const isTrackingTimelineSegmentComplete = (events: Array<{ complete?: boolean; current?: boolean }>, eventIndex: number) => Boolean(events[eventIndex]?.complete || events[eventIndex]?.current);
 
 export default function Tracking() {
   const [code, setCode] = useState("");
@@ -181,7 +181,7 @@ export default function Tracking() {
                 </div>
                 <div className="mt-6">
                   {result.events.map((event, index) => (
-                    <div key={`${event.label}-${index}`} className="relative flex gap-3 pb-5 last:pb-0">
+                    <div key={`${event.label}-${index}`} className="relative flex gap-3 pb-7 last:pb-0">
                       {shouldRenderTrackingConnector(index, result.events.length) && (
                         <span aria-hidden="true" className={getTrackingTimelineConnectorClass(isTrackingTimelineSegmentComplete(result.events, index))} />
                       )}
