@@ -12,6 +12,12 @@ interface State {
   error: Error | null;
 }
 
+function isChunkLoadFailure(error: Error) {
+  return /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk .* failed/i.test(
+    error.message
+  );
+}
+
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -23,6 +29,12 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error) {
+    if (isChunkLoadFailure(error)) {
+      // A deployed release may remove a hashed lazy-load file held by an old tab.
+      // The sign-in route is the safe recovery point when the customer session has ended.
+      window.location.replace("/login?reason=refresh");
+      return;
+    }
     feedback.fromError(error, "We couldn't open this page");
   }
 
@@ -36,13 +48,10 @@ class ErrorBoundary extends Component<Props, State> {
               className="text-destructive mb-6 flex-shrink-0"
             />
 
-            <h2 className="text-xl mb-4">An unexpected error occurred.</h2>
-
-            <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
-              <pre className="text-sm text-muted-foreground whitespace-break-spaces">
-                {this.state.error?.stack}
-              </pre>
-            </div>
+            <h2 className="text-xl mb-2">We couldn't open this page.</h2>
+            <p className="mb-6 text-center text-sm text-muted-foreground">
+              Please reload and sign in again if your session has ended.
+            </p>
 
             <button
               onClick={() => window.location.reload()}
