@@ -39,7 +39,10 @@ async function fetchPublicTracking(trackingNumber: string): Promise<ShipmentDto 
     if (payload === null) return null;
     if (typeof payload === "object" && payload !== null && Object.keys(payload as Record<string, unknown>).length === 0) return null;
 
-    const parsedShipment = shipmentDtoSchema.safeParse(payload);
+    const responseData = payload && typeof payload === "object" && "data" in payload
+      ? (payload as { data: unknown }).data
+      : payload;
+    const parsedShipment = shipmentDtoSchema.safeParse(responseData);
     if (!parsedShipment.success) {
       throw new CustomerApiError(502, { error: { code: "INVALID_TRACKING_PAYLOAD", message: "Tracking data is not in the expected format.", retryable: true } });
     }
