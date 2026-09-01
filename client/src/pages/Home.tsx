@@ -100,7 +100,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[1.18fr_0.82fr]">
+      <section className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
         <button
           onClick={() => arriving ? navigate(`/shipments/${arriving.id}`) : navigate("/shipments")}
           className="group rounded-[28px] border border-ink/10 bg-white p-5 text-left transition hover:border-cargo-yellow/45 sm:p-6"
@@ -123,7 +123,7 @@ export default function Home() {
           </div>
         </button>
 
-        <div data-sidebar-section="/invoices" className="rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6">
+        <div data-sidebar-section="/invoices" className="rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 lg:relative lg:rounded-none lg:border-y-0 lg:border-r-0 lg:border-b-0 lg:border-l lg:border-ink/10 lg:bg-transparent lg:pl-8 sm:p-6 lg:py-0 lg:pr-0">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Wallet & payments</p>
@@ -169,7 +169,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mt-9 grid min-w-0 gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <section className="mt-9 grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
         <div data-sidebar-section="/shipments">
           <div className="mb-4 flex items-end justify-between">
             <div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Open bookings</p><h2 className="mt-1 font-heading text-2xl font-bold tracking-tight text-foreground">Keep an eye on it</h2></div>
@@ -178,7 +178,7 @@ export default function Home() {
           {inTransit ? <ShipmentCard shipment={inTransit} onOpen={() => navigate(`/shipments/${inTransit.id}`)} /> : <div className="rounded-[24px] border border-dashed border-ink/15 bg-white p-6 text-sm text-ink/60">No open bookings are linked to this customer account.</div>}
         </div>
 
-        <div id="tracking-rail" className="min-w-0 overflow-hidden rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6">
+        <div id="tracking-rail" className="min-w-0 overflow-hidden rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 lg:rounded-none lg:border-y-0 lg:border-r-0 lg:border-b-0 lg:border-l lg:border-ink/10 lg:bg-transparent lg:pl-8 sm:p-6 lg:py-0 lg:pr-0">
           <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Find a booking</p><h2 className="mt-1 font-heading text-xl font-bold tracking-tight text-foreground">Track another package</h2></div><MapPin className="size-5 text-cargo-yellow" /></div>
           <div className="mt-5 rounded-2xl border border-ink/10 bg-white p-2"><div className="flex items-center gap-2 px-3"><Search className="size-5 text-ink/45" /><input value={tracking} onChange={(event) => setTracking(event.target.value)} onKeyDown={(event) => event.key === "Enter" && track()} placeholder="Enter tracking number" className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-ink/40" aria-label="Tracking number" /><button onClick={track} className="grid size-10 place-items-center rounded-full bg-ink text-white transition hover:bg-ink/80" aria-label="Track package"><ScanLine className="size-5" /></button></div></div>
           <div className="mt-3 flex items-center justify-between px-1 text-[11px] text-white/55"><span>Try NWC48291ZM</span><button onClick={() => navigate("/track")} className="flex items-center gap-1.5 font-semibold text-cargo-yellow"><Camera className="size-3.5" />Scan QR</button></div>
