@@ -177,7 +177,7 @@ export default function Tracking() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-bold text-ink/45">{result.trackingNumber}</p>
-                    <h2 className="mt-1 text-lg font-extrabold">{result.packageName}</h2>
+                    <h2 className="mt-1 text-lg font-extrabold">Parcel owner: {result.parcelOwner || "Not recorded"}</h2>
                     <p className="mt-1 text-xs text-ink/55">
                       {result.origin} → {result.destination}
                     </p>
