@@ -84,7 +84,13 @@ export const recipientDtoSchema = z.object({
   updatedAt: z.string().datetime().nullable().optional(),
 });
 
-export const invoiceStatusSchema = z.enum(["paid", "unpaid", "pending", "failed", "refunded"]);
+export const invoiceStatusSchema = z.enum([
+  "paid",
+  "unpaid",
+  "pending",
+  "failed",
+  "refunded",
+]);
 
 export const invoiceDtoSchema = z.object({
   id: z.string(),
@@ -99,11 +105,13 @@ export const invoiceDtoSchema = z.object({
   dueAtLabel: z.string(),
   status: invoiceStatusSchema,
   total: moneySchema,
-  lineItems: z.array(z.object({
-    label: z.string(),
-    detail: z.string().optional(),
-    amount: moneySchema,
-  })),
+  lineItems: z.array(
+    z.object({
+      label: z.string(),
+      detail: z.string().optional(),
+      amount: moneySchema,
+    })
+  ),
   paymentMethod: z.string().optional(),
   paidAt: z.string().datetime().nullable(),
   paidAtLabel: z.string().optional(),
@@ -180,8 +188,17 @@ export const paymentIntentDtoSchema = z.object({
 export const fileUploadIntentInputSchema = z.object({
   filename: z.string().trim().min(1).max(255),
   contentType: z.string().trim().min(1).max(120),
-  sizeBytes: z.number().int().positive().max(20 * 1024 * 1024),
-  purpose: z.enum(["shipment-evidence", "support-attachment", "proof-of-delivery", "profile-photo"]),
+  sizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(20 * 1024 * 1024),
+  purpose: z.enum([
+    "shipment-evidence",
+    "support-attachment",
+    "proof-of-delivery",
+    "profile-photo",
+  ]),
   idempotencyKey: z.string().uuid(),
 });
 
@@ -199,7 +216,12 @@ export const uploadedFileDtoSchema = z.object({
   sizeBytes: z.number().int().positive(),
 });
 
-export const notificationTypeSchema = z.enum(["progress", "arrival", "exception", "payment"]);
+export const notificationTypeSchema = z.enum([
+  "progress",
+  "arrival",
+  "exception",
+  "payment",
+]);
 
 export const notificationDtoSchema = z.object({
   id: z.string(),
@@ -214,7 +236,11 @@ export const notificationDtoSchema = z.object({
   revision: z.number().int().nonnegative(),
 });
 
-export const supportCaseStatusSchema = z.enum(["open", "in_review", "resolved"]);
+export const supportCaseStatusSchema = z.enum([
+  "open",
+  "in_review",
+  "resolved",
+]);
 export const supportCaseDtoSchema = z.object({
   id: z.string(),
   customerId: z.string(),
@@ -235,7 +261,14 @@ export const supportCaseInputSchema = z.object({
   idempotencyKey: z.string().uuid(),
 });
 
-export const returnRequestStatusSchema = z.enum(["draft", "requested", "approved", "in_transit", "completed", "rejected"]);
+export const returnRequestStatusSchema = z.enum([
+  "draft",
+  "requested",
+  "approved",
+  "in_transit",
+  "completed",
+  "rejected",
+]);
 export const returnRequestDtoSchema = z.object({
   id: z.string(),
   customerId: z.string(),
@@ -255,7 +288,12 @@ export const returnRequestInputSchema = z.object({
   idempotencyKey: z.string().uuid(),
 });
 
-export const shipmentDraftStatusSchema = z.enum(["draft", "quoted", "submitted", "deleted"]);
+export const shipmentDraftStatusSchema = z.enum([
+  "draft",
+  "quoted",
+  "submitted",
+  "deleted",
+]);
 export const shipmentDraftDtoSchema = z.object({
   id: z.string(),
   customerId: z.string(),
@@ -273,7 +311,13 @@ export const shipmentDraftInputSchema = z.object({
   expiresAt: z.string().datetime().nullable().optional(),
 });
 
-export const pickupStatusSchema = z.enum(["not_scheduled", "scheduled", "completed", "cancelled", "failed"]);
+export const pickupStatusSchema = z.enum([
+  "requested",
+  "scheduled",
+  "completed",
+  "cancelled",
+  "failed",
+]);
 export const pickupDtoSchema = z.object({
   id: z.string(),
   customerId: z.string(),
@@ -286,8 +330,9 @@ export const pickupDtoSchema = z.object({
 });
 export const pickupInputSchema = z.object({
   shipmentId: z.string().nullable().default(null),
-  date: z.string().min(1),
-  time: z.string().min(1),
+  collectionPoint: z.string().trim().min(1).max(500),
+  scheduledDate: z.string().date().nullable().default(null),
+  scheduledTime: z.string().trim().max(80).nullable().default(null),
   idempotencyKey: z.string().uuid(),
 });
 
@@ -343,4 +388,8 @@ export type PickupInput = z.infer<typeof pickupInputSchema>;
 export type SessionActivityDto = z.infer<typeof sessionActivityDtoSchema>;
 export type ApiProblem = z.infer<typeof apiProblemSchema>;
 
-export type ApiSuccess<T> = { data: T; meta?: { nextCursor?: string; total?: number }; requestId?: string };
+export type ApiSuccess<T> = {
+  data: T;
+  meta?: { nextCursor?: string; total?: number };
+  requestId?: string;
+};

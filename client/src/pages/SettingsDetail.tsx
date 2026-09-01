@@ -436,56 +436,6 @@ export default function SettingsDetail() {
               </span>
               <ChevronRight className="size-4 text-ink/35" />
             </Row>
-            <Row onClick={() => navigate("/settings/security/activity")}>
-              <span className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow/18 text-ink">
-                <ShieldCheck className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold">
-                  Sign-in activity
-                </span>
-                <span className="mt-1 block text-xs text-ink/50">
-                  Review the devices signed in to your account
-                </span>
-              </span>
-              <ChevronRight className="size-4 text-ink/35" />
-            </Row>
-          </Panel>
-          <Panel>
-            <div className="p-5">
-              <p className="text-sm font-bold">Delete account</p>
-              <p className="mt-1 text-xs leading-5 text-ink/55">
-                Permanently remove your customer profile and saved account
-                details.
-              </p>
-              {deleteOpen ? (
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                  <Button
-                    onClick={async () => {
-                      await deleteAccount();
-                      navigate("/login");
-                    }}
-                    className="h-10 rounded-xl bg-cargo-yellow font-bold text-ink"
-                  >
-                    Confirm deletion
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setDeleteOpen(false)}
-                    className="h-10 rounded-xl font-bold text-ink"
-                  >
-                    Keep account
-                  </Button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setDeleteOpen(true)}
-                  className="mt-4 text-sm font-bold text-ink underline underline-offset-2"
-                >
-                  Request account deletion
-                </button>
-              )}
-            </div>
           </Panel>
         </div>
       );
@@ -790,6 +740,25 @@ export default function SettingsDetail() {
               )}
             </div>
           </Panel>
+        </div>
+      );
+    if (section === "billing")
+      return (
+        <div className="rounded-[26px] border border-ink/10 bg-white p-6 text-center">
+          <ReceiptText className="mx-auto size-8 text-cargo-yellow" />
+          <h2 className="mt-4 font-heading text-xl font-extrabold">
+            Invoices & receipts
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-ink/55">
+            Your live invoices, payments, and receipts are shown in the billing
+            workspace.
+          </p>
+          <Button
+            onClick={() => navigate("/invoices")}
+            className="mt-5 rounded-xl bg-cargo-yellow font-bold text-ink"
+          >
+            Open invoices & receipts
+          </Button>
         </div>
       );
     return (
