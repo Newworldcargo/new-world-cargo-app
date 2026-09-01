@@ -19,11 +19,14 @@ import {
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { feedback } from "@/lib/feedback";
+import { customerGreeting } from "@/lib/customer-greeting";
 import { ShipmentCard, StatusBadge } from "@/components/shipment-ui";
 import { useCustomerInvoices, useCustomerShipments, useCustomerWallet } from "@/api/hooks";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
   const [tracking, setTracking] = useState("");
   const { data: shipments = [], isLoading: shipmentsLoading } = useCustomerShipments();
   const { data: invoices = [] } = useCustomerInvoices();
@@ -82,7 +85,7 @@ export default function Home() {
               <span className="size-2 rounded-full bg-cargo-yellow" /> Your cargo desk
             </p>
             <h1 className="mt-3 font-heading text-3xl font-extrabold tracking-[-0.05em] text-foreground sm:text-4xl">
-              Good afternoon, Peter.
+              {customerGreeting(user?.firstName)}
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-white/55">
               Your bookings, deliveries, and next actions are all here.
