@@ -87,16 +87,17 @@ export default function Home() {
       onClick: () => navigate("/invoices"),
       accent: "bg-white text-foreground border-ink/10",
     },
-    {
-      label: "Add delivery note",
-      detail: "For your arriving parcel",
-      icon: PackageCheck,
-      onClick: () =>
-        arriving
-          ? navigate(`/shipments/${arriving.id}`)
-          : navigate("/shipments"),
-      accent: "bg-white text-foreground border-ink/10",
-    },
+    ...(arriving
+      ? [
+          {
+            label: "Add delivery note",
+            detail: "For your arriving parcel",
+            icon: PackageCheck,
+            onClick: () => navigate(`/shipments/${arriving.id}`),
+            accent: "bg-white text-foreground border-ink/10",
+          },
+        ]
+      : []),
     {
       label: "Get help",
       detail: "Talk to cargo support",
@@ -136,59 +137,48 @@ export default function Home() {
 
       <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
         <main className="min-w-0 lg:border-r lg:border-ink/10 lg:pr-8">
-          <section className="min-w-0">
-            <button
-              onClick={() =>
-                arriving
-                  ? navigate(`/shipments/${arriving.id}`)
-                  : navigate("/shipments")
-              }
-              className="group rounded-[28px] border border-ink/10 bg-white p-5 text-left transition hover:border-cargo-yellow/45 sm:p-6"
-            >
-              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">
-                    Your next delivery
-                  </p>
-                  <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">
-                    {arriving?.eta ??
-                      (shipmentsLoading
-                        ? "Loading delivery…"
-                        : "No delivery scheduled")}
-                  </h2>
-                  <p className="mt-2 break-words text-sm font-semibold text-white/60">
-                    {arriving
-                      ? `${arriving.packageName} · ${arriving.trackingNumber}`
-                      : "Your next cargo update will appear here."}
-                  </p>
-                </div>
-                {arriving && (
+          {arriving ? (
+            <section className="min-w-0">
+              <button
+                onClick={() => navigate(`/shipments/${arriving.id}`)}
+                className="group rounded-[28px] border border-ink/10 bg-white p-5 text-left transition hover:border-cargo-yellow/45 sm:p-6"
+              >
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">
+                      Your next delivery
+                    </p>
+                    <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">
+                      {arriving.eta}
+                    </h2>
+                    <p className="mt-2 break-words text-sm font-semibold text-white/60">
+                      {arriving.packageName} · {arriving.trackingNumber}
+                    </p>
+                  </div>
                   <div className="self-start">
                     <StatusBadge
                       status={arriving.status}
                       label={arriving.statusLabel}
                     />
                   </div>
-                )}
-              </div>
-              <div className="mt-7 flex items-center gap-3">
-                <div className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow/30 text-ink">
-                  <Truck className="size-5" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-foreground">
-                    Courier is nearby
-                  </p>
-                  <p className="mt-1 truncate text-xs text-white/55">
-                    {arriving
-                      ? `${arriving.destination} · Add instructions if needed`
-                      : "We will notify you when cargo is scheduled."}
-                  </p>
+                <div className="mt-7 flex items-center gap-3">
+                  <div className="grid size-10 place-items-center rounded-2xl bg-cargo-yellow/30 text-ink">
+                    <Truck className="size-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-foreground">
+                      Courier is nearby
+                    </p>
+                    <p className="mt-1 truncate text-xs text-white/55">
+                      {arriving.destination} · Add instructions if needed
+                    </p>
+                  </div>
+                  <ChevronRight className="size-5 text-cargo-yellow transition group-hover:translate-x-0.5" />
                 </div>
-                <ChevronRight className="size-5 text-cargo-yellow transition group-hover:translate-x-0.5" />
-              </div>
-            </button>
-          </section>
+              </button>
+            </section>
+          ) : null}
 
           <section className="mt-6 min-w-0">
             <div className="mb-3 flex items-end justify-between gap-4">
