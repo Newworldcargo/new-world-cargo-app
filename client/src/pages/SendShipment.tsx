@@ -27,7 +27,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { feedback } from "@/lib/feedback";
 import { SubpageBackButton } from "@/components/subpage-back-button";
-import { useCustomerAddresses, useCustomerDrafts, useCustomerRecipients, useCustomerReferenceData, useShipmentDraftMutations } from "@/api/hooks";
+import { useAddressMutations, useCustomerAddresses, useCustomerDrafts, useCustomerRecipients, useCustomerReferenceData, useShipmentDraftMutations } from "@/api/hooks";
 import { useCustomerWorkflowStore } from "@/stores/customer-workflow-store";
 
 const steps = ["Pickup", "Recipient", "Cargo", "Transport", "Review"];
@@ -48,6 +48,7 @@ export default function SendShipment() {
   const { data: referenceData, isLoading: isReferenceDataLoading } = useCustomerReferenceData();
   const { data: savedRecipients = [] } = useCustomerRecipients();
   const savedAddressesQuery = useCustomerAddresses();
+  const addressMutations = useAddressMutations();
   const draftsQuery = useCustomerDrafts();
   const draftMutations = useShipmentDraftMutations();
   const latestQuote = useCustomerWorkflowStore((state) => state.latestQuote);
@@ -56,6 +57,8 @@ export default function SendShipment() {
   const [success, setSuccess] = useState(false);
   const [savedDraftId, setSavedDraftId] = useState<string | null>(null);
   const [savedAddressOpen, setSavedAddressOpen] = useState(false);
+  const [addingSavedAddress, setAddingSavedAddress] = useState(false);
+  const [savedAddressForm, setSavedAddressForm] = useState({ label: "", line: "", landmark: "" });
   const [transport, setTransport] = useState<"air" | "sea">("air");
   const [handover, setHandover] = useState<"collect" | "delivery">("collect");
   const [evidence, setEvidence] = useState<EvidenceState>({ photos: [], documents: [] });
@@ -129,6 +132,21 @@ export default function SendShipment() {
       feedback.success("Your cargo request draft has been saved to your account.");
     } catch {
       feedback.error("We could not save your draft. Please try again.");
+    }
+  };
+  const createSavedAddress = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!savedAddressForm.label.trim() || !savedAddressForm.line.trim()) { feedback.error("Add an address name and collection address."); return; }
+    try {
+      const address = await addressMutations.create.mutateAsync({ ...savedAddressForm, isDefault: false });
+      update("pickup", address.line);
+      update("pickupBranchId", "");
+      setSavedAddressForm({ label: "", line: "", landmark: "" });
+      setAddingSavedAddress(false);
+      setSavedAddressOpen(false);
+      feedback.success("Address saved and selected for this shipment.");
+    } catch {
+      feedback.error("We could not save that address. Please try again.");
     }
   };
   const next = async () => {
@@ -424,7 +442,7 @@ export default function SendShipment() {
           </button>
         </div>
       </div>
-      {savedAddressOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4"><div role="dialog" aria-modal="true" aria-label="Choose a saved address" className="w-full max-w-lg rounded-[28px] bg-white p-5 text-ink shadow-2xl sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-cargo-yellow">Saved addresses</p><h2 className="mt-1 font-heading text-xl font-extrabold">Choose a collection point</h2><p className="mt-1 text-xs text-ink/55">Select an address without leaving this shipment request.</p></div><button onClick={() => setSavedAddressOpen(false)} className="grid size-9 place-items-center rounded-full border border-ink/10 text-ink/55" aria-label="Close saved addresses"><X className="size-4" /></button></div><div className="mt-5 space-y-2">{savedAddressesQuery.isLoading ? <p className="py-5 text-center text-sm text-ink/55">Loading your saved addresses…</p> : savedAddressesQuery.data?.length ? savedAddressesQuery.data.map((address) => <button key={address.id} type="button" onClick={() => { update("pickup", address.line); update("pickupBranchId", ""); setSavedAddressOpen(false); }} className="flex w-full items-start gap-3 rounded-2xl border border-ink/10 p-4 text-left transition hover:border-cargo-yellow hover:bg-cargo-yellow/10"><MapPin className="mt-0.5 size-4 shrink-0 text-ink/55" /><span><span className="block text-sm font-bold">{address.label}</span><span className="mt-1 block text-xs text-ink/60">{address.line}</span>{address.landmark && <span className="mt-1 block text-[11px] text-ink/45">{address.landmark}</span>}</span></button>) : <p className="rounded-2xl bg-[#f7f8fb] p-5 text-sm text-ink/60">You do not have a saved address yet. Type a custom collection point above or choose a branch.</p>}</div></div></div>}
+      {savedAddressOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/65 p-4"><div role="dialog" aria-modal="true" aria-label="Choose a saved address" className="w-full max-w-lg rounded-[28px] bg-white p-5 text-ink shadow-2xl sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-cargo-yellow">Saved addresses</p><h2 className="mt-1 font-heading text-xl font-extrabold">Choose a collection point</h2><p className="mt-1 text-xs text-ink/55">Select or add an address without leaving this shipment request.</p></div><div className="flex items-center gap-2"><button type="button" onClick={() => setAddingSavedAddress((open) => !open)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-ink px-3 text-xs font-bold text-white"><Plus className="size-3.5" /> Add</button><button onClick={() => setSavedAddressOpen(false)} className="grid size-9 place-items-center rounded-full border border-ink/10 text-ink/55" aria-label="Close saved addresses"><X className="size-4" /></button></div></div>{addingSavedAddress && <form onSubmit={(event) => { void createSavedAddress(event); }} className="mt-5 rounded-2xl border border-cargo-yellow/50 bg-cargo-yellow/10 p-4"><p className="text-sm font-bold">Add a saved address</p><div className="mt-3 grid gap-3"><label className="text-xs font-semibold text-ink/70">Address name<input value={savedAddressForm.label} onChange={(event) => setSavedAddressForm((value) => ({ ...value, label: event.target.value }))} placeholder="e.g. Home or office" className="mt-1.5 h-10 w-full rounded-xl border border-ink/15 bg-white px-3 text-sm text-ink outline-none focus:border-ink" /></label><label className="text-xs font-semibold text-ink/70">Collection address<input value={savedAddressForm.line} onChange={(event) => setSavedAddressForm((value) => ({ ...value, line: event.target.value }))} placeholder="Street, area and city" className="mt-1.5 h-10 w-full rounded-xl border border-ink/15 bg-white px-3 text-sm text-ink outline-none focus:border-ink" /></label><label className="text-xs font-semibold text-ink/70">Landmark <span className="font-normal text-ink/45">(optional)</span><input value={savedAddressForm.landmark} onChange={(event) => setSavedAddressForm((value) => ({ ...value, landmark: event.target.value }))} placeholder="Nearby landmark" className="mt-1.5 h-10 w-full rounded-xl border border-ink/15 bg-white px-3 text-sm text-ink outline-none focus:border-ink" /></label></div><div className="mt-4 flex justify-end gap-2"><button type="button" onClick={() => setAddingSavedAddress(false)} className="rounded-xl px-3 py-2 text-xs font-bold text-ink/60">Cancel</button><button disabled={addressMutations.create.isPending} className="rounded-xl bg-ink px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{addressMutations.create.isPending ? "Saving…" : "Save and select"}</button></div></form>}<div className="mt-5 space-y-2">{savedAddressesQuery.isLoading ? <p className="py-5 text-center text-sm text-ink/55">Loading your saved addresses…</p> : savedAddressesQuery.data?.length ? savedAddressesQuery.data.map((address) => <button key={address.id} type="button" onClick={() => { update("pickup", address.line); update("pickupBranchId", ""); setSavedAddressOpen(false); }} className="flex w-full items-start gap-3 rounded-2xl border border-ink/10 p-4 text-left transition hover:border-cargo-yellow hover:bg-cargo-yellow/10"><MapPin className="mt-0.5 size-4 shrink-0 text-ink/55" /><span><span className="block text-sm font-bold">{address.label}</span><span className="mt-1 block text-xs text-ink/60">{address.line}</span>{address.landmark && <span className="mt-1 block text-[11px] text-ink/45">{address.landmark}</span>}</span></button>) : !addingSavedAddress && <p className="rounded-2xl bg-[#f7f8fb] p-5 text-sm text-ink/60">You do not have a saved address yet. Add one here, type a custom collection point above, or choose a branch.</p>}</div></div></div>}
     </div>
   );
 }
