@@ -61,7 +61,7 @@ export default function ProfilePhoto() {
           sizeBytes: selectedFile.size,
           purpose: "profile-photo",
         });
-        const response = await fetch(intent.uploadUrl, { method: "PUT", headers: intent.headers, body: selectedFile });
+        const response = await fetch(intent.uploadUrl, { method: "PUT", headers: intent.headers, body: selectedFile, credentials: intent.requiresPortalAuth ? "include" : "omit" });
         if (!response.ok) throw new Error("The photo could not be uploaded. Please try again.");
         const updated = await apiRequest<AuthUser>("/profile", { method: "PATCH", body: { avatarFileId: intent.fileId } });
         updateUser({ avatar: updated.avatar });

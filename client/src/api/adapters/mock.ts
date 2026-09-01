@@ -515,6 +515,7 @@ export const mockCustomerPortalPort: CustomerPortalPort = {
       fileId: newId("file"),
       uploadUrl: `https://uploads.newworldcargo.test/${encodeURIComponent(input.filename)}`,
       headers: {},
+      requiresPortalAuth: false,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     };
   },

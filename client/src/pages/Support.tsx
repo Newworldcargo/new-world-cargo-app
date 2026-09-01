@@ -27,6 +27,7 @@ export default function Support() {
         method: "PUT",
         headers: intent.headers,
         body: attachment,
+        credentials: intent.requiresPortalAuth ? "include" : "omit",
       });
       if (!uploadResponse.ok) throw new Error("The attachment could not be uploaded.");
       await completeUpload.mutateAsync(intent.fileId);

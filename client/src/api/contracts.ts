@@ -206,6 +206,7 @@ export const fileUploadIntentDtoSchema = z.object({
   fileId: z.string(),
   uploadUrl: z.string().url(),
   headers: z.record(z.string(), z.string()),
+  requiresPortalAuth: z.boolean().default(false),
   expiresAt: z.string().datetime(),
 });
 
