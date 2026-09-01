@@ -26,6 +26,7 @@ export type Shipment = {
   carrier: string;
   transportMode: "air" | "sea";
   packageName: string;
+  parcelOwner?: string;
   origin: string;
   destination: string;
   eta: string;

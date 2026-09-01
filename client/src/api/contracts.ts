@@ -49,6 +49,7 @@ export const shipmentDtoSchema = z.object({
   carrier: z.string(),
   transportMode: z.enum(["air", "sea"]),
   packageName: z.string(),
+  parcelOwner: z.string().optional(),
   origin: z.string(),
   destination: z.string(),
   etaAt: z.string().datetime().nullable(),

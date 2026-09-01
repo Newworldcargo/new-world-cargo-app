@@ -152,7 +152,7 @@ export default function Home() {
                       {arriving.eta}
                     </h2>
                     <p className="mt-2 break-words text-sm font-semibold text-white/60">
-                      {arriving.packageName} · {arriving.trackingNumber}
+                      Parcel owner: {arriving.parcelOwner || "Not recorded"} · {arriving.trackingNumber}
                     </p>
                   </div>
                   <div className="self-start">

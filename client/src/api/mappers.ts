@@ -13,6 +13,7 @@ export function shipmentToViewModel(dto: ShipmentDto): Shipment {
     carrier: dto.carrier,
     transportMode: dto.transportMode,
     packageName: dto.packageName,
+    parcelOwner: dto.parcelOwner,
     origin: dto.origin,
     destination: dto.destination,
     eta: dto.etaLabel,
