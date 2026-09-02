@@ -56,6 +56,7 @@ export default function SendShipment() {
   const [step, setStep] = useState(0);
   const [success, setSuccess] = useState(false);
   const [savedDraftId, setSavedDraftId] = useState<string | null>(null);
+  const [submittedShipment, setSubmittedShipment] = useState<{ id: string; trackingNumber: string } | null>(null);
   const [savedAddressOpen, setSavedAddressOpen] = useState(false);
   const [addingSavedAddress, setAddingSavedAddress] = useState(false);
   const [savedAddressForm, setSavedAddressForm] = useState({ label: "", line: "", landmark: "" });
@@ -160,10 +161,12 @@ export default function SendShipment() {
     }
     try {
       const draft = await draftMutations.create.mutateAsync({ payload: { step, form, cargoRows, transport, handover, evidence } });
+      const shipment = await draftMutations.submit.mutateAsync({ id: draft.id, revision: draft.revision });
       setSavedDraftId(draft.id);
+      setSubmittedShipment({ id: shipment.id, trackingNumber: shipment.trackingNumber });
       setSuccess(true);
     } catch {
-      feedback.error("We could not save this cargo request. No payment was collected.");
+      feedback.error("We could not submit your shipment order. Your draft is still safe.");
     }
   };
   const useCurrentLocation = () => {
@@ -189,15 +192,15 @@ export default function SendShipment() {
           <div className="mx-auto grid size-16 place-items-center rounded-3xl bg-cargo-yellow text-ink">
             <Check className="size-8" strokeWidth={2.5} />
           </div>
-          <p className="mt-6 text-xs font-bold text-ink">Cargo request saved</p>
-          <h1 className="mt-3 font-heading text-3xl font-extrabold tracking-tight">We’re ready for the next step.</h1>
+          <p className="mt-6 text-xs font-bold text-ink">Shipment order received</p>
+          <h1 className="mt-3 font-heading text-3xl font-extrabold tracking-tight">Your shipment is pending collection.</h1>
           <p className="mx-auto mt-3 max-w-sm text-sm text-white/48">
-            Your request is saved to your customer account. Operations must quote and confirm the service before any payment is collected.
+            We have received your order. It will remain pending until New World Cargo collects or accepts the parcel. No payment has been collected.
           </p>
           <div className="mt-7 rounded-2xl bg-cargo-yellow p-5 text-left text-ink">
-            <p className="text-[10px] font-bold text-ink/50">Server draft reference</p>
+            <p className="text-[10px] font-bold text-ink/50">Shipment tracking number</p>
             <div className="mt-2 flex items-center justify-between">
-              <p className="font-heading text-2xl font-extrabold tracking-tight">{savedDraftId || "Pending"}</p>
+              <p className="font-heading text-2xl font-extrabold tracking-tight">{submittedShipment?.trackingNumber || "Pending"}</p>
               <Package className="size-6 opacity-50" />
             </div>
             <div className="mt-4 flex justify-between border-t border-ink/15 pt-3 text-xs font-semibold">
@@ -207,8 +210,8 @@ export default function SendShipment() {
           </div>
           <p className="mt-4 text-xs text-white/45">No payment was collected. You will be asked to pay only after the server provides an official invoice or quote.</p>
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
-            <button onClick={() => navigate("/shipments/drafts")} className="rounded-2xl bg-white py-3 text-sm font-bold text-ink">
-              View saved request
+            <button onClick={() => navigate(submittedShipment ? `/shipments/${submittedShipment.id}` : "/shipments")} className="rounded-2xl bg-white py-3 text-sm font-bold text-ink">
+              View shipment
             </button>
             <button onClick={() => navigate("/")} className="rounded-2xl border border-white/10 py-3 text-sm font-bold text-white/70">
               Back home

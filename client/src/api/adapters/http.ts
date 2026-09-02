@@ -116,6 +116,9 @@ export const httpCustomerPortalPort: CustomerPortalPort = {
   async createShipmentDraft(_scope, input) {
     return apiRequest<ShipmentDraftDto>("/shipment-drafts", { method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() }, body: input });
   },
+  async submitShipmentDraft(_scope, draftId, revision) {
+    return apiRequest<ShipmentDto>(`/shipment-drafts/${encodeURIComponent(draftId)}/submit`, { method: "POST", headers: { "If-Match": String(revision), "Idempotency-Key": crypto.randomUUID() } });
+  },
   async deleteShipmentDraft(_scope, draftId, revision) {
     await apiRequest<void>(`/shipment-drafts/${encodeURIComponent(draftId)}`, { method: "DELETE", headers: { "If-Match": String(revision), "Idempotency-Key": crypto.randomUUID() } });
   },

@@ -107,8 +107,10 @@ export function useShipmentDraftMutations() {
   const scope = useCustomerScope();
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["customer", scope.customerId, "shipment-drafts"] });
+  const invalidateShipments = () => queryClient.invalidateQueries({ queryKey: queryKeys.shipments.all(scope.customerId) });
   return {
     create: useMutation({ mutationFn: (input: { payload: Record<string, unknown>; expiresAt?: string | null }) => customerPortalRepository.createShipmentDraft(requireCustomerScope(scope), input), onSuccess: invalidate }),
+    submit: useMutation({ mutationFn: ({ id, revision }: { id: string; revision: number }) => customerPortalRepository.submitShipmentDraft(requireCustomerScope(scope), id, revision), onSuccess: () => { invalidate(); invalidateShipments(); } }),
     remove: useMutation({ mutationFn: ({ id, revision }: { id: string; revision: number }) => customerPortalRepository.deleteShipmentDraft(requireCustomerScope(scope), id, revision), onSuccess: invalidate }),
   };
 }

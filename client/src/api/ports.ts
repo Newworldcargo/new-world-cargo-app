@@ -20,6 +20,7 @@ export interface CustomerPortalPort {
   listRecipients(scope: CustomerScope, query?: string): Promise<RecipientDto[]>;
   listShipmentDrafts(scope: CustomerScope): Promise<ShipmentDraftDto[]>;
   createShipmentDraft(scope: CustomerScope, input: ShipmentDraftInput): Promise<ShipmentDraftDto>;
+  submitShipmentDraft(scope: CustomerScope, draftId: string, revision: number): Promise<ShipmentDto>;
   deleteShipmentDraft(scope: CustomerScope, draftId: string, revision: number): Promise<void>;
   getReferenceData(): Promise<CustomerReferenceData>;
   createAddress(scope: CustomerScope, input: AddressInput): Promise<AddressDto>;

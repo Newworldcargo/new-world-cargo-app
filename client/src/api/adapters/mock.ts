@@ -351,6 +351,13 @@ export const mockCustomerPortalPort: CustomerPortalPort = {
     mockDrafts = [draft, ...mockDrafts];
     return draft;
   },
+  async submitShipmentDraft(scope, draftId, revision) {
+    if (!ownsDemoRecords(scope)) throw new Error("Customer scope is not authorized for this record.");
+    const current = mockDrafts.find(draft => draft.id === draftId);
+    if (!current || current.revision !== revision) throw new Error("Draft was changed elsewhere. Refresh and try again.");
+    mockDrafts = mockDrafts.filter(draft => draft.id !== draftId);
+    return mapShipment(shipments[0]);
+  },
   async deleteShipmentDraft(scope, draftId, revision) {
     if (!ownsDemoRecords(scope))
       throw new Error("Customer scope is not authorized for this record.");
