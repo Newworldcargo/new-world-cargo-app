@@ -1,8 +1,7 @@
 import { apiProblemSchema, type ApiSuccess } from "./contracts";
 import { CustomerApiError } from "./errors";
 
-const adminApiOrigin = "https://admin.newworldcargo.com";
-const apiBaseUrl = `${adminApiOrigin}/api`;
+const apiBaseUrl = "/api/gateway";
 export const apiRequestTimeoutMs = 15_000;
 const csrfHeaderName = "X-CSRF-Token";
 const csrfBootstrapPath = "/v1/auth/csrf";
@@ -58,7 +57,7 @@ async function bootstrapCsrfToken() {
     const response = await fetch(`${apiBaseUrl}${csrfBootstrapPath}`, {
       method: "GET",
       credentials: "include",
-      mode: "cors",
+      mode: "same-origin",
       headers: {
         Accept: "application/json",
         "X-Request-ID": requestId(),
@@ -114,7 +113,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       ...options,
       signal: requestSignal.signal,
       credentials: "include",
-      mode: "cors",
+      mode: "same-origin",
       headers: {
         Accept: "application/json",
         "X-Request-ID": requestId(),

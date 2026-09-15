@@ -15,6 +15,7 @@ const ID_SEGMENT = "[^/?#]+";
  */
 export const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: /^\/v1\/session$/, methods: ["GET"], access: "session", routeClass: "session" },
+  { pattern: /^\/v1\/auth\/csrf$/, methods: ["GET"], access: "bootstrap", routeClass: "authentication" },
   { pattern: /^\/v1\/auth\/(login|register)$/, methods: ["POST"], access: "bootstrap", routeClass: "authentication" },
   { pattern: /^\/v1\/auth\/password\/(forgot|reset)$/, methods: ["POST"], access: "bootstrap", routeClass: "authentication" },
   { pattern: /^\/v1\/auth\/(verify|verify\/resend|password\/verify|password\/change|logout)$/, methods: ["POST"], access: "session", routeClass: "authentication" },
@@ -46,6 +47,9 @@ export const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: /^\/v1\/security\/sessions$/, methods: ["GET"], access: "session", routeClass: "security-sessions" },
   { pattern: new RegExp(`^/v1/security/sessions/${ID_SEGMENT}/trust$`), methods: ["PATCH"], access: "session", routeClass: "security-sessions" },
   { pattern: new RegExp(`^/v1/security/sessions/${ID_SEGMENT}$`), methods: ["DELETE"], access: "session", routeClass: "security-sessions" },
+  { pattern: /^\/v1\/shipment-drafts$/, methods: ["GET", "POST"], access: "session", routeClass: "shipment-drafts" },
+  { pattern: new RegExp(`^/v1/shipment-drafts/${ID_SEGMENT}$`), methods: ["DELETE"], access: "session", routeClass: "shipment-drafts" },
+  { pattern: new RegExp(`^/v1/shipment-drafts/${ID_SEGMENT}/submit$`), methods: ["POST"], access: "session", routeClass: "shipment-drafts" },
 ];
 
 export const gatewayBodyLimitBytes = 1_000_000;

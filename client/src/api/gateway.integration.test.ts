@@ -77,4 +77,69 @@ describe("server-side BFF to Laravel integration", () => {
     expect(fetchMock.mock.calls[0][1].headers.get("authorization")).toBeNull();
     expect(fetchMock.mock.calls[0][1].headers.get("cookie")).toBe("newworldcargo_session=session-token; nwc_csrf=csrf-token");
   });
+
+  it("relays the Laravel session and CSRF token needed by the OTP verification request", async () => {
+    const registerHeaders = new Headers({
+      "content-type": "application/json",
+      "x-csrf-token": "csrf-token-from-register",
+    });
+    registerHeaders.append(
+      "set-cookie",
+      "newworldcargo_session=session-token; Path=/; Domain=.newworldcargo.com; Secure; HttpOnly; SameSite=Lax",
+    );
+    registerHeaders.append(
+      "set-cookie",
+      "nwc_csrf=csrf-token-from-register; Path=/; Domain=.newworldcargo.com; Secure; SameSite=Lax",
+    );
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: { id: "customer-1", verified: false } }), {
+        status: 201,
+        headers: registerHeaders,
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: null }), {
+        status: 200,
+        headers: { "content-type": "application/json", "x-csrf-token": "csrf-token-after-verification" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const registerResult = response();
+    await nodeHandler(request({
+      method: "POST",
+      url: "https://app.newworldcargo.com/api/gateway?path=v1/auth/register",
+      query: { path: "v1/auth/register" },
+      headers: {
+        origin: "https://app.newworldcargo.com",
+        host: "app.newworldcargo.com",
+        "content-type": "application/json",
+      },
+      body: { firstName: "Portal", email: "portal@example.test", phone: "+260000000", password: "password" },
+    } as Partial<MockRequest> & { body: object }), registerResult as never);
+
+    expect(registerResult.statusCode).toBe(201);
+    expect(registerResult.headers["x-csrf-token"]).toBe("csrf-token-from-register");
+    expect(registerResult.headers["set-cookie"]).toEqual(expect.arrayContaining([
+      expect.stringContaining("newworldcargo_session=session-token"),
+      expect.stringContaining("nwc_csrf=csrf-token-from-register"),
+    ]));
+
+    const verifyResult = response();
+    await nodeHandler(request({
+      method: "POST",
+      url: "https://app.newworldcargo.com/api/gateway?path=v1/auth/verify",
+      query: { path: "v1/auth/verify" },
+      headers: {
+        origin: "https://app.newworldcargo.com",
+        host: "app.newworldcargo.com",
+        cookie: "newworldcargo_session=session-token; nwc_csrf=csrf-token-from-register",
+        "content-type": "application/json",
+        "x-csrf-token": "csrf-token-from-register",
+      },
+      body: { code: "123456" },
+    } as Partial<MockRequest> & { body: object }), verifyResult as never);
+
+    expect(verifyResult.statusCode).toBe(200);
+    expect(fetchMock.mock.calls[1][0].toString()).toBe("https://admin.newworldcargo.com/api/v1/auth/verify");
+    expect(fetchMock.mock.calls[1][1].headers.get("cookie")).toContain("newworldcargo_session=session-token");
+    expect(fetchMock.mock.calls[1][1].headers.get("x-csrf-token")).toBe("csrf-token-from-register");
+  });
 });

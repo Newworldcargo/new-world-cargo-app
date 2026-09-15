@@ -14,6 +14,8 @@ describe("customer API architecture", () => {
     expect(matchGatewayRoute("GET", "/v1/shipments")).toMatchObject({ routeClass: "shipments", access: "session" });
     expect(matchGatewayRoute("POST", "/v1/shipments/SH-102/actions")).toMatchObject({ routeClass: "shipment-action" });
     expect(matchGatewayRoute("GET", "/v1/public/tracking/NWC-102")).toMatchObject({ access: "public" });
+    expect(matchGatewayRoute("GET", "/v1/auth/csrf")).toMatchObject({ access: "bootstrap" });
+    expect(matchGatewayRoute("POST", "/v1/auth/password/forgot")).toMatchObject({ access: "bootstrap" });
     expect(matchGatewayRoute("POST", "/v1/shipments")).toBeUndefined();
     expect(matchGatewayRoute("GET", "/v1/admin/customers")).toBeUndefined();
     expect(gatewayAllowedRoutes.length).toBeGreaterThan(20);
@@ -30,10 +32,12 @@ describe("customer API architecture", () => {
     expect(gatewayResponseCacheControl).toContain("no-store");
   });
 
-  it("uses a fixed admin API origin and does not expose a configurable frontend override", () => {
+  it("uses the same-origin gateway and does not expose a configurable frontend override", () => {
     const clientTransport = readFileSync(new URL("http.ts", import.meta.url), "utf8");
     const clientRepository = readFileSync(new URL("repository.ts", import.meta.url), "utf8");
-    expect(clientTransport).toContain('"https://admin.newworldcargo.com"');
+    expect(clientTransport).toContain('const apiBaseUrl = "/api/gateway"');
+    expect(clientTransport).toContain('mode: "same-origin"');
+    expect(clientTransport).not.toContain('"https://admin.newworldcargo.com"');
     expect(clientTransport).toContain('return `/v1${normalizedPath}`');
     expect(clientTransport).toContain("X-CSRF-Token");
     expect(`${clientTransport}\n${clientRepository}`).not.toContain("VITE_NWC_API_BASE_URL");
