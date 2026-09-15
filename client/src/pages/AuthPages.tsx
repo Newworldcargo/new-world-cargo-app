@@ -75,14 +75,22 @@ function PasswordRecovery({ initialIdentifier = "" }: { initialIdentifier?: stri
     event.preventDefault();
     setLoading(true);
     try { await sendCode(); }
-    catch { setError("We could not send a verification code. Please try again."); }
+    catch (caught) {
+      setError(caught instanceof CustomerApiError
+        ? caught.fieldErrors?.identifier?.[0] || caught.message
+        : "We could not send a verification code. Please try again.");
+    }
     finally { setLoading(false); }
   };
 
   const resendCode = async () => {
     setResending(true);
     try { if (await sendCode()) setCode(""); }
-    catch { setError("We could not resend the verification code. Please try again."); }
+    catch (caught) {
+      setError(caught instanceof CustomerApiError
+        ? caught.fieldErrors?.identifier?.[0] || caught.message
+        : "We could not resend the verification code. Please try again.");
+    }
     finally { setResending(false); }
   };
 
@@ -99,6 +107,7 @@ function PasswordRecovery({ initialIdentifier = "" }: { initialIdentifier?: stri
     } catch (caught) {
       if (caught instanceof CustomerApiError && caught.code === "OTP_EXPIRED") setError("That verification code has expired. Request a new code.");
       else if (caught instanceof CustomerApiError && caught.code === "OTP_INVALID") setError("That verification code is not correct. Check it and try again.");
+      else if (caught instanceof CustomerApiError) setError(Object.values(caught.fieldErrors || {}).flat()[0] || caught.message);
       else setError("We could not update your password. Check the details and try again.");
     } finally { setLoading(false); }
   };
