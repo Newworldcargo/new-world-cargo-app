@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowRight, Loader2, Mail, Phone, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthError, AuthLayout, AuthSuccess, BackToSignIn, GoogleAuthButton, OtpInput, PasswordField, PasswordRequirements } from "@/components/auth-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { clearVerificationPending, extractResetEmail, extractResetToken, hasVerificationPending, isStrongPassword, markVerificationPending } from "@/lib/auth-workflow";
+import { CustomerApiError } from "@/api/errors";
+import { clearVerificationPending, extractRecoveryIdentifier, hasVerificationPending, isStrongPassword, markVerificationPending } from "@/lib/auth-workflow";
 
 const Field = ({ label, value, onChange, type = "text", placeholder, autoComplete, error }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; autoComplete?: string; error?: string }) => <label className="grid gap-2 text-sm font-semibold text-ink"><span>{label}</span><Input value={value} onChange={e => onChange(e.target.value)} type={type} placeholder={placeholder} autoComplete={autoComplete} aria-invalid={Boolean(error)} className="h-12 rounded-xl border-ink/15" />{error && <span className="text-xs font-medium text-red-700" role="alert">{error}</span>}</label>;
 const Busy = () => <Loader2 className="mr-2 size-4 animate-spin" />;
@@ -32,22 +33,80 @@ export function Verify() {
 }
 
 export function ForgotPassword() {
-  const { requestPasswordReset } = useAuth(); const [email, setEmail] = useState(""); const [error, setError] = useState(""); const [sent, setSent] = useState(false); const [loading, setLoading] = useState(false);
-  const submit = async (event: React.FormEvent) => { event.preventDefault(); setError(""); if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { setError("Enter the email address for your customer account."); return; } setLoading(true); try { await requestPasswordReset(email); setSent(true); } catch { setError("We could not send the reset link. Please try again."); } finally { setLoading(false); } };
-  return <AuthLayout title="Reset your password"><form onSubmit={submit} className="grid gap-5"><p className="-mt-3 text-sm leading-6 text-ink/55">Enter your email and we will send a secure reset link.</p>{sent ? <AuthSuccess title="Check your email">If this address has a customer account, a reset link is on its way.</AuthSuccess> : <><Field label="Email address" value={email} onChange={setEmail} type="email" autoComplete="email" placeholder="you@example.com" error={error} /><Button disabled={loading} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">{loading && <Busy />}Send reset link</Button></>}<BackToSignIn /></form></AuthLayout>;
+  return <PasswordRecovery />;
 }
 
 export function ResetPassword() {
-  const [, navigate] = useLocation(); const { resetPassword } = useAuth();
-  const reset = useMemo(() => {
-    if (typeof window === "undefined") return null;
-    const token = extractResetToken(window.location.pathname, window.location.search);
-    const email = extractResetEmail(window.location.search);
-    return token && email ? { token, email } : null;
-  }, []);
-  const [password, setPassword] = useState(""); const [confirmation, setConfirmation] = useState(""); const [error, setError] = useState(""); const [success, setSuccess] = useState(false); const [loading, setLoading] = useState(false);
-  const submit = async (event: React.FormEvent) => { event.preventDefault(); if (!reset) return; setError(""); if (!isStrongPassword(password)) { setError("Choose a password with at least 8 characters, one capital letter, and one number."); return; } if (password !== confirmation) { setError("Your passwords do not match."); return; } setLoading(true); try { await resetPassword({ ...reset, password, passwordConfirmation: confirmation }); setSuccess(true); } catch { setError("This reset link is invalid or has expired. Request a new one."); } finally { setLoading(false); } };
-  return <AuthLayout title="Choose a new password">{reset ? <form onSubmit={submit} className="grid gap-5"><p className="-mt-3 text-sm leading-6 text-ink/55">Set a new password for {reset.email}.</p>{success ? <><AuthSuccess title="Password updated">You can now sign in with your new password.</AuthSuccess><Button onClick={() => navigate("/login")} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">Sign in</Button></> : <>{error && <AuthError>{error}</AuthError>}<PasswordField label="New password" value={password} onChange={setPassword} autoComplete="new-password" /><PasswordRequirements password={password} /><PasswordField label="Confirm new password" value={confirmation} onChange={setConfirmation} autoComplete="new-password" /><Button disabled={loading} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">{loading && <Busy />}Update password</Button></>}</form> : <div className="grid gap-5"><AuthError>This password reset link is incomplete or invalid. Request a fresh reset email to continue.</AuthError><Button onClick={() => navigate("/forgot-password")} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">Request a new reset link</Button><BackToSignIn /></div>}</AuthLayout>;
+  const initialIdentifier = typeof window === "undefined" ? "" : extractRecoveryIdentifier(window.location.search) || "";
+  return <PasswordRecovery initialIdentifier={initialIdentifier} />;
+}
+
+function PasswordRecovery({ initialIdentifier = "" }: { initialIdentifier?: string }) {
+  const [, navigate] = useLocation();
+  const { requestPasswordReset, resetPassword } = useAuth();
+  const [identifier, setIdentifier] = useState(initialIdentifier);
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [error, setError] = useState("");
+
+  const validIdentifier = () => {
+    const value = identifier.trim();
+    return value.length > 0 && (!value.includes("@") || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value));
+  };
+
+  const sendCode = async () => {
+    setError("");
+    if (!validIdentifier()) {
+      setError("Enter the email address or phone number for your customer account.");
+      return false;
+    }
+    await requestPasswordReset(identifier);
+    setCodeSent(true);
+    return true;
+  };
+
+  const requestCode = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    try { await sendCode(); }
+    catch { setError("We could not send a verification code. Please try again."); }
+    finally { setLoading(false); }
+  };
+
+  const resendCode = async () => {
+    setResending(true);
+    try { if (await sendCode()) setCode(""); }
+    catch { setError("We could not resend the verification code. Please try again."); }
+    finally { setResending(false); }
+  };
+
+  const savePassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    if (!/^\d{6}$/.test(code)) { setError("Enter the six-digit verification code from your message."); return; }
+    if (!isStrongPassword(password)) { setError("Choose a password with at least 8 characters, one capital letter, and one number."); return; }
+    if (password !== confirmation) { setError("Your passwords do not match."); return; }
+    setLoading(true);
+    try {
+      await resetPassword({ identifier, code, password, passwordConfirmation: confirmation });
+      setSuccess(true);
+    } catch (caught) {
+      if (caught instanceof CustomerApiError && caught.code === "OTP_EXPIRED") setError("That verification code has expired. Request a new code.");
+      else if (caught instanceof CustomerApiError && caught.code === "OTP_INVALID") setError("That verification code is not correct. Check it and try again.");
+      else setError("We could not update your password. Check the details and try again.");
+    } finally { setLoading(false); }
+  };
+
+  if (success) return <AuthLayout title="Password updated"><div className="grid gap-5"><AuthSuccess title="Password updated">Your verification code was accepted. You can now sign in with your new password.</AuthSuccess><Button type="button" onClick={() => navigate("/login")} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">Sign in</Button></div></AuthLayout>;
+
+  if (!codeSent) return <AuthLayout title="Reset your password"><form onSubmit={requestCode} className="grid gap-5"><p className="-mt-3 text-sm leading-6 text-ink/55">Enter your customer email address or phone number. We will send a six-digit verification code to the contact saved on your account.</p>{error && <AuthError>{error}</AuthError>}<Field label="Email or phone" value={identifier} onChange={setIdentifier} autoComplete="username" placeholder="you@example.com or +260…" /><Button disabled={loading} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">{loading && <Busy />}Send verification code</Button><BackToSignIn /></form></AuthLayout>;
+
+  return <AuthLayout title="Enter verification code"><form onSubmit={savePassword} className="grid gap-5"><p className="-mt-3 text-sm leading-6 text-ink/55">Enter the six-digit code sent to the verified contact for <strong>{identifier.trim()}</strong>. The code expires in 10 minutes and can only be used once.</p>{error && <AuthError>{error}</AuthError>}<div className="grid justify-items-center gap-3"><OtpInput value={code} onChange={value => setCode(value.replace(/\D/g, "").slice(0, 6))} /><button type="button" onClick={resendCode} disabled={resending} className="inline-flex items-center gap-2 text-sm font-semibold text-ink disabled:opacity-60"><RefreshCw className={`size-4 ${resending ? "animate-spin" : ""}`} />{resending ? "Sending code" : "Resend code"}</button></div><PasswordField label="New password" value={password} onChange={setPassword} autoComplete="new-password" /><PasswordRequirements password={password} /><PasswordField label="Confirm new password" value={confirmation} onChange={setConfirmation} autoComplete="new-password" /><Button disabled={loading} className="h-12 rounded-xl bg-cargo-yellow font-bold text-ink">{loading && <Busy />}Verify code and update password</Button><button type="button" onClick={() => { setCodeSent(false); setCode(""); setError(""); }} className="text-sm font-semibold text-ink/55 underline underline-offset-2">Use a different email or phone</button><BackToSignIn /></form></AuthLayout>;
 }
 
 export function CompleteProfile() {

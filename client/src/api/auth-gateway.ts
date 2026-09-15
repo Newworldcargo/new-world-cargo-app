@@ -17,6 +17,20 @@ type LoginResult = { ok: boolean; reason?: "invalid" | "disabled" | "unverified"
 type RegisterResult = { ok: boolean; reason?: "existing" | "service"; user?: AuthUser };
 type GoogleResult = { ok: boolean; needsProfile?: boolean; reason?: "cancelled" | "service"; user?: AuthUser };
 type VerificationResult = { ok: boolean; reason?: "incomplete" | "incorrect" | "expired" | "attempts" };
+export type PasswordResetInput = { identifier: string; code: string; password: string; passwordConfirmation: string };
+
+export function passwordResetRequestPayload(identifier: string) {
+  return { identifier: identifier.trim() };
+}
+
+export function passwordResetPayload(input: PasswordResetInput) {
+  return {
+    identifier: input.identifier.trim(),
+    code: input.code,
+    password: input.password,
+    password_confirmation: input.passwordConfirmation,
+  };
+}
 
 export interface AuthGateway {
   getSession(): Promise<AuthUser | null>;
@@ -25,8 +39,8 @@ export interface AuthGateway {
   googleLogin(): Promise<GoogleResult>;
   verify(code: string): Promise<VerificationResult>;
   resendVerification(): Promise<{ ok: boolean }>;
-  requestPasswordReset(email: string): Promise<{ ok: boolean }>;
-  resetPassword(input: { email: string; token: string; password: string; passwordConfirmation: string }): Promise<{ ok: boolean }>;
+  requestPasswordReset(identifier: string): Promise<{ ok: boolean }>;
+  resetPassword(input: PasswordResetInput): Promise<{ ok: boolean }>;
   verifyCurrentPassword(password: string): Promise<{ ok: boolean }>;
   changePassword(currentPassword: string, nextPassword: string): Promise<{ ok: boolean; reason?: "current" | "new" }>;
   logout(): Promise<void>;
@@ -48,7 +62,7 @@ const mockAuthGateway: AuthGateway = {
   async verify(code) { await pause(150); if (code.length < 6) return { ok: false, reason: "incomplete" }; if (code === "000000") return { ok: false, reason: "expired" }; if (code !== "123456") return { ok: false, reason: "incorrect" }; const user = stored(); if (user) persist({ ...user, verified: true }); return { ok: true }; },
   async resendVerification() { await pause(150); return { ok: true }; },
   async requestPasswordReset() { await pause(150); return { ok: true }; },
-  async resetPassword(input) { await pause(150); return { ok: input.password.length >= 8 && input.password === input.passwordConfirmation }; },
+  async resetPassword(input) { await pause(150); if (input.code === "000000") throw new CustomerApiError(422, { error: { code: "OTP_EXPIRED", message: "The verification code has expired." } }); if (input.code !== "123456") throw new CustomerApiError(422, { error: { code: "OTP_INVALID", message: "The verification code is invalid." } }); return { ok: input.password.length >= 8 && input.password === input.passwordConfirmation }; },
   async verifyCurrentPassword(password) { await pause(150); return { ok: password === "password123" }; },
   async changePassword(currentPassword, nextPassword) { await pause(150); if (currentPassword !== "password123") return { ok: false, reason: "current" }; return nextPassword.length >= 8 && nextPassword !== currentPassword ? { ok: true } : { ok: false, reason: "new" }; },
   async logout() { persist(null); },
@@ -70,8 +84,8 @@ const httpAuthGateway: AuthGateway = {
   async googleLogin() { return { ok: false, reason: "service" }; },
   async verify(code) { try { await apiRequest<void>("/auth/verify", { method: "POST", body: { code } }); return { ok: true }; } catch (error) { if (!(error instanceof CustomerApiError)) return { ok: false, reason: "incorrect" }; const codeName = error.code; return { ok: false, reason: codeName === "OTP_EXPIRED" ? "expired" : codeName === "OTP_ATTEMPTS_EXCEEDED" ? "attempts" : "incorrect" }; } },
   async resendVerification() { await apiRequest<void>("/auth/verify/resend", { method: "POST" }); return { ok: true }; },
-  async requestPasswordReset(email) { await apiRequest<void>("/auth/password/forgot", { method: "POST", body: { email } }); return { ok: true }; },
-  async resetPassword(input) { await apiRequest<void>("/auth/password/reset", { method: "POST", body: { email: input.email, token: input.token, password: input.password, password_confirmation: input.passwordConfirmation } }); return { ok: true }; },
+  async requestPasswordReset(identifier) { await apiRequest<void>("/auth/password/forgot", { method: "POST", body: passwordResetRequestPayload(identifier) }); return { ok: true }; },
+  async resetPassword(input) { await apiRequest<void>("/auth/password/reset", { method: "POST", body: passwordResetPayload(input) }); return { ok: true }; },
   async verifyCurrentPassword(password) { try { await apiRequest<void>("/auth/password/verify", { method: "POST", body: { password } }); return { ok: true }; } catch { return { ok: false }; } },
   async changePassword(currentPassword, nextPassword) { try { await apiRequest<void>("/auth/password/change", { method: "POST", body: { currentPassword, nextPassword } }); return { ok: true }; } catch (error) { return { ok: false, reason: error instanceof CustomerApiError && error.code === "CURRENT_PASSWORD_INVALID" ? "current" : "new" }; } },
   async logout() { await apiRequest<void>("/auth/logout", { method: "POST" }); },

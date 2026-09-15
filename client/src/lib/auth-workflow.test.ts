@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAdminResetPasswordUrl, extractResetEmail, extractResetToken, isProtectedRoute, isPublicAuthPath, isStrongPassword, otpAttemptResult, passwordRequirements, validateOtp, validateSignedInPasswordChange } from "./auth-workflow";
+import { buildAdminResetPasswordUrl, extractRecoveryIdentifier, extractResetEmail, extractResetToken, isProtectedRoute, isPublicAuthPath, isStrongPassword, otpAttemptResult, passwordRequirements, validateOtp, validateSignedInPasswordChange } from "./auth-workflow";
 
 describe("auth workflow helpers", () => {
   it("evaluates password requirements", () => {
@@ -49,5 +49,7 @@ describe("auth workflow helpers", () => {
     expect(extractResetToken("/password/reset/legacy-token", "")).toBe("legacy-token");
     expect(extractResetEmail("?token=abc123&email=user@example.com")).toBe("user@example.com");
     expect(buildAdminResetPasswordUrl("abc123", "user@example.com")).toBe("https://admin.newworldcargo.com/reset-password/abc123?email=user%40example.com");
+    expect(extractRecoveryIdentifier("?identifier=%2B260970000245")).toBe("+260970000245");
+    expect(extractRecoveryIdentifier("?email=user@example.com")).toBe("user@example.com");
   });
 });

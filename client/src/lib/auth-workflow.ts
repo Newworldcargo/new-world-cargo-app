@@ -84,6 +84,11 @@ export function extractResetEmail(search: string) {
   return email || null;
 }
 
+export function extractRecoveryIdentifier(search: string) {
+  const params = new URLSearchParams(search);
+  return params.get("identifier")?.trim() || params.get("email")?.trim() || null;
+}
+
 export function buildAdminResetPasswordUrl(token: string, email: string) {
   return `${ADMIN_AUTH_ORIGIN}/reset-password/${encodeURIComponent(token)}?email=${encodeURIComponent(email)}`;
 }
