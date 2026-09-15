@@ -14,7 +14,7 @@ export type AuthUser = {
 };
 
 type LoginResult = { ok: boolean; reason?: "invalid" | "disabled" | "unverified" | "service"; user?: AuthUser };
-type RegisterResult = { ok: boolean; reason?: "existing" | "service"; user?: AuthUser };
+type RegisterResult = { ok: boolean; reason?: "existing" | "validation" | "service"; user?: AuthUser; message?: string; fieldErrors?: Record<string, string[]> };
 type GoogleResult = { ok: boolean; needsProfile?: boolean; reason?: "cancelled" | "service"; user?: AuthUser };
 type VerificationResult = { ok: boolean; reason?: "incomplete" | "incorrect" | "expired" | "attempts" };
 export type PasswordResetInput = { identifier: string; code: string; password: string; passwordConfirmation: string };
@@ -80,7 +80,7 @@ function authReason(error: unknown): "invalid" | "disabled" | "unverified" | "se
 const httpAuthGateway: AuthGateway = {
   async getSession() { try { return await apiRequest<AuthUser>("/session"); } catch (error) { if (error instanceof CustomerApiError && error.status === 401) return null; throw error; } },
   async login(identifier, password) { try { return { ok: true, user: await apiRequest<AuthUser>("/auth/login", { method: "POST", body: { identifier, password } }) }; } catch (error) { return { ok: false, reason: authReason(error) }; } },
-  async register(input) { try { return { ok: true, user: await apiRequest<AuthUser>("/auth/register", { method: "POST", body: input }) }; } catch (error) { return { ok: false, reason: error instanceof CustomerApiError && error.code === "ACCOUNT_EXISTS" ? "existing" : "service" }; } },
+  async register(input) { try { return { ok: true, user: await apiRequest<AuthUser>("/auth/register", { method: "POST", body: input }) }; } catch (error) { if (!(error instanceof CustomerApiError)) return { ok: false, reason: "service" }; const duplicateEmail = error.code === "ACCOUNT_EXISTS" || Boolean(error.fieldErrors?.email?.some(message => message.toLowerCase().includes("taken"))); return { ok: false, reason: duplicateEmail ? "existing" : error.code === "VALIDATION_FAILED" ? "validation" : "service", message: error.message, fieldErrors: error.fieldErrors }; } },
   async googleLogin() { return { ok: false, reason: "service" }; },
   async verify(code) { try { await apiRequest<void>("/auth/verify", { method: "POST", body: { code } }); return { ok: true }; } catch (error) { if (!(error instanceof CustomerApiError)) return { ok: false, reason: "incorrect" }; const codeName = error.code; return { ok: false, reason: codeName === "OTP_EXPIRED" ? "expired" : codeName === "OTP_ATTEMPTS_EXCEEDED" ? "attempts" : "incorrect" }; } },
   async resendVerification() { await apiRequest<void>("/auth/verify/resend", { method: "POST" }); return { ok: true }; },

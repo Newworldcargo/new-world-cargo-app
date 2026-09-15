@@ -1,11 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { buildAdminResetPasswordUrl, extractRecoveryIdentifier, extractResetEmail, extractResetToken, isProtectedRoute, isPublicAuthPath, isStrongPassword, otpAttemptResult, passwordRequirements, validateOtp, validateSignedInPasswordChange } from "./auth-workflow";
+import { buildAdminResetPasswordUrl, extractRecoveryIdentifier, extractResetEmail, extractResetToken, isProtectedRoute, isPublicAuthPath, isStrongPassword, otpAttemptResult, passwordRequirements, validateOtp, validateRegistration, validateSignedInPasswordChange } from "./auth-workflow";
 
 describe("auth workflow helpers", () => {
   it("evaluates password requirements", () => {
     expect(passwordRequirements("Cargo123")).toEqual({ length: true, uppercase: true, number: true });
     expect(isStrongPassword("cargo")).toBe(false);
     expect(isStrongPassword("Cargo123")).toBe(true);
+  });
+
+  it("validates registration fields before calling the API", () => {
+    const invalid = validateRegistration({ firstName: "D", lastName: "", email: "wrong", phone: "123", password: "weak", confirm: "different" }, false);
+    expect(invalid).toEqual({
+      firstName: "Enter a first name with at least 2 characters.",
+      email: "Enter a valid email address.",
+      phone: "Enter a valid phone number with 9 to 15 digits.",
+      password: "Use at least 8 characters, one uppercase letter, and one number.",
+      confirm: "Your passwords do not match.",
+      accepted: "Accept the Terms and Privacy Policy to continue.",
+    });
+    expect(validateRegistration({ firstName: "Daniel", lastName: "Chinyama", email: "d@example.com", phone: "+260 970 000 245", password: "CargoPass1", confirm: "CargoPass1" }, true)).toEqual({});
   });
 
   it("keeps OTP states explicit", () => {

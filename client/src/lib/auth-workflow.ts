@@ -12,6 +12,31 @@ export function isStrongPassword(password: string) {
   return requirements.length && requirements.uppercase && requirements.number;
 }
 
+export type RegistrationForm = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirm: string;
+};
+
+export type RegistrationFieldErrors = Partial<Record<keyof RegistrationForm | "accepted", string>>;
+
+export function validateRegistration(form: RegistrationForm, accepted: boolean): RegistrationFieldErrors {
+  const errors: RegistrationFieldErrors = {};
+  if (form.firstName.trim().length < 2) errors.firstName = "Enter a first name with at least 2 characters.";
+  if (form.lastName.trim() && form.lastName.trim().length < 2) errors.lastName = "Enter a complete last name or leave it blank.";
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) errors.email = "Enter a valid email address.";
+  const phoneDigits = form.phone.replace(/\D/g, "");
+  if (phoneDigits.length < 9 || phoneDigits.length > 15) errors.phone = "Enter a valid phone number with 9 to 15 digits.";
+  if (!isStrongPassword(form.password)) errors.password = "Use at least 8 characters, one uppercase letter, and one number.";
+  if (!form.confirm) errors.confirm = "Confirm your password.";
+  else if (form.password !== form.confirm) errors.confirm = "Your passwords do not match.";
+  if (!accepted) errors.accepted = "Accept the Terms and Privacy Policy to continue.";
+  return errors;
+}
+
 export function validateOtp(code: string) {
   if (code.length < 6) return "incomplete" as const;
   if (code === "000000") return "expired" as const;
