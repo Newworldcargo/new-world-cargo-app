@@ -13,7 +13,7 @@ export { getReachedTrackingEvents } from "@/lib/tracking-timeline";
 
 type ScanState = "idle" | "permission" | "ready";
 
-export const TRACKING_TIMELINE_CONNECTOR_CLASS = "absolute left-2.5 top-5 bottom-0 z-0 border-l-[3px] border-dashed";
+export const TRACKING_TIMELINE_CONNECTOR_CLASS = "absolute left-2.5 top-5 bottom-0 z-20 border-l-[3px] border-dashed";
 export const PUBLIC_TRACKING_SIGN_IN_LABEL = "Sign in to your account";
 
 export function getTrackingTimelineConnectorClass(isComplete: boolean) {
@@ -182,7 +182,6 @@ export default function Tracking() {
                     <p className="mt-1 text-xs text-ink/55">
                       {result.origin} → {result.destination}
                     </p>
-                    {result.consignmentCode && <div className="mt-3 space-y-1 text-xs text-ink/60"><p><span className="font-bold text-ink">Container:</span> {result.consignmentCode}</p><p><span className="font-bold text-ink">Shipment (parcel) code:</span> {result.trackingNumber}</p></div>}
                   </div>
                   <span className="rounded-full bg-cargo-yellow/25 px-3 py-1 text-xs font-bold">{result.statusLabel}</span>
                 </div>
