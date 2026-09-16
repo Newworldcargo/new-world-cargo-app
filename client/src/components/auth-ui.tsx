@@ -26,7 +26,7 @@ export function AuthLayout({
           <Link href="/login" aria-label="New World Cargo home" className="inline-flex">
             <img src="https://www.newworldcargo.com/images/white-logo.png" alt="New World Cargo" className="h-12 w-auto object-contain sm:h-14" />
           </Link>
-          <Link href="/shipments/tracking" className="shrink-0 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/15">Track shipment</Link>
+          <Link href="/shipments/tracking" className="shrink-0 rounded-full bg-cargo-yellow px-3 py-2 text-xs font-bold text-ink shadow-sm transition hover:brightness-105">Track shipment</Link>
         </div>
         <main className="my-auto rounded-[30px] border border-ink/10 bg-white p-5 text-ink shadow-[0_20px_60px_rgba(1,38,66,0.12)] sm:p-8">
           {title && <div className="mb-7">
