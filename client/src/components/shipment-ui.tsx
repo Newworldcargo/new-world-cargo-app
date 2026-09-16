@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { feedback } from "@/lib/feedback";
 import type { Shipment, ShipmentStatus } from "@/lib/domain";
+import { getReachedTrackingEvents } from "@/lib/tracking-timeline";
 
 const statusStyles: Record<ShipmentStatus, string> = {
   pending: "bg-ink/10 text-ink",
@@ -169,9 +170,11 @@ export function ShipmentCard({
 }
 
 export function Timeline({ shipment }: { shipment: Shipment }) {
+  const reachedEvents = getReachedTrackingEvents(shipment.events);
+
   return (
     <div className="relative mt-5 space-y-0">
-      {shipment.events.map((event, index) => (
+      {reachedEvents.length > 0 ? reachedEvents.map((event, index) => (
         <div
           key={`${event.label}-${index}`}
           className="relative flex gap-4 pb-6 last:pb-0"
@@ -187,7 +190,7 @@ export function Timeline({ shipment }: { shipment: Shipment }) {
               <span className="size-1.5 rounded-full bg-white/30" />
             )}
           </div>
-          {index < shipment.events.length - 1 && (
+          {index < reachedEvents.length - 1 && (
             <div
               className={`absolute left-[9px] top-6 h-[calc(100%-12px)] w-px ${event.complete ? "bg-cargo-yellow/80" : "border-l border-dashed border-white/20"}`}
             />
@@ -208,7 +211,9 @@ export function Timeline({ shipment }: { shipment: Shipment }) {
             </div>
           </div>
         </div>
-      ))}
+      )) : (
+        <p role="status" className="text-sm text-white/45">No tracking updates yet.</p>
+      )}
     </div>
   );
 }

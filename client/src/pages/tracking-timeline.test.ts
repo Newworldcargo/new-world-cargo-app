@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getTrackingTimelineConnectorClass,
+  getReachedTrackingEvents,
   isTrackingTimelineSegmentComplete,
   PUBLIC_TRACKING_SIGN_IN_LABEL,
   shouldRenderTrackingConnector,
@@ -35,6 +36,16 @@ describe("public tracking mapped timeline", () => {
     expect(isTrackingTimelineSegmentComplete(events, 0)).toBe(true);
     expect(isTrackingTimelineSegmentComplete(events, 1)).toBe(true);
     expect(isTrackingTimelineSegmentComplete(events, 2)).toBe(true);
+  });
+
+  it("hides stages that have not been reached", () => {
+    const events = [
+      { complete: true, label: "Departed" },
+      { current: true, label: "In transit" },
+      { label: "Arrived" },
+    ];
+
+    expect(getReachedTrackingEvents(events).map((event) => event.label)).toEqual(["Departed", "In transit"]);
   });
 
   it("keeps the sign-in control labelled for an account affordance", () => {

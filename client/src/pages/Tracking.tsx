@@ -9,6 +9,9 @@ import {
 } from "@/components/public-tracking-campaigns";
 import { Button } from "@/components/ui/button";
 import { CustomerApiError } from "@/api/errors";
+import { getReachedTrackingEvents } from "@/lib/tracking-timeline";
+
+export { getReachedTrackingEvents } from "@/lib/tracking-timeline";
 
 type ScanState = "idle" | "permission" | "ready";
 
@@ -190,10 +193,10 @@ export default function Tracking() {
                   <div className="mt-4 flex items-center gap-3"><div className="min-w-0 flex-1"><p className="text-xs font-bold text-white">{result.origin}</p><p className="mt-1 text-[11px] text-white/55">Origin</p></div><div className="flex flex-1 items-center gap-1"><span className="size-2 rounded-full bg-cargo-yellow" /><span className="h-0.5 flex-1 bg-cargo-yellow" /><span className="size-2 rounded-full border-2 border-white/70 bg-ink" /></div><div className="min-w-0 flex-1 text-right"><p className="text-xs font-bold text-white">{result.destination}</p><p className="mt-1 text-[11px] text-white/55">Destination</p></div></div>
                 </div>
                 <div className="mt-6">
-                  {result.events.map((event, index) => (
+                  {getReachedTrackingEvents(result.events).length > 0 ? getReachedTrackingEvents(result.events).map((event, index, reachedEvents) => (
                     <div key={`${event.label}-${index}`} className="relative flex gap-3 pb-7 last:pb-0">
-                      {shouldRenderTrackingConnector(index, result.events.length) && (
-                        <span aria-hidden="true" className={getTrackingTimelineConnectorClass(isTrackingTimelineSegmentComplete(result.events, index))} />
+                      {shouldRenderTrackingConnector(index, reachedEvents.length) && (
+                        <span aria-hidden="true" className={getTrackingTimelineConnectorClass(isTrackingTimelineSegmentComplete(reachedEvents, index))} />
                       )}
                       <span
                         className={`relative z-10 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ${event.complete || event.current ? "bg-cargo-yellow text-ink" : "border border-ink/20 bg-white"}`}
@@ -207,7 +210,9 @@ export default function Tracking() {
                         </p>
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <p role="status" className="text-sm text-ink/55">No tracking updates yet.</p>
+                  )}
                 </div>
                 <div className="mt-6 flex flex-wrap gap-2">
                   <Button onClick={() => navigator.clipboard?.writeText(result.trackingNumber)} variant="outline" className="rounded-xl font-bold">
