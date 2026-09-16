@@ -1,4 +1,4 @@
-import { Camera, CheckCircle2, Copy, PackageSearch, Share2, UserRound, XCircle } from "lucide-react";
+import { CheckCircle2, Copy, PackageSearch, Share2, UserRound, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { usePublicTracking } from "@/api/hooks";
@@ -10,8 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { CustomerApiError } from "@/api/errors";
 export { getReachedTrackingEvents } from "@/lib/tracking-timeline";
-
-type ScanState = "idle" | "permission" | "ready";
 
 export const TRACKING_TIMELINE_CONNECTOR_CLASS = "absolute left-2.5 top-5 bottom-0 z-20 border-l-[3px] border-dashed";
 export const PUBLIC_TRACKING_SIGN_IN_LABEL = "Sign in to your account";
@@ -27,7 +25,6 @@ export const isTrackingTimelineSegmentComplete = (events: Array<{ complete?: boo
 export default function Tracking() {
   const [code, setCode] = useState("");
   const [searched, setSearched] = useState(false);
-  const [scanState, setScanState] = useState<ScanState>("idle");
   const [inputError, setInputError] = useState("");
   const trackingNumber = code.trim().toUpperCase();
   const { data: result, isLoading, isError, error, refetch } = usePublicTracking(searched ? trackingNumber : "");
@@ -57,18 +54,6 @@ export default function Tracking() {
     }
     setInputError("");
     setSearched(true);
-  };
-
-  const startScan = () => {
-    setScanState("permission");
-    window.setTimeout(() => setScanState("ready"), 450);
-  };
-
-  const useSampleScan = () => {
-    setCode("NWC48291ZM");
-    setInputError("");
-    setSearched(true);
-    setScanState("idle");
   };
 
   return (
@@ -122,25 +107,6 @@ export default function Tracking() {
                 {inputError}
               </p>
             )}
-
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button onClick={startScan} className="inline-flex items-center gap-2 text-xs font-bold text-ink/65 hover:text-ink">
-                <Camera className="size-4 text-cargo-yellow" />
-                Scan a tracking QR code
-              </button>
-              {scanState === "permission" && <span className="text-xs text-ink/50">Requesting camera permission…</span>}
-              {scanState === "ready" && (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-ink/55">
-                  <span>Camera is ready.</span>
-                  <button onClick={useSampleScan} className="font-bold text-ink underline decoration-cargo-yellow">
-                    Use sample scan
-                  </button>
-                  <button onClick={() => setScanState("idle")} className="font-bold text-ink/55">
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
 
             {searched && isLoading && (
               <section className="mt-6 rounded-[26px] border border-ink/10 bg-[#f7f8fb] p-6 text-center text-sm text-ink/55">
