@@ -213,6 +213,28 @@ export default function Tracking() {
                   )) : (
                     <p role="status" className="text-sm text-ink/55">No tracking updates yet.</p>
                   )}
+                  {result.events.filter((event) => !event.complete && !event.current).length > 0 && (
+                    <div className="relative mt-1 max-h-52 overflow-hidden rounded-2xl bg-brand-secondary/10">
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-brand-secondary/95 via-brand-secondary/70 to-transparent"
+                      />
+                      <div aria-hidden="true" className="select-none blur-[3px] opacity-45">
+                        {result.events.filter((event) => !event.complete && !event.current).map((event, index, upcomingEvents) => (
+                          <div key={`${event.label}-upcoming-${index}`} className="relative flex gap-3 pb-7 last:pb-0 px-1">
+                            {shouldRenderTrackingConnector(index, upcomingEvents.length) && (
+                              <span aria-hidden="true" className={getTrackingTimelineConnectorClass(false)} />
+                            )}
+                            <span className="relative z-10 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border border-ink/20 bg-white" />
+                            <div>
+                              <p className="text-sm font-bold">{event.label}</p>
+                              <p className="mt-0.5 text-xs text-ink/55">{event.detail} · {event.time}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-6 flex flex-wrap gap-2">
                   <Button onClick={() => navigator.clipboard?.writeText(result.trackingNumber)} variant="outline" className="rounded-xl font-bold">

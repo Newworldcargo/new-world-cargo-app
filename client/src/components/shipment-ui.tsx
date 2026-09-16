@@ -171,6 +171,7 @@ export function ShipmentCard({
 
 export function Timeline({ shipment }: { shipment: Shipment }) {
   const reachedEvents = getReachedTrackingEvents(shipment.events);
+  const upcomingEvents = shipment.events.filter((event) => !event.complete && !event.current);
 
   return (
     <div className="relative mt-5 space-y-0">
@@ -213,6 +214,33 @@ export function Timeline({ shipment }: { shipment: Shipment }) {
         </div>
       )) : (
         <p role="status" className="text-sm text-white/45">No tracking updates yet.</p>
+      )}
+      {upcomingEvents.length > 0 && (
+        <div className="relative mt-1 max-h-52 overflow-hidden rounded-2xl bg-brand-secondary/35">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-brand-secondary/95 via-brand-secondary/75 to-transparent"
+          />
+          <div aria-hidden="true" className="select-none blur-[3px] opacity-40 px-1">
+            {upcomingEvents.map((event, index) => (
+              <div
+                key={`${event.label}-upcoming-${index}`}
+                className="relative flex gap-4 pb-6 last:pb-0"
+              >
+                <div className="relative z-10 mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-white/25 bg-ink">
+                  <span className="size-1.5 rounded-full bg-white/30" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-semibold text-white/45">{event.label}</p>
+                    <span className="whitespace-nowrap text-[11px] text-white/35">{event.time}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-white/40">{event.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
