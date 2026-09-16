@@ -9,8 +9,6 @@ import {
 } from "@/components/public-tracking-campaigns";
 import { Button } from "@/components/ui/button";
 import { CustomerApiError } from "@/api/errors";
-import { getReachedTrackingEvents } from "@/lib/tracking-timeline";
-
 export { getReachedTrackingEvents } from "@/lib/tracking-timeline";
 
 type ScanState = "idle" | "permission" | "ready";
@@ -192,48 +190,32 @@ export default function Tracking() {
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">Delivery progress</p>
                   <div className="mt-4 flex items-center gap-3"><div className="min-w-0 flex-1"><p className="text-xs font-bold text-white">{result.origin}</p><p className="mt-1 text-[11px] text-white/55">Origin</p></div><div className="flex flex-1 items-center gap-1"><span className="size-2 rounded-full bg-cargo-yellow" /><span className="h-0.5 flex-1 bg-cargo-yellow" /><span className="size-2 rounded-full border-2 border-white/70 bg-ink" /></div><div className="min-w-0 flex-1 text-right"><p className="text-xs font-bold text-white">{result.destination}</p><p className="mt-1 text-[11px] text-white/55">Destination</p></div></div>
                 </div>
-                <div className="mt-6">
-                  {getReachedTrackingEvents(result.events).length > 0 ? getReachedTrackingEvents(result.events).map((event, index, reachedEvents) => (
-                    <div key={`${event.label}-${index}`} className="relative flex gap-3 pb-7 last:pb-0">
-                      {shouldRenderTrackingConnector(index, reachedEvents.length) && (
-                        <span aria-hidden="true" className={getTrackingTimelineConnectorClass(isTrackingTimelineSegmentComplete(reachedEvents, index))} />
-                      )}
-                      <span
-                        className={`relative z-10 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ${event.complete || event.current ? "bg-cargo-yellow text-ink" : "border border-ink/20 bg-white"}`}
-                      >
-                        {(event.complete || event.current) && <CheckCircle2 className="size-3" />}
-                      </span>
-                      <div>
-                        <p className="text-sm font-bold">{event.label}</p>
-                        <p className="mt-0.5 text-xs text-ink/55">
-                          {event.detail} · {event.time}
-                        </p>
+                <div className="relative mt-6">
+                  {result.events.length > 0 ? result.events.map((event, index, events) => {
+                    const reached = Boolean(event.complete || event.current);
+                    const nextReached = Boolean(events[index + 1]?.complete || events[index + 1]?.current);
+
+                    return (
+                      <div key={`${event.label}-${index}`} aria-hidden={!reached} className={`relative flex gap-3 pb-7 last:pb-0 ${reached ? "" : "blur-[3px] opacity-40"}`}>
+                        {shouldRenderTrackingConnector(index, events.length) && (
+                          <span aria-hidden="true" className={getTrackingTimelineConnectorClass(nextReached)} />
+                        )}
+                        <span
+                          className={`relative z-30 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ${reached ? "bg-cargo-yellow text-ink" : "border border-ink/20 bg-white"}`}
+                        >
+                          {reached && <CheckCircle2 className="size-3" />}
+                        </span>
+                        <div className="relative z-20">
+                          <p className="text-sm font-bold">{event.label}</p>
+                          <p className="mt-0.5 text-xs text-ink/55">{event.detail} · {event.time}</p>
+                        </div>
                       </div>
-                    </div>
-                  )) : (
+                    );
+                  }) : (
                     <p role="status" className="text-sm text-ink/55">No tracking updates yet.</p>
                   )}
-                  {result.events.filter((event) => !event.complete && !event.current).length > 0 && (
-                    <div className="relative mt-1 max-h-52 overflow-hidden rounded-2xl bg-brand-secondary/10">
-                      <div
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-brand-secondary/95 via-brand-secondary/70 to-transparent"
-                      />
-                      <div aria-hidden="true" className="select-none blur-[3px] opacity-45">
-                        {result.events.filter((event) => !event.complete && !event.current).map((event, index, upcomingEvents) => (
-                          <div key={`${event.label}-upcoming-${index}`} className="relative flex gap-3 pb-7 last:pb-0 px-1">
-                            {shouldRenderTrackingConnector(index, upcomingEvents.length) && (
-                              <span aria-hidden="true" className={getTrackingTimelineConnectorClass(false)} />
-                            )}
-                            <span className="relative z-10 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border border-ink/20 bg-white" />
-                            <div>
-                              <p className="text-sm font-bold">{event.label}</p>
-                              <p className="mt-0.5 text-xs text-ink/55">{event.detail} · {event.time}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  {result.events.some((event) => !event.complete && !event.current) && (
+                    <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2/3 bg-gradient-to-t from-white via-white/65 to-transparent" />
                   )}
                 </div>
                 <div className="mt-6 flex flex-wrap gap-2">

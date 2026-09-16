@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { feedback } from "@/lib/feedback";
 import type { Shipment, ShipmentStatus } from "@/lib/domain";
-import { getReachedTrackingEvents } from "@/lib/tracking-timeline";
 
 const statusStyles: Record<ShipmentStatus, string> = {
   pending: "bg-ink/10 text-ink",
@@ -170,77 +169,36 @@ export function ShipmentCard({
 }
 
 export function Timeline({ shipment }: { shipment: Shipment }) {
-  const reachedEvents = getReachedTrackingEvents(shipment.events);
-  const upcomingEvents = shipment.events.filter((event) => !event.complete && !event.current);
-
   return (
     <div className="relative mt-5 space-y-0">
-      {reachedEvents.length > 0 ? reachedEvents.map((event, index) => (
-        <div
-          key={`${event.label}-${index}`}
-          className="relative flex gap-4 pb-6 last:pb-0"
-        >
-          <div
-            className={`relative z-10 mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${event.complete ? "border-ink bg-cargo-yellow text-ink" : event.current ? "border-cargo-yellow bg-ink text-cargo-yellow" : "border-white/25 bg-ink text-white"}`}
-          >
-            {event.complete ? (
-              <Check className="size-3" strokeWidth={3} />
-            ) : event.current ? (
-              <span className="size-2 rounded-full bg-cargo-yellow" />
-            ) : (
-              <span className="size-1.5 rounded-full bg-white/30" />
-            )}
-          </div>
-          {index < reachedEvents.length - 1 && (
-            <div
-              className={`absolute left-[9px] top-6 h-[calc(100%-12px)] w-px ${event.complete ? "bg-cargo-yellow/80" : "border-l border-dashed border-white/20"}`}
-            />
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p
-                  className={`text-sm font-semibold ${event.current ? "text-white" : event.complete ? "text-white/80" : "text-white/45"}`}
-                >
-                  {event.label}
-                </p>
-                <p className="mt-1 text-xs text-white/40">{event.detail}</p>
-              </div>
-              <span className="whitespace-nowrap text-[11px] text-white/35">
-                {event.time}
-              </span>
+      {shipment.events.length > 0 ? shipment.events.map((event, index, events) => {
+        const reached = Boolean(event.complete || event.current);
+        const nextReached = Boolean(events[index + 1]?.complete || events[index + 1]?.current);
+
+        return (
+          <div key={`${event.label}-${index}`} aria-hidden={!reached} className={`relative flex gap-4 pb-6 last:pb-0 ${reached ? "" : "blur-[3px] opacity-40"}`}>
+            <div className={`relative z-30 mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${reached ? "border-ink bg-cargo-yellow text-ink" : "border-white/25 bg-ink text-white"}`}>
+              {event.complete ? <Check className="size-3" strokeWidth={3} /> : event.current ? <span className="size-2 rounded-full bg-cargo-yellow" /> : <span className="size-1.5 rounded-full bg-white/30" />}
             </div>
-          </div>
-        </div>
-      )) : (
-        <p role="status" className="text-sm text-white/45">No tracking updates yet.</p>
-      )}
-      {upcomingEvents.length > 0 && (
-        <div className="relative mt-1 max-h-52 overflow-hidden rounded-2xl bg-brand-secondary/35">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-t from-brand-secondary/95 via-brand-secondary/75 to-transparent"
-          />
-          <div aria-hidden="true" className="select-none blur-[3px] opacity-40 px-1">
-            {upcomingEvents.map((event, index) => (
-              <div
-                key={`${event.label}-upcoming-${index}`}
-                className="relative flex gap-4 pb-6 last:pb-0"
-              >
-                <div className="relative z-10 mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-white/25 bg-ink">
-                  <span className="size-1.5 rounded-full bg-white/30" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold text-white/45">{event.label}</p>
-                    <span className="whitespace-nowrap text-[11px] text-white/35">{event.time}</span>
-                  </div>
+            {index < events.length - 1 && (
+              <div className={`absolute left-[9px] top-6 z-30 h-[calc(100%-12px)] w-px ${nextReached ? "bg-cargo-yellow/80" : "border-l border-dashed border-white/20"}`} />
+            )}
+            <div className="relative z-20 min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className={`text-sm font-semibold ${event.current ? "text-white" : event.complete ? "text-white/80" : "text-white/45"}`}>{event.label}</p>
                   <p className="mt-1 text-xs text-white/40">{event.detail}</p>
                 </div>
+                <span className="whitespace-nowrap text-[11px] text-white/35">{event.time}</span>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
+        );
+      }) : (
+        <p role="status" className="text-sm text-white/45">No tracking updates yet.</p>
+      )}
+      {shipment.events.some((event) => !event.complete && !event.current) && (
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2/3 bg-gradient-to-t from-white/80 via-white/35 to-transparent" />
       )}
     </div>
   );
