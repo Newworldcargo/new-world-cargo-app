@@ -27,10 +27,22 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { feedback } from "@/lib/feedback";
 import { SubpageBackButton } from "@/components/subpage-back-button";
+import { BookingServiceGrid, BookingServiceTabs, type BookingService } from "@/components/booking-service-grid";
 import { useAddressMutations, useCustomerAddresses, useCustomerDrafts, useCustomerRecipients, useCustomerReferenceData, useShipmentDraftMutations } from "@/api/hooks";
 import { useCustomerWorkflowStore } from "@/stores/customer-workflow-store";
+import { apiRequest } from "@/api/http";
 
-const steps = ["Pickup", "Recipient", "Cargo", "Transport", "Review"];
+const servicePresentation: Record<BookingService, { title: string; steps: string[] }> = {
+  import: { title: "International Imports", steps: ["Origin", "Receiver", "Cargo", "Transport", "Review"] },
+  intercity: { title: "City-to-City", steps: ["Pickup", "Receiver", "Cargo", "Route", "Review"] },
+  local: { title: "Local Delivery", steps: ["Pickup", "Receiver", "Cargo", "Route", "Review"] },
+  custom: { title: "Custom Request", steps: ["Pickup", "Contact", "Cargo", "Route", "Review"] },
+};
+
+function bookingServiceFromSearch(search: string): BookingService | null {
+  const value = new URLSearchParams(search).get("service");
+  return value === "import" || value === "intercity" || value === "local" || value === "custom" ? value : null;
+}
 
 type EvidenceState = {
   photos: string[];
@@ -43,8 +55,15 @@ type CargoRow = {
   quantity: string;
 };
 
+type BookingQuote = { source: "server"; quotePayload: Record<string, unknown>; quoteSignature: string; formattedTotal: string };
+
 export default function SendShipment() {
   const [location, navigate] = useLocation();
+  const search = typeof window === "undefined" ? "" : window.location.search;
+  const searchParams = new URLSearchParams(search);
+  const requestedService = bookingServiceFromSearch(search);
+  const requestedDraftId = searchParams.get("draft");
+  const usesLatestQuote = searchParams.get("quote") === "latest";
   const { data: referenceData, isLoading: isReferenceDataLoading } = useCustomerReferenceData();
   const { data: savedRecipients = [] } = useCustomerRecipients();
   const savedAddressesQuery = useCustomerAddresses();
@@ -61,6 +80,7 @@ export default function SendShipment() {
   const [addingSavedAddress, setAddingSavedAddress] = useState(false);
   const [savedAddressForm, setSavedAddressForm] = useState({ label: "", line: "", landmark: "" });
   const [transport, setTransport] = useState<"air" | "sea">("air");
+  const [service, setService] = useState<BookingService>(requestedService ?? "import");
   const [handover, setHandover] = useState<"collect" | "delivery">("collect");
   const [evidence, setEvidence] = useState<EvidenceState>({ photos: [], documents: [] });
   const [cargoRows, setCargoRows] = useState<CargoRow[]>([
@@ -71,6 +91,7 @@ export default function SendShipment() {
   const [form, setForm] = useState({
     pickup: "",
     pickupBranchId: "",
+    destinationBranchId: "",
     recipient: "",
     phone: "",
     recipientNotes: "",
@@ -79,11 +100,11 @@ export default function SendShipment() {
     packages: "",
   });
   useEffect(() => {
-    if (location.includes("draft=")) {
-      const draftId = new URLSearchParams(location.split("?")[1] || "").get("draft");
-      const saved = draftsQuery.data?.find((draft) => draft.id === draftId) || draftsQuery.data?.[0];
+    if (requestedDraftId) {
+      const saved = draftsQuery.data?.find((draft) => draft.id === requestedDraftId) || draftsQuery.data?.[0];
       if (!saved) return;
-      const payload = saved.payload as Partial<{ step: number; form: typeof form; cargoRows: CargoRow[]; transport: "air" | "sea"; handover: "collect" | "delivery"; evidence: EvidenceState }>;
+      const payload = saved.payload as Partial<{ service: BookingService; step: number; form: typeof form; cargoRows: CargoRow[]; transport: "air" | "sea"; handover: "collect" | "delivery"; evidence: EvidenceState }>;
+      if (payload.service) setService(payload.service);
       if (payload.form) setForm(payload.form);
       if (payload.cargoRows) setCargoRows(payload.cargoRows);
       if (payload.transport) setTransport(payload.transport);
@@ -92,13 +113,15 @@ export default function SendShipment() {
       if (typeof payload.step === "number") setStep(payload.step);
       feedback.success("Your server-saved draft is ready to continue.");
     }
-    if (location.includes("quote=latest")) {
+    if (usesLatestQuote) {
       if (!latestQuote) return;
       if (Date.now() > new Date(latestQuote.expiresAt).getTime()) { setLatestQuote(null); feedback.warning("This quote has expired. Please request a fresh estimate."); return; }
       setForm((current) => ({ ...current, pickup: latestQuote.from || current.pickup, destination: latestQuote.to || current.destination, packages: String(latestQuote.weightKg || current.packages) }));
       feedback.success(`Your ${latestQuote.serviceName} quote has been added. You can edit all details.`);
     }
-  }, [draftsQuery.data, latestQuote, location, setLatestQuote]);
+  }, [draftsQuery.data, latestQuote, requestedDraftId, setLatestQuote, usesLatestQuote]);
+
+  useEffect(() => { if (requestedService) setService(requestedService); }, [requestedService]);
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -125,10 +148,39 @@ export default function SendShipment() {
   const removeEvidence = (type: keyof EvidenceState, name: string) =>
     setEvidence((current) => ({ ...current, [type]: current[type].filter((item) => item !== name) }));
 
+  const presentation = servicePresentation[service];
+  const steps = presentation.steps;
+  const quoteRequest = () => ({
+    service,
+    bookingType: { local: "local_delivery", intercity: "city_to_city", import: "international_import", custom: "custom_request" }[service],
+    pickup: { city: form.pickup, area: form.pickup, ...(form.pickupBranchId ? { branchId: form.pickupBranchId } : {}) },
+    destination: { city: form.destination, area: form.destination, ...(form.destinationBranchId ? { branchId: form.destinationBranchId } : {}) },
+    ...(service === "local" ? { vehicleType: "scooter" } : {}),
+    ...(service === "import" ? { transportMode: transport, onwardDelivery: handover === "delivery" ? "local" : "collection" } : {}),
+    ...(service === "intercity" ? { fulfilment: "collection" } : {}),
+    cargo: {
+      items: cargoRows.filter((row) => row.name.trim()).map((row) => ({ name: row.name.trim(), quantity: Math.max(1, Number(row.quantity) || 1) })),
+      fragile: false,
+      packageType: "standard",
+    },
+  });
+  const draftPayload = (quote?: BookingQuote) => ({
+    service,
+    title: presentation.title,
+    progressLabel: steps[step],
+    step,
+    form: { ...form, service, transportMode: service === "import" ? transport : null, instructions: form.recipientNotes },
+    cargoRows,
+    transport: service === "import" ? transport : null,
+    handover: service === "import" ? handover : "delivery",
+    evidence,
+    ...(quote ? { pricing: { request: quoteRequest(), quotePayload: quote.quotePayload, quoteSignature: quote.quoteSignature, quoteSource: quote.source } } : {}),
+  });
+
   const goBack = () => (step ? setStep((current) => current - 1) : navigate("/"));
   const saveDraft = async () => {
     try {
-      const draft = await draftMutations.create.mutateAsync({ payload: { step, form, cargoRows, transport, handover, evidence } });
+      const draft = await draftMutations.create.mutateAsync({ payload: draftPayload() });
       setSavedDraftId(draft.id);
       feedback.success("Your cargo request draft has been saved to your account.");
     } catch {
@@ -152,15 +204,19 @@ export default function SendShipment() {
   };
   const next = async () => {
     if (step === 0 && !form.pickup.trim()) { feedback.error("Choose a branch, saved address, or collection point before continuing."); return; }
+    if (step === 0 && (service === "intercity" || service === "import") && !form.pickupBranchId) { feedback.error("Choose a supported origin branch before continuing."); return; }
     if (step === 1 && (!form.recipient.trim() || !form.phone.trim())) { feedback.error("Add the cargo owner and a phone number before continuing."); return; }
     if (step === 2 && !cargoRows.some((row) => row.name.trim() && Number(row.quantity) > 0)) { feedback.error("Add at least one cargo item with a quantity before continuing."); return; }
-    if (step === 3 && (!transport || (handover === "delivery" && !form.destination.trim()))) { feedback.error(handover === "delivery" ? "Add a final delivery address before continuing." : "Choose a transport option before continuing."); return; }
+    if (step === 3 && service === "import" && (!transport || !form.destinationBranchId || (handover === "delivery" && !form.destination.trim()))) { feedback.error(!form.destinationBranchId ? "Choose the receiving branch before continuing." : handover === "delivery" ? "Add a final delivery address before continuing." : "Choose a transport option before continuing."); return; }
+    if (step === 3 && service === "intercity" && !form.destinationBranchId) { feedback.error("Choose a supported destination branch before continuing."); return; }
+    if (step === 3 && service !== "import" && !form.destination.trim()) { feedback.error("Add the delivery destination before continuing."); return; }
     if (step < steps.length - 1) {
       setStep((current) => current + 1);
       return;
     }
     try {
-      const draft = await draftMutations.create.mutateAsync({ payload: { step, form, cargoRows, transport, handover, evidence } });
+      const quote = await apiRequest<BookingQuote>("/bookings/quote", { method: "POST", body: quoteRequest() });
+      const draft = await draftMutations.create.mutateAsync({ payload: draftPayload(quote) });
       const shipment = await draftMutations.submit.mutateAsync({ id: draft.id, revision: draft.revision });
       setSavedDraftId(draft.id);
       setSubmittedShipment({ id: shipment.id, trackingNumber: shipment.trackingNumber });
@@ -184,6 +240,31 @@ export default function SendShipment() {
   const transportOptions = referenceData?.cargoTransportOptions ?? [];
   const pickupOffices = referenceData?.pickupOfficeSuggestions ?? [];
   const selectedTransport = transportOptions.find((option) => option.id === transport) ?? { id: transport, name: transport === "air" ? "Air cargo" : "Sea cargo", detail: "Loading service options", eta: "To be confirmed" };
+  const selectService = (nextService: BookingService) => {
+    setService(nextService);
+    setStep(0);
+    setSuccess(false);
+    setSavedDraftId(null);
+    setSubmittedShipment(null);
+    setTransport("air");
+    setHandover("collect");
+    setEvidence({ photos: [], documents: [] });
+    setCargoRows([{ id: 1, name: "", quantity: "1" }, { id: 2, name: "", quantity: "1" }]);
+    setNextCargoId(3);
+    setForm({ pickup: "", pickupBranchId: "", destinationBranchId: "", recipient: "", phone: "", recipientNotes: "", destination: "", contents: "", packages: "" });
+    navigate(`/send?service=${nextService}`);
+  };
+
+  if (!requestedService && !requestedDraftId && !usesLatestQuote) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <SubpageBackButton className="mb-6" onClick={() => navigate("/")} label="Back home" />
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-3"><div><h1 className="font-heading text-3xl font-extrabold text-foreground sm:text-4xl">Choose a service</h1><p className="mt-2 text-sm text-ink/55">Start with the kind of cargo move you need.</p></div><button type="button" onClick={() => navigate("/shipments/drafts")} className="text-xs font-bold text-cargo-yellow">Saved drafts</button></div>
+        <BookingServiceTabs onSelect={selectService} />
+        <div className="mt-5"><BookingServiceGrid heading={false} onSelect={selectService} /></div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -204,8 +285,8 @@ export default function SendShipment() {
               <Package className="size-6 opacity-50" />
             </div>
             <div className="mt-4 flex justify-between border-t border-ink/15 pt-3 text-xs font-semibold">
-              <span>{selectedTransport.name}</span>
-              <span>{handover === "collect" ? "Office collection" : "Home delivery"}</span>
+              <span>{presentation.title}</span>
+              <span>{service === "import" ? selectedTransport.name : "Delivery request"}</span>
             </div>
           </div>
           <p className="mt-4 text-xs text-white/45">No payment was collected. You will be asked to pay only after the server provides an official invoice or quote.</p>
@@ -231,8 +312,11 @@ export default function SendShipment() {
       />
 
       <div className="mb-8">
+        <p className="mb-1 text-xs font-bold text-cargo-yellow">{presentation.title}</p>
         <h1 className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">Send a package</h1>
       </div>
+
+      <div className="mb-7"><BookingServiceTabs selected={service} onSelect={selectService} /></div>
 
       <div className="mb-8 flex gap-1.5">
         {steps.map((item, index) => (
@@ -346,8 +430,9 @@ export default function SendShipment() {
           </StepBlock>
         )}
 
-        {step === 3 && (
+        {step === 3 && service === "import" && (
           <StepBlock icon={Plane} title="Choose transport and arrival">
+            <BranchSelect label="Receiving branch" value={form.destinationBranchId} offices={pickupOffices.filter((office) => office.id !== form.pickupBranchId)} onSelect={(office) => { update("destinationBranchId", office.id); update("destination", `${office.name} — ${office.address}`); }} />
             <p className="mb-3 text-xs font-bold text-white/40">How should the cargo travel?</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {isReferenceDataLoading ? <p className="text-sm text-white/45">Loading service options…</p> : transportOptions.map((option) => {
@@ -400,18 +485,29 @@ export default function SendShipment() {
           </StepBlock>
         )}
 
+        {step === 3 && service !== "import" && (
+          <StepBlock icon={MapPin} title={service === "custom" ? "Where should this request go?" : "Confirm the delivery route"}>
+            <div className="rounded-2xl border border-ink/10 bg-[#f7f8fb] p-4"><p className="text-[11px] font-bold text-ink/45">Pickup</p><p className="mt-1 text-sm font-semibold text-foreground">{form.pickup}</p></div>
+            <div className="mx-6 h-6 border-l border-dashed border-ink/20" />
+            {service === "intercity" && <BranchSelect label="Destination branch" value={form.destinationBranchId} offices={pickupOffices.filter((office) => office.id !== form.pickupBranchId)} onSelect={(office) => { update("destinationBranchId", office.id); update("destination", `${office.name} — ${office.address}`); }} />}
+            <Field label={service === "local" ? "Delivery address" : service === "intercity" ? "Destination city or address" : "Destination"} icon={MapPin} value={form.destination} onChange={(value) => update("destination", value)} />
+            <p className="mt-3 text-xs text-ink/50">Operations will verify the route and confirm the final charge before the booking becomes a shipment.</p>
+          </StepBlock>
+        )}
+
         {step === 4 && (
           <StepBlock icon={FileText} title="Review cargo request">
             <div className="divide-y divide-white/8 rounded-2xl bg-white/[0.035]">
               {[
+                ["Service", presentation.title],
                 ["Pickup", form.pickup || "Not selected"],
+                ...(form.destination ? [["Destination", form.destination]] : []),
                 ["Cargo owner", `${form.recipient} · ${form.phone}`],
                 ["Recipient notes", form.recipientNotes || "None added"],
                 ["Cargo items", cargoRows.filter((row) => row.name.trim()).map((row) => `${row.name} × ${row.quantity || "1"}`).join(", ") || "Not described"],
                 ["Description", form.contents || "None added"],
                 ["Evidence", `${evidence.photos.length} photo${evidence.photos.length === 1 ? "" : "s"} · ${evidence.documents.length} document${evidence.documents.length === 1 ? "" : "s"}`],
-                ["Transport", `${selectedTransport.name} · ${selectedTransport.eta}`],
-                ["Arrival handover", handover === "collect" ? "Collect from office" : form.destination || "Deliver to my address"],
+                ...(service === "import" ? [["Transport", `${selectedTransport.name} · ${selectedTransport.eta}`], ["Arrival handover", handover === "collect" ? "Collect from office" : form.destination || "Deliver to my address"]] : []),
               ].map(([label, value]) => (
                 <div key={label} className="flex items-start justify-between gap-4 p-4 text-sm">
                   <span className="text-white/40">{label}</span>
@@ -456,6 +552,10 @@ function StepBlock({ icon: Icon, title, children }: { icon: typeof MapPin; title
 
 function Field({ label, icon: Icon, value, onChange, type = "text" }: { label: string; icon: typeof MapPin; value: string; onChange: (value: string) => void; type?: string }) {
   return <label className="block"><span className="mb-2 block text-xs font-bold text-white/35">{label}</span><div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink/35 px-4"><Icon className="size-4 shrink-0 text-white/30" /><input type={type} value={value} onChange={(event) => onChange(event.target.value)} className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/30" /></div></label>;
+}
+
+function BranchSelect({ label, value, offices, onSelect }: { label: string; value: string; offices: Array<{ id: string; name: string; address: string; detail: string }>; onSelect: (office: { id: string; name: string; address: string; detail: string }) => void }) {
+  return <label className="mb-5 block"><span className="mb-2 block text-xs font-bold text-white/35">{label}</span><div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink/35 px-4"><Building2 className="size-4 shrink-0 text-white/30" /><select value={value} onChange={(event) => { const office = offices.find((item) => item.id === event.target.value); if (office) onSelect(office); }} className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none"><option value="" className="text-ink">Choose a supported branch</option>{offices.map((office) => <option key={office.id} value={office.id} className="text-ink">{office.name} · {office.address}</option>)}</select><ChevronDown className="size-4 text-white/30" /></div></label>;
 }
 
 function PickupAddressField({ value, onChange, onSelectOffice, offices }: { value: string; onChange: (value: string) => void; onSelectOffice: (office: { id: string; name: string; address: string; detail: string }) => void; offices: { id: string; name: string; address: string; detail: string }[] }) {

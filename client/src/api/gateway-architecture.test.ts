@@ -13,6 +13,7 @@ describe("customer API architecture", () => {
   it("allows only adapter-backed endpoint and method pairs", () => {
     expect(matchGatewayRoute("GET", "/v1/shipments")).toMatchObject({ routeClass: "shipments", access: "session" });
     expect(matchGatewayRoute("POST", "/v1/shipments/SH-102/actions")).toMatchObject({ routeClass: "shipment-action" });
+    expect(matchGatewayRoute("POST", "/v1/bookings/quote")).toMatchObject({ routeClass: "booking-quote", access: "session" });
     expect(matchGatewayRoute("GET", "/v1/public/tracking/NWC-102")).toMatchObject({ access: "public" });
     expect(matchGatewayRoute("GET", "/v1/auth/csrf")).toMatchObject({ access: "bootstrap" });
     expect(matchGatewayRoute("POST", "/v1/auth/password/forgot")).toMatchObject({ access: "bootstrap" });
