@@ -27,7 +27,6 @@ import {
   useCustomerWallet,
 } from "@/api/hooks";
 import { useAuth } from "@/contexts/AuthContext";
-import { BookingServiceGrid } from "@/components/booking-service-grid";
 
 export default function Home() {
   const [, navigate] = useLocation();
@@ -135,10 +134,6 @@ export default function Home() {
           </button>
         </div>
       </section>
-
-      <div className="mt-6 max-w-2xl">
-        <BookingServiceGrid />
-      </div>
 
       <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
         <main className="min-w-0 lg:border-r lg:border-ink/10 lg:pr-8">
