@@ -52,6 +52,7 @@ describe("customer API architecture", () => {
     expect(gatewaySource).not.toContain("process.env");
     expect(gatewaySource).not.toContain("NWC_BFF");
     expect(gatewaySource).not.toContain("VITE_NWC_");
+    expect(gatewaySource).toContain('/^\\/v1\\/bookings\\/quote$/');
   });
 
   it("routes the Function before the SPA fallback and sets a no-store API policy", () => {
