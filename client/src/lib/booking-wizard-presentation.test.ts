@@ -12,6 +12,12 @@ const wizardSource = readFileSync(
   fileURLToPath(new URL("../pages/BookingWizard.tsx", import.meta.url)),
   "utf8"
 );
+const routeMapSource = readFileSync(
+  fileURLToPath(
+    new URL("../components/booking-route-map.tsx", import.meta.url)
+  ),
+  "utf8"
+);
 const appSource = readFileSync(
   fileURLToPath(new URL("../App.tsx", import.meta.url)),
   "utf8"
@@ -50,5 +56,17 @@ describe("service-specific booking wizards", () => {
     expect(wizardSource).toContain("quotePayload: quote.quotePayload");
     expect(wizardSource).toContain("quoteSignature: quote.quoteSignature");
     expect(wizardSource).toContain("quoteSource: quote.source");
+  });
+
+  it("keeps route maps wired into booking requests", () => {
+    expect(wizardSource).toContain("BookingRouteMap");
+    expect(wizardSource).toContain("pickupLatitude");
+    expect(wizardSource).toContain("destinationLongitude");
+    expect(wizardSource).toContain(
+      "lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
+    );
+    expect(routeMapSource).toContain("MapContainer");
+    expect(routeMapSource).toContain("navigator.geolocation");
+    expect(routeMapSource).toContain("nominatim.openstreetmap.org/reverse");
   });
 });

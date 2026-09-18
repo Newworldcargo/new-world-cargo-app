@@ -31,6 +31,11 @@ import {
   bookingStartPath,
   type BookingService,
 } from "@/components/booking-service-grid";
+import {
+  BookingRouteMap,
+  type RouteMapOffice,
+  type RouteMapPoint,
+} from "@/components/booking-route-map";
 import { feedback } from "@/lib/feedback";
 
 type CargoRow = { id: number; name: string; quantity: string };
@@ -43,8 +48,12 @@ type BookingQuote = {
 };
 type WizardDraft = {
   pickup: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
   pickupBranchId: string;
   destination: string;
+  destinationLatitude?: number;
+  destinationLongitude?: number;
   destinationBranchId: string;
   transport: "air" | "sea";
   cargoRows: CargoRow[];
@@ -196,8 +205,12 @@ function freshDraft(
   };
   return {
     pickup: "",
+    pickupLatitude: undefined,
+    pickupLongitude: undefined,
     pickupBranchId: "",
     destination: "",
+    destinationLatitude: undefined,
+    destinationLongitude: undefined,
     destinationBranchId: "",
     transport: "air",
     cargoRows: [{ id: 1, name: "", quantity: "1" }],
@@ -340,6 +353,13 @@ export default function BookingWizard() {
             pickup: {
               city: draft.pickup,
               area: draft.pickup,
+              ...(Number.isFinite(draft.pickupLatitude) &&
+              Number.isFinite(draft.pickupLongitude)
+                ? {
+                    latitude: draft.pickupLatitude,
+                    longitude: draft.pickupLongitude,
+                  }
+                : {}),
               ...(draft.pickupBranchId
                 ? { branchId: draft.pickupBranchId }
                 : {}),
@@ -347,6 +367,13 @@ export default function BookingWizard() {
             destination: {
               city: draft.destination,
               area: draft.destination,
+              ...(Number.isFinite(draft.destinationLatitude) &&
+              Number.isFinite(draft.destinationLongitude)
+                ? {
+                    latitude: draft.destinationLatitude,
+                    longitude: draft.destinationLongitude,
+                  }
+                : {}),
               ...(draft.destinationBranchId
                 ? { branchId: draft.destinationBranchId }
                 : {}),
@@ -391,8 +418,12 @@ export default function BookingWizard() {
     wizardDraft: draft,
     form: {
       pickup: draft.pickup,
+      pickupLatitude: draft.pickupLatitude,
+      pickupLongitude: draft.pickupLongitude,
       pickupBranchId: draft.pickupBranchId,
       destination: draft.destination,
+      destinationLatitude: draft.destinationLatitude,
+      destinationLongitude: draft.destinationLongitude,
       destinationBranchId: draft.destinationBranchId,
       recipient: draft.receiver.name,
       phone: draft.receiver.phone,
@@ -634,7 +665,59 @@ type UpdateDraft = <K extends keyof WizardDraft>(
   key: K,
   value: WizardDraft[K]
 ) => void;
-type Office = { id: string; name: string; address: string; detail: string };
+type Office = {
+  id: string;
+  name: string;
+  address: string;
+  detail: string;
+  city?: string | null;
+  country?: string | null;
+  countryCode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+function fallbackOfficeCoordinates(office: Office): RouteMapPoint {
+  const searchable = [
+    office.name,
+    office.address,
+    office.detail,
+    office.city ?? "",
+    office.country ?? "",
+    office.countryCode ?? "",
+  ]
+    .join(" ")
+    .toLowerCase();
+  if (searchable.includes("guangzhou"))
+    return { label: "", latitude: 23.1291, longitude: 113.2644 };
+  if (searchable.includes("harare") || searchable.includes("zimbabwe"))
+    return { label: "", latitude: -17.8292, longitude: 31.0522 };
+  if (searchable.includes("kitwe"))
+    return { label: "", latitude: -12.8024, longitude: 28.2132 };
+  if (searchable.includes("ndola"))
+    return { label: "", latitude: -12.9587, longitude: 28.6366 };
+  if (searchable.includes("livingstone"))
+    return { label: "", latitude: -17.8419, longitude: 25.8543 };
+  if (searchable.includes("lusaka"))
+    return { label: "", latitude: -15.3875, longitude: 28.3228 };
+  return { label: "" };
+}
+
+function officeMapPoint(office: Office): RouteMapOffice {
+  const fallback = fallbackOfficeCoordinates(office);
+  return {
+    id: office.id,
+    name: office.name,
+    address: office.address,
+    label: `${office.name} - ${office.address}`,
+    latitude:
+      typeof office.latitude === "number" ? office.latitude : fallback.latitude,
+    longitude:
+      typeof office.longitude === "number"
+        ? office.longitude
+        : fallback.longitude,
+  };
+}
 
 function RouteStage({
   service,
@@ -647,71 +730,131 @@ function RouteStage({
   offices: Office[];
   update: UpdateDraft;
 }) {
+  const mapOffices = offices.map(officeMapPoint);
+  const pickupPoint: RouteMapPoint = {
+    label: draft.pickup,
+    latitude: draft.pickupLatitude,
+    longitude: draft.pickupLongitude,
+  };
+  const destinationPoint: RouteMapPoint = {
+    label: draft.destination,
+    latitude: draft.destinationLatitude,
+    longitude: draft.destinationLongitude,
+  };
+  const selectBranch = (target: "pickup" | "destination", office: Office) => {
+    const mapped = officeMapPoint(office);
+    if (target === "pickup") {
+      update("pickupBranchId", office.id);
+      update("pickup", mapped.label);
+      update("pickupLatitude", mapped.latitude);
+      update("pickupLongitude", mapped.longitude);
+      return;
+    }
+    update("destinationBranchId", office.id);
+    update("destination", mapped.label);
+    update("destinationLatitude", mapped.latitude);
+    update("destinationLongitude", mapped.longitude);
+  };
+  const selectMapPoint = (
+    target: "pickup" | "destination",
+    point: Required<RouteMapPoint>
+  ) => {
+    if (target === "pickup") {
+      update("pickup", point.label);
+      update("pickupLatitude", point.latitude);
+      update("pickupLongitude", point.longitude);
+      return;
+    }
+    update("destination", point.label);
+    update("destinationLatitude", point.latitude);
+    update("destinationLongitude", point.longitude);
+  };
+
   if (service === "intercity" || service === "import")
     return (
-      <div className="space-y-5">
-        <BranchField
-          label={service === "import" ? "Origin office" : "Origin branch"}
-          value={draft.pickupBranchId}
-          offices={offices}
-          onSelect={office => {
-            update("pickupBranchId", office.id);
-            update("pickup", `${office.name} - ${office.address}`);
-          }}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
+        <div className="space-y-5">
+          <BranchField
+            label={service === "import" ? "Origin office" : "Origin branch"}
+            value={draft.pickupBranchId}
+            offices={offices}
+            onSelect={office => selectBranch("pickup", office)}
+          />
+          <BranchField
+            label={
+              service === "import"
+                ? "Zambia receiving branch"
+                : "Destination branch"
+            }
+            value={draft.destinationBranchId}
+            offices={offices.filter(item => item.id !== draft.pickupBranchId)}
+            onSelect={office => selectBranch("destination", office)}
+          />
+          {service === "import" && (
+            <section>
+              <p className="mb-3 text-xs font-bold text-ink/50">
+                Shipping method
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <Choice
+                  selected={draft.transport === "air"}
+                  icon={Plane}
+                  title="Air Freight"
+                  detail="Faster for time-sensitive cargo."
+                  onClick={() => update("transport", "air")}
+                />
+                <Choice
+                  selected={draft.transport === "sea"}
+                  icon={Ship}
+                  title="Sea Freight"
+                  detail="Best for larger or flexible shipments."
+                  onClick={() => update("transport", "sea")}
+                />
+              </div>
+            </section>
+          )}
+        </div>
+        <BookingRouteMap
+          pickup={pickupPoint}
+          destination={destinationPoint}
+          offices={mapOffices}
+          international={service === "import"}
+          allowMapSelection={false}
+          onPointSelect={selectMapPoint}
         />
-        <BranchField
-          label={
-            service === "import"
-              ? "Zambia receiving branch"
-              : "Destination branch"
-          }
-          value={draft.destinationBranchId}
-          offices={offices.filter(item => item.id !== draft.pickupBranchId)}
-          onSelect={office => {
-            update("destinationBranchId", office.id);
-            update("destination", `${office.name} - ${office.address}`);
-          }}
-        />
-        {service === "import" && (
-          <section>
-            <p className="mb-3 text-xs font-bold text-ink/50">
-              Shipping method
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Choice
-                selected={draft.transport === "air"}
-                icon={Plane}
-                title="Air Freight"
-                detail="Faster for time-sensitive cargo."
-                onClick={() => update("transport", "air")}
-              />
-              <Choice
-                selected={draft.transport === "sea"}
-                icon={Ship}
-                title="Sea Freight"
-                detail="Best for larger or flexible shipments."
-                onClick={() => update("transport", "sea")}
-              />
-            </div>
-          </section>
-        )}
       </div>
     );
   return (
-    <div className="space-y-5">
-      <TextField
-        label="Pickup location"
-        icon={MapPin}
-        value={draft.pickup}
-        onChange={value => update("pickup", value)}
-        placeholder="Street, area and city"
-      />
-      <TextField
-        label="Delivery location"
-        icon={MapPin}
-        value={draft.destination}
-        onChange={value => update("destination", value)}
-        placeholder="Street, area and city"
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
+      <div className="space-y-5">
+        <TextField
+          label="Pickup location"
+          icon={MapPin}
+          value={draft.pickup}
+          onChange={value => {
+            update("pickup", value);
+            update("pickupLatitude", undefined);
+            update("pickupLongitude", undefined);
+          }}
+          placeholder="Street, area and city"
+        />
+        <TextField
+          label="Delivery location"
+          icon={MapPin}
+          value={draft.destination}
+          onChange={value => {
+            update("destination", value);
+            update("destinationLatitude", undefined);
+            update("destinationLongitude", undefined);
+          }}
+          placeholder="Street, area and city"
+        />
+      </div>
+      <BookingRouteMap
+        pickup={pickupPoint}
+        destination={destinationPoint}
+        offices={mapOffices}
+        onPointSelect={selectMapPoint}
       />
     </div>
   );

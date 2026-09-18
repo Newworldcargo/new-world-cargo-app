@@ -136,6 +136,11 @@ export const officeDtoSchema = z.object({
   name: z.string(),
   address: z.string(),
   detail: z.string(),
+  city: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  countryCode: z.string().nullable().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
 });
 
 export const deliveryOptionDtoSchema = z.object({
