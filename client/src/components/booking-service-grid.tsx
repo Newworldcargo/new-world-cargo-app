@@ -79,6 +79,14 @@ export function BookingServiceGrid({
               : service.variant === "wide"
                 ? "col-span-4"
                 : "col-span-2";
+          const imageClass =
+            service.id === "import"
+              ? "-bottom-4 -right-5 h-28 w-36"
+              : service.id === "intercity"
+                ? "-bottom-4 -right-7 h-28 w-40"
+                : service.variant === "wide"
+                  ? "-bottom-2 -right-6 h-32 w-40"
+                  : "-bottom-1 -right-1 h-[62px] w-20";
           return (
             <button
               key={service.id}
@@ -113,11 +121,7 @@ export function BookingServiceGrid({
                   src={service.image}
                   alt=""
                   aria-hidden="true"
-                  className={`pointer-events-none absolute object-contain transition-transform duration-200 group-hover:scale-[1.03] ${
-                    service.variant === "wide"
-                      ? "-bottom-2 -right-6 h-32 w-40"
-                      : "-bottom-1 -right-1 h-[62px] w-20"
-                  }`}
+                  className={`pointer-events-none absolute object-contain transition-transform duration-200 group-hover:scale-[1.03] ${imageClass}`}
                 />
               ) : (
                 <ArrowUpRight className="absolute bottom-3 right-3 size-10 text-white transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
