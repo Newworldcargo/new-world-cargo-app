@@ -548,51 +548,35 @@ export default function BookingWizard() {
         <p className="mt-2 max-w-2xl text-sm text-ink/55">
           {activeStage.detail}
         </p>
-        <div
-          className="mt-5 flex gap-1.5"
-          role="progressbar"
-          aria-valuemin={1}
-          aria-valuemax={journey.stages.length}
-          aria-valuenow={stageIndex + 1}
-        >
-          {journey.stages.map((item, index) => (
-            <div key={item.id} className="min-w-0 flex-1">
-              <div
-                className={`h-1 rounded-full ${index <= stageIndex ? "bg-cargo-yellow" : "bg-ink/10"}`}
-              />
-              <span
-                className={`mt-2 hidden text-[10px] font-semibold sm:block ${index === stageIndex ? "text-foreground" : "text-ink/35"}`}
-              >
-                {item.label}
-              </span>
-            </div>
-          ))}
-        </div>
       </header>
     </>
   );
 
-  const footerActions = (
+  const footerActions = (showBack = true, showSaveDraft = true) => (
     <div className="mt-8 flex flex-col-reverse gap-3 border-t border-ink/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={goBack}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-ink/10 px-4 py-3 text-sm font-bold text-foreground"
-        >
-          <ArrowLeft className="size-4" /> Back
-        </button>
-        {activeStage.id !== "review" && (
-          <button
-            type="button"
-            onClick={saveDraft}
-            disabled={mutations.create.isPending}
-            className="rounded-xl border border-cargo-yellow/40 bg-cargo-yellow/10 px-4 py-3 text-sm font-bold text-foreground"
-          >
-            Save draft
-          </button>
-        )}
-      </div>
+      {(showBack || (showSaveDraft && activeStage.id !== "review")) && (
+        <div className="flex gap-2">
+          {showBack && (
+            <button
+              type="button"
+              onClick={goBack}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-ink/10 px-4 py-3 text-sm font-bold text-foreground"
+            >
+              <ArrowLeft className="size-4" /> Back
+            </button>
+          )}
+          {showSaveDraft && activeStage.id !== "review" && (
+            <button
+              type="button"
+              onClick={saveDraft}
+              disabled={mutations.create.isPending}
+              className="rounded-xl border border-cargo-yellow/40 bg-cargo-yellow/10 px-4 py-3 text-sm font-bold text-foreground"
+            >
+              Save draft
+            </button>
+          )}
+        </div>
+      )}
       <button
         type="button"
         onClick={activeStage.id === "review" ? submit : next}
@@ -613,38 +597,91 @@ export default function BookingWizard() {
 
   if (activeStage.id === "route") {
     return (
-      <div className="pb-24 sm:pb-8">
-        <button
-          type="button"
-          onClick={goBack}
-          className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-ink/60"
-        >
-          <ArrowLeft className="size-4" /> Back
-        </button>
-        <div className="grid gap-7 xl:grid-cols-[minmax(390px,560px)_minmax(0,1fr)] xl:items-stretch">
-          <div className="mx-auto w-full max-w-xl xl:mx-0">
-            {header}
-            <main className="mt-7 rounded-[28px] border border-ink/10 bg-white p-5 sm:p-8">
+      <>
+        <div className="-mx-4 -my-6 min-h-[calc(100dvh-4.5rem)] overflow-hidden bg-[#e7eef0] sm:-mx-8 sm:-my-8 xl:hidden">
+          <div className="relative min-h-[calc(100dvh-4.5rem)]">
+            <div className="absolute inset-0">
               <RouteStage
                 service={service}
                 draft={draft}
                 offices={offices}
                 update={update}
-                mode="fields"
+                mode="map"
+                mapClassName="h-full min-h-full rounded-none border-0"
               />
-              {footerActions}
-            </main>
+            </div>
+            <div className="absolute inset-x-4 top-4 z-20 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label="Go back"
+                className="grid size-11 place-items-center rounded-2xl border border-ink/10 bg-white text-ink shadow-lg"
+              >
+                <ArrowLeft className="size-4" />
+              </button>
+              <div className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-white px-3 text-xs font-extrabold text-ink shadow-lg">
+                <span className="size-2 rounded-full bg-cargo-yellow" />
+                {journey.label}
+              </div>
+              <span className="size-11" aria-hidden="true" />
+            </div>
+            <section className="absolute inset-x-0 bottom-0 z-20 max-h-[72dvh] overflow-hidden rounded-t-[30px] border border-ink/10 bg-background shadow-[0_-18px_45px_rgba(1,38,66,0.18)]">
+              <div className="flex min-h-8 items-center justify-center">
+                <span className="h-1.5 w-12 rounded-full bg-ink/20" />
+              </div>
+              <div className="max-h-[calc(72dvh-2rem)] overflow-y-auto px-5 pb-5">
+                {header}
+                <main className="mt-5 rounded-[24px] border border-ink/10 bg-white p-5">
+                  <RouteStage
+                    service={service}
+                    draft={draft}
+                    offices={offices}
+                    update={update}
+                    mode="fields"
+                  />
+                  {footerActions(false, false)}
+                </main>
+              </div>
+            </section>
           </div>
-          <RouteStage
-            service={service}
-            draft={draft}
-            offices={offices}
-            update={update}
-            mode="map"
-            mapClassName="min-h-[520px] xl:-mr-12 xl:min-h-[calc(100dvh-8rem)] xl:rounded-l-[28px] xl:rounded-r-none"
-          />
         </div>
-      </div>
+
+        <div className="hidden pb-24 sm:pb-8 xl:block">
+          <div className="grid gap-7 xl:grid-cols-[minmax(390px,560px)_minmax(0,1fr)] xl:items-stretch">
+            <div className="mx-auto w-full max-w-xl xl:mx-0">
+              {header}
+              <main className="mt-7 rounded-[28px] border border-ink/10 bg-white p-5 sm:p-8">
+                <RouteStage
+                  service={service}
+                  draft={draft}
+                  offices={offices}
+                  update={update}
+                  mode="fields"
+                />
+                {footerActions(false, false)}
+              </main>
+            </div>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label="Go back"
+                className="absolute left-4 top-4 z-30 grid size-11 place-items-center rounded-2xl border border-ink/10 bg-white text-ink shadow-lg"
+              >
+                <ArrowLeft className="size-4" />
+              </button>
+              <RouteStage
+                service={service}
+                draft={draft}
+                offices={offices}
+                update={update}
+                mode="map"
+                mapClassName="min-h-[520px] xl:-mr-12 xl:min-h-[calc(100dvh-8rem)] xl:rounded-l-[28px] xl:rounded-r-none"
+              />
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -686,7 +723,7 @@ export default function BookingWizard() {
             onEdit={target => navigate(`/send/${service}/${target}`)}
           />
         )}
-        {footerActions}
+        {footerActions()}
       </main>
     </div>
   );
