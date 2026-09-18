@@ -1,4 +1,4 @@
-import { ArrowUpRight, Bike, Globe2, SlidersHorizontal, Truck } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { useLocation } from "wouter";
 
 export type BookingService = "import" | "intercity" | "local" | "custom";
@@ -46,26 +46,6 @@ const services: Array<{
     variant: "custom",
   },
 ];
-
-const serviceTabs = [
-  { id: "import" as const, label: "International", mobileLabel: "Imports", icon: Globe2 },
-  { id: "intercity" as const, label: "City-to-City", mobileLabel: "City-to-City", icon: Truck },
-  { id: "local" as const, label: "Local", mobileLabel: "Local", icon: Bike },
-  { id: "custom" as const, label: "Custom", mobileLabel: "Custom", icon: SlidersHorizontal },
-];
-
-export function BookingServiceTabs({ selected, onSelect }: { selected?: BookingService; onSelect: (service: BookingService) => void }) {
-  return (
-    <div role="tablist" aria-label="Shipment service">
-      <div className="grid grid-cols-4 gap-1.5 rounded-2xl border border-ink/10 bg-[#f3f6f8] p-1.5 sm:gap-2">
-        {serviceTabs.map(({ id, label, mobileLabel, icon: Icon }) => {
-          const active = id === selected;
-          return <button key={id} type="button" role="tab" aria-selected={active} aria-label={label} onClick={() => onSelect(id)} className={`flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold transition sm:min-h-11 sm:flex-row sm:gap-2 sm:px-3 sm:text-xs ${active ? "sea-cargo-surface" : "text-ink/60 hover:bg-white hover:text-foreground"}`}><Icon className="size-4 shrink-0" /><span className="sm:hidden">{mobileLabel}</span><span className="hidden sm:inline">{label}</span></button>;
-        })}
-      </div>
-    </div>
-  );
-}
 
 export function BookingServiceGrid({
   heading = true,

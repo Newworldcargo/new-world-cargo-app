@@ -26,11 +26,7 @@ import {
   useCustomerReferenceData,
   useShipmentDraftMutations,
 } from "@/api/hooks";
-import {
-  BookingServiceTabs,
-  bookingStartPath,
-  type BookingService,
-} from "@/components/booking-service-grid";
+import { type BookingService } from "@/components/booking-service-grid";
 import {
   BookingRouteMap,
   type RouteMapOffice,
@@ -301,8 +297,6 @@ export default function BookingWizard() {
   const update = <K extends keyof WizardDraft>(key: K, value: WizardDraft[K]) =>
     setDraft(current => ({ ...current, [key]: value, quote: undefined }));
   const activeStage = stage ?? journey?.stages[0];
-  const selectService = (next: BookingService) =>
-    navigate(bookingStartPath[next]);
   const goBack = () =>
     stageIndex > 0 && journey
       ? navigate(`/send/${service}/${journey.stages[stageIndex - 1].id}`)
@@ -541,7 +535,6 @@ export default function BookingWizard() {
 
   const header = (
     <>
-      <BookingServiceTabs selected={service} onSelect={selectService} />
       <header className="mt-7">
         <div className="flex items-center justify-between gap-4">
           <p className="text-xs font-bold text-cargo-yellow">{journey.label}</p>

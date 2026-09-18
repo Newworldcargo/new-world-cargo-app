@@ -27,7 +27,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { feedback } from "@/lib/feedback";
 import { SubpageBackButton } from "@/components/subpage-back-button";
-import { BookingServiceGrid, BookingServiceTabs, bookingStartPath, type BookingService } from "@/components/booking-service-grid";
+import { BookingServiceGrid, bookingStartPath, type BookingService } from "@/components/booking-service-grid";
 import { useAddressMutations, useCustomerAddresses, useCustomerDrafts, useCustomerRecipients, useCustomerReferenceData, useShipmentDraftMutations } from "@/api/hooks";
 import { useCustomerWorkflowStore } from "@/stores/customer-workflow-store";
 import { apiRequest } from "@/api/http";
@@ -249,8 +249,7 @@ export default function SendShipment() {
       <div className="mx-auto max-w-3xl">
         <SubpageBackButton className="mb-6" onClick={() => navigate("/")} label="Back home" />
         <div className="mb-7 flex flex-wrap items-end justify-between gap-3"><div><h1 className="font-heading text-3xl font-extrabold text-foreground sm:text-4xl">Choose a service</h1><p className="mt-2 text-sm text-ink/55">Start with the kind of cargo move you need.</p></div><button type="button" onClick={() => navigate("/shipments/drafts")} className="text-xs font-bold text-cargo-yellow">Saved drafts</button></div>
-        <BookingServiceTabs onSelect={selectService} />
-        <div className="mt-5"><BookingServiceGrid heading={false} onSelect={selectService} /></div>
+        <BookingServiceGrid heading={false} onSelect={selectService} />
       </div>
     );
   }
@@ -304,8 +303,6 @@ export default function SendShipment() {
         <p className="mb-1 text-xs font-bold text-cargo-yellow">{presentation.title}</p>
         <h1 className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">Send a package</h1>
       </div>
-
-      <div className="mb-7"><BookingServiceTabs selected={service} onSelect={selectService} /></div>
 
       <div className="mb-8 flex gap-1.5">
         {steps.map((item, index) => (

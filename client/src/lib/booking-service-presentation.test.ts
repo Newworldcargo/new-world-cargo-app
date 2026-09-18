@@ -19,8 +19,9 @@ describe("mobile booking service presentation", () => {
     expect(gridSource).toContain("City-to-City");
     expect(gridSource).toContain("Local Delivery");
     expect(gridSource).toContain("Custom Request");
-    expect(gridSource).toContain('role="tablist"');
-    expect(gridSource).toContain('aria-selected={active}');
+    expect(gridSource).toContain("BookingServiceGrid");
+    expect(gridSource).not.toContain('role="tablist"');
+    expect(sendSource).not.toContain("BookingServiceTabs");
   });
 
   it("preserves the selected service in the server draft payload", () => {
