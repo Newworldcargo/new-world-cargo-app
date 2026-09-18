@@ -62,9 +62,9 @@ describe("service-specific booking wizards", () => {
     expect(wizardSource).toContain("BookingRouteMap");
     expect(wizardSource).toContain("pickupLatitude");
     expect(wizardSource).toContain("destinationLongitude");
-    expect(wizardSource).toContain(
-      "xl:grid-cols-[minmax(390px,560px)_minmax(0,1fr)]"
-    );
+    expect(wizardSource).toContain("xl:grid-cols-2");
+    expect(wizardSource).toContain('mode="map"');
+    expect(wizardSource).toContain('mode="fields"');
     expect(routeMapSource).toContain("maps.googleapis.com/maps/api/js");
     expect(routeMapSource).toContain("DirectionsService");
     expect(routeMapSource).toContain("Geocoder");

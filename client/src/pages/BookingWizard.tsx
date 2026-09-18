@@ -534,22 +534,12 @@ export default function BookingWizard() {
     );
 
   const header = (
-    <>
-      <header className="mt-7">
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-xs font-bold text-cargo-yellow">{journey.label}</p>
-          <p className="text-xs font-semibold text-ink/45">
-            Step {stageIndex + 1} of {journey.stages.length}
-          </p>
-        </div>
-        <h1 className="mt-2 font-heading text-3xl font-extrabold text-foreground sm:text-4xl">
-          {activeStage.title}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-ink/55">
-          {activeStage.detail}
-        </p>
-      </header>
-    </>
+    <header>
+      <h1 className="font-heading text-3xl font-extrabold text-foreground sm:text-4xl">
+        {activeStage.title}
+      </h1>
+      <p className="mt-2 max-w-2xl text-sm text-ink/55">{activeStage.detail}</p>
+    </header>
   );
 
   const footerActions = (showBack = true, showSaveDraft = true) => (
@@ -595,137 +585,116 @@ export default function BookingWizard() {
     </div>
   );
 
-  if (activeStage.id === "route") {
-    return (
-      <>
-        <div className="-mx-4 -my-6 min-h-[calc(100dvh-4.5rem)] overflow-hidden bg-[#e7eef0] sm:-mx-8 sm:-my-8 xl:hidden">
-          <div className="relative min-h-[calc(100dvh-4.5rem)]">
-            <div className="absolute inset-0">
-              <RouteStage
-                service={service}
-                draft={draft}
-                offices={offices}
-                update={update}
-                mode="map"
-                mapClassName="h-full min-h-full rounded-none border-0"
-              />
-            </div>
-            <div className="absolute inset-x-4 top-4 z-20 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={goBack}
-                aria-label="Go back"
-                className="grid size-11 place-items-center rounded-2xl border border-ink/10 bg-white text-ink shadow-lg"
-              >
-                <ArrowLeft className="size-4" />
-              </button>
-              <div className="inline-flex min-h-10 items-center gap-2 rounded-2xl bg-white px-3 text-xs font-extrabold text-ink shadow-lg">
-                <span className="size-2 rounded-full bg-cargo-yellow" />
-                {journey.label}
-              </div>
-              <span className="size-11" aria-hidden="true" />
-            </div>
-            <section className="absolute inset-x-0 bottom-0 z-20 max-h-[72dvh] overflow-hidden rounded-t-[30px] border border-ink/10 bg-background shadow-[0_-18px_45px_rgba(1,38,66,0.18)]">
-              <div className="flex min-h-8 items-center justify-center">
-                <span className="h-1.5 w-12 rounded-full bg-ink/20" />
-              </div>
-              <div className="max-h-[calc(72dvh-2rem)] overflow-y-auto px-5 pb-5">
-                {header}
-                <main className="mt-5 rounded-[24px] border border-ink/10 bg-white p-5">
-                  <RouteStage
-                    service={service}
-                    draft={draft}
-                    offices={offices}
-                    update={update}
-                    mode="fields"
-                  />
-                  {footerActions(false, false)}
-                </main>
-              </div>
-            </section>
-          </div>
-        </div>
+  const stageContent = (
+    <>
+      {activeStage.id === "route" && (
+        <RouteStage
+          service={service}
+          draft={draft}
+          offices={offices}
+          update={update}
+          mode="fields"
+        />
+      )}
+      {activeStage.id === "cargo" && (
+        <CargoStage draft={draft} update={update} />
+      )}
+      {(activeStage.id === "contacts" || activeStage.id === "receiver") && (
+        <ContactsStage
+          service={service}
+          draft={draft}
+          recipients={recipients}
+          update={update}
+        />
+      )}
+      {activeStage.id === "fulfilment" && (
+        <FulfilmentStage draft={draft} update={update} />
+      )}
+      {activeStage.id === "details" && (
+        <CustomDetailsStage draft={draft} update={update} />
+      )}
+      {activeStage.id === "review" && (
+        <ReviewStage
+          service={service}
+          draft={draft}
+          journey={journey}
+          update={update}
+          onEdit={target => navigate(`/send/${service}/${target}`)}
+        />
+      )}
+    </>
+  );
 
-        <div className="hidden pb-24 sm:pb-8 xl:block">
-          <div className="grid gap-7 xl:grid-cols-[minmax(390px,560px)_minmax(0,1fr)] xl:items-stretch">
-            <div className="mx-auto w-full max-w-xl xl:mx-0">
+  return (
+    <>
+      <div className="-mx-4 -my-6 min-h-[calc(100dvh-4.5rem)] overflow-hidden bg-[#e7eef0] sm:-mx-8 sm:-my-8 xl:hidden">
+        <div className="relative min-h-[calc(100dvh-4.5rem)]">
+          <div className="absolute inset-0">
+            <RouteStage
+              service={service}
+              draft={draft}
+              offices={offices}
+              update={update}
+              mode="map"
+              mapClassName="h-full min-h-full rounded-none border-0"
+            />
+          </div>
+          <div className="absolute inset-x-4 top-4 z-20 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={goBack}
+              aria-label="Go back"
+              className="grid size-11 place-items-center rounded-2xl border border-ink/10 bg-white text-ink shadow-lg"
+            >
+              <ArrowLeft className="size-4" />
+            </button>
+            <span className="size-11" aria-hidden="true" />
+          </div>
+          <section className="absolute inset-x-0 bottom-0 z-20 max-h-[72dvh] overflow-hidden rounded-t-[30px] border border-ink/10 bg-background shadow-[0_-18px_45px_rgba(1,38,66,0.18)]">
+            <div className="flex min-h-8 items-center justify-center">
+              <span className="h-1.5 w-12 rounded-full bg-ink/20" />
+            </div>
+            <div className="max-h-[calc(72dvh-2rem)] overflow-y-auto px-5 pb-5">
               {header}
-              <main className="mt-7 rounded-[28px] border border-ink/10 bg-white p-5 sm:p-8">
-                <RouteStage
-                  service={service}
-                  draft={draft}
-                  offices={offices}
-                  update={update}
-                  mode="fields"
-                />
+              <main className="mt-5 rounded-[24px] border border-ink/10 bg-white p-5">
+                {stageContent}
                 {footerActions(false, false)}
               </main>
             </div>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={goBack}
-                aria-label="Go back"
-                className="absolute left-4 top-4 z-30 grid size-11 place-items-center rounded-2xl border border-ink/10 bg-white text-ink shadow-lg"
-              >
-                <ArrowLeft className="size-4" />
-              </button>
-              <RouteStage
-                service={service}
-                draft={draft}
-                offices={offices}
-                update={update}
-                mode="map"
-                mapClassName="min-h-[520px] xl:-mr-12 xl:min-h-[calc(100dvh-8rem)] xl:rounded-l-[28px] xl:rounded-r-none"
-              />
-            </div>
-          </div>
+          </section>
         </div>
-      </>
-    );
-  }
+      </div>
 
-  return (
-    <div className="mx-auto max-w-4xl pb-24 sm:pb-8">
-      <button
-        type="button"
-        onClick={goBack}
-        className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-ink/60"
-      >
-        <ArrowLeft className="size-4" /> Back
-      </button>
-      {header}
-
-      <main className="mt-7 rounded-[28px] border border-ink/10 bg-white p-5 sm:p-8">
-        {activeStage.id === "cargo" && (
-          <CargoStage draft={draft} update={update} />
-        )}
-        {(activeStage.id === "contacts" || activeStage.id === "receiver") && (
-          <ContactsStage
+      <div className="-mx-4 -my-6 hidden min-h-[calc(100dvh-4.5rem)] bg-background sm:-mx-8 sm:-my-8 lg:-mx-12 lg:-my-10 xl:grid xl:min-h-[calc(100dvh-4.5rem)] xl:grid-cols-2">
+        <section className="min-h-[calc(100dvh-4.5rem)] overflow-y-auto border-r border-ink/10 bg-background px-10 py-10 2xl:px-14">
+          <div className="mx-auto max-w-xl">
+            {header}
+            <main className="mt-7 rounded-[28px] border border-ink/10 bg-white p-6 sm:p-8">
+              {stageContent}
+              {footerActions(false, false)}
+            </main>
+          </div>
+        </section>
+        <section className="relative min-h-[calc(100dvh-4.5rem)]">
+          <button
+            type="button"
+            onClick={goBack}
+            aria-label="Go back"
+            className="absolute left-4 top-4 z-30 grid size-11 place-items-center rounded-2xl border border-ink/10 bg-white text-ink shadow-lg"
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+          <RouteStage
             service={service}
             draft={draft}
-            recipients={recipients}
+            offices={offices}
             update={update}
+            mode="map"
+            mapClassName="h-full min-h-full rounded-none border-0"
           />
-        )}
-        {activeStage.id === "fulfilment" && (
-          <FulfilmentStage draft={draft} update={update} />
-        )}
-        {activeStage.id === "details" && (
-          <CustomDetailsStage draft={draft} update={update} />
-        )}
-        {activeStage.id === "review" && (
-          <ReviewStage
-            service={service}
-            draft={draft}
-            journey={journey}
-            update={update}
-            onEdit={target => navigate(`/send/${service}/${target}`)}
-          />
-        )}
-        {footerActions()}
-      </main>
-    </div>
+        </section>
+      </div>
+    </>
   );
 }
 
