@@ -69,5 +69,9 @@ describe("service-specific booking wizards", () => {
     expect(routeMapSource).toContain("DirectionsService");
     expect(routeMapSource).toContain("Geocoder");
     expect(routeMapSource).toContain("navigator.geolocation");
+    expect(routeMapSource).toContain(
+      "Interactive map is temporarily unavailable"
+    );
+    expect(routeMapSource).not.toContain("Google Maps key is not configured");
   });
 });

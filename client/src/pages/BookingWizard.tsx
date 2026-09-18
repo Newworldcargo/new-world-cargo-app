@@ -36,6 +36,8 @@ import { feedback } from "@/lib/feedback";
 
 type CargoRow = { id: number; name: string; quantity: string };
 type Contact = { name: string; phone: string };
+type LocalDeliveryVehicle = "scooter" | "small_van" | "cargo_van";
+type RouteTarget = "pickup" | "destination";
 type BookingQuote = {
   source: "server";
   quotePayload: Record<string, unknown>;
@@ -57,12 +59,16 @@ type WizardDraft = {
   sender: Contact;
   receiver: Contact;
   supplier: Contact;
+  supplierCompany: string;
+  supplierEmail: string;
+  supplierNotes: string;
   instructions: string;
   fulfilment: "collection" | "door_delivery";
   schedule: "as_soon_as_possible" | "scheduled";
   scheduledAt: string;
   requestType: string;
   requestDetail: string;
+  vehicle: LocalDeliveryVehicle;
   quote?: BookingQuote;
 };
 
@@ -138,7 +144,7 @@ const journeys: Record<BookingService, { label: string; stages: Stage[] }> = {
     stages: [
       {
         id: "route",
-        label: "Route & method",
+        label: "Route",
         title: "Plan your international shipment",
         detail:
           "Choose origin and receiving branches, then select Air or Sea Freight.",
@@ -170,9 +176,9 @@ const journeys: Record<BookingService, { label: string; stages: Stage[] }> = {
       {
         id: "route",
         label: "Route",
-        title: "Where does this request start and end?",
+        title: "Where should we move it?",
         detail:
-          "Add the route if your request involves collection and delivery.",
+          "Search pickup and destination first. The map reacts while you edit the booking details.",
       },
       {
         id: "details",
@@ -217,12 +223,16 @@ function freshDraft(
         ? customerContact
         : { name: "", phone: "" },
     supplier: { name: "", phone: "" },
+    supplierCompany: "",
+    supplierEmail: "",
+    supplierNotes: "",
     instructions: "",
     fulfilment: "collection",
     schedule: "as_soon_as_possible",
     scheduledAt: "",
     requestType: "",
     requestDetail: "",
+    vehicle: "scooter",
   };
 }
 
@@ -271,6 +281,8 @@ export default function BookingWizard() {
     reference: string;
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [activeRouteTarget, setActiveRouteTarget] =
+    useState<RouteTarget>("pickup");
   const offices = referenceData?.pickupOfficeSuggestions ?? [];
 
   useEffect(() => {
@@ -303,7 +315,7 @@ export default function BookingWizard() {
       : navigate("/send");
   const routeReady =
     Boolean(draft.pickup.trim() && draft.destination.trim()) &&
-    (service === "import" || service === "intercity"
+    (service === "import"
       ? Boolean(
           draft.pickupBranchId &&
             draft.destinationBranchId &&
@@ -372,7 +384,7 @@ export default function BookingWizard() {
                 ? { branchId: draft.destinationBranchId }
                 : {}),
             },
-            ...(service === "local" ? { vehicleType: "scooter" } : {}),
+            ...(service === "local" ? { vehicleType: draft.vehicle } : {}),
             ...(service === "import"
               ? {
                   transportMode: draft.transport,
@@ -424,12 +436,18 @@ export default function BookingWizard() {
       sender: draft.sender.name,
       senderPhone: draft.sender.phone,
       transportMode: service === "import" ? draft.transport : null,
+      vehicleType: service === "local" ? draft.vehicle : null,
       fulfilment: draft.fulfilment,
       schedule: draft.schedule,
       instructions:
         service === "custom"
           ? `${draft.requestType}: ${draft.requestDetail}`
           : draft.instructions,
+      supplierName: service === "import" ? draft.supplier.name : null,
+      supplierPhone: service === "import" ? draft.supplier.phone : null,
+      supplierCompany: service === "import" ? draft.supplierCompany : null,
+      supplierEmail: service === "import" ? draft.supplierEmail : null,
+      supplierNotes: service === "import" ? draft.supplierNotes : null,
     },
     cargoRows: draft.cargoRows
       .filter(row => row.name.trim())
@@ -593,6 +611,8 @@ export default function BookingWizard() {
           draft={draft}
           offices={offices}
           update={update}
+          activeRouteTarget={activeRouteTarget}
+          onActiveRouteTargetChange={setActiveRouteTarget}
           mode="fields"
         />
       )}
@@ -635,6 +655,8 @@ export default function BookingWizard() {
               draft={draft}
               offices={offices}
               update={update}
+              activeRouteTarget={activeRouteTarget}
+              onActiveRouteTargetChange={setActiveRouteTarget}
               mode="map"
               mapClassName="h-full min-h-full rounded-none border-0"
             />
@@ -689,6 +711,8 @@ export default function BookingWizard() {
             draft={draft}
             offices={offices}
             update={update}
+            activeRouteTarget={activeRouteTarget}
+            onActiveRouteTargetChange={setActiveRouteTarget}
             mode="map"
             mapClassName="h-full min-h-full rounded-none border-0"
           />
@@ -761,6 +785,8 @@ function RouteStage({
   draft,
   offices,
   update,
+  activeRouteTarget,
+  onActiveRouteTargetChange,
   mode = "combined",
   mapClassName,
 }: {
@@ -768,6 +794,8 @@ function RouteStage({
   draft: WizardDraft;
   offices: Office[];
   update: UpdateDraft;
+  activeRouteTarget: RouteTarget;
+  onActiveRouteTargetChange: (target: RouteTarget) => void;
   mode?: "fields" | "map" | "combined";
   mapClassName?: string;
 }) {
@@ -816,7 +844,10 @@ function RouteStage({
       destination={destinationPoint}
       offices={mapOffices}
       international={service === "import"}
-      allowMapSelection={service !== "intercity" && service !== "import"}
+      allowMapSelection={service !== "import"}
+      centerPinSelection={service === "intercity"}
+      activeTarget={activeRouteTarget}
+      onActiveTargetChange={onActiveRouteTargetChange}
       className={mapClassName}
       onPointSelect={selectMapPoint}
     />
@@ -824,7 +855,68 @@ function RouteStage({
 
   if (mode === "map") return routeMap;
 
-  if (service === "intercity" || service === "import") {
+  if (service === "intercity") {
+    const fields = (
+      <div className="space-y-5">
+        <LocationSearchField
+          label="From location"
+          target="pickup"
+          active={activeRouteTarget === "pickup"}
+          value={draft.pickup}
+          offices={offices}
+          onFocusTarget={onActiveRouteTargetChange}
+          onClear={() => {
+            update("pickup", "");
+            update("pickupLatitude", undefined);
+            update("pickupLongitude", undefined);
+            update("pickupBranchId", "");
+            onActiveRouteTargetChange("pickup");
+          }}
+          onSelect={office => {
+            selectBranch("pickup", office);
+            onActiveRouteTargetChange("pickup");
+          }}
+        />
+        <LocationSearchField
+          label="To location"
+          target="destination"
+          active={activeRouteTarget === "destination"}
+          value={draft.destination}
+          offices={offices.filter(item => item.id !== draft.pickupBranchId)}
+          onFocusTarget={onActiveRouteTargetChange}
+          onClear={() => {
+            update("destination", "");
+            update("destinationLatitude", undefined);
+            update("destinationLongitude", undefined);
+            update("destinationBranchId", "");
+            onActiveRouteTargetChange("destination");
+          }}
+          onSelect={office => {
+            selectBranch("destination", office);
+            onActiveRouteTargetChange("destination");
+          }}
+        />
+        <div className="rounded-xl border border-ink/10 bg-[#f7f8fb] p-4">
+          <p className="text-sm font-bold text-foreground">
+            Confirm each point on the map
+          </p>
+          <p className="mt-1 text-xs leading-5 text-ink/55">
+            Search a place, move or zoom the map under the fixed pin, then
+            confirm From and To before continuing.
+          </p>
+        </div>
+      </div>
+    );
+    if (mode === "fields") return fields;
+    return (
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
+        {fields}
+        {routeMap}
+      </div>
+    );
+  }
+
+  if (service === "import") {
     const fields = (
       <div className="space-y-5">
         <BranchField
@@ -901,6 +993,46 @@ function RouteStage({
         }}
         placeholder="Street, area and city"
       />
+      {service === "local" && (
+        <section>
+          <p className="mb-3 text-xs font-bold text-ink/50">Vehicle size</p>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+            <Choice
+              selected={draft.vehicle === "scooter"}
+              icon={Truck}
+              title="Bike"
+              detail="Up to 8 kg for quick city delivery."
+              onClick={() => update("vehicle", "scooter")}
+            />
+            <Choice
+              selected={draft.vehicle === "small_van"}
+              icon={Truck}
+              title="Small van"
+              detail="Up to 50 kg for boxes or bulky parcels."
+              onClick={() => update("vehicle", "small_van")}
+            />
+            <Choice
+              selected={draft.vehicle === "cargo_van"}
+              icon={Truck}
+              title="Cargo van"
+              detail="Up to 300 kg for larger local moves."
+              onClick={() => update("vehicle", "cargo_van")}
+            />
+          </div>
+        </section>
+      )}
+      {service === "custom" && (
+        <section className="rounded-xl border border-ink/10 bg-[#f7f8fb] p-4">
+          <p className="text-sm font-bold text-foreground">
+            Custom route details
+          </p>
+          <p className="mt-1 text-xs leading-5 text-ink/55">
+            Use the map or type the pickup and destination first. The request
+            type and cargo questions come next so operations can price it
+            correctly.
+          </p>
+        </section>
+      )}
     </div>
   );
   if (mode === "fields") return fields;
@@ -1018,29 +1150,28 @@ function ContactsStage({
         />
       )}
       {recipients.length > 0 && (
-        <label className="block">
-          <span className="mb-2 block text-xs font-bold text-ink/50">
-            Saved recipient
-          </span>
-          <select
-            defaultValue=""
-            onChange={event => {
-              const saved = recipients.find(
-                item => item.id === event.target.value
-              );
-              if (saved)
-                update("receiver", { name: saved.name, phone: saved.phone });
-            }}
-            className="h-12 w-full rounded-xl border border-ink/10 bg-[#f7f8fb] px-4 text-sm font-semibold"
-          >
-            <option value="">Choose saved recipient</option>
-            {recipients.map(item => (
-              <option key={item.id} value={item.id}>
-                {item.name} - {item.location}
-              </option>
+        <section>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-xs font-bold text-ink/50">Saved recipients</p>
+            <span className="text-[11px] font-semibold text-ink/35">
+              Optional
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {recipients.slice(0, 4).map(item => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() =>
+                  update("receiver", { name: item.name, phone: item.phone })
+                }
+                className="rounded-xl bg-cargo-yellow/15 px-3 py-2 text-xs font-bold text-ink transition hover:bg-cargo-yellow/25"
+              >
+                {item.name}
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </section>
       )}
       <ContactSection
         title={service === "import" ? "Receiver" : "Receiver"}
@@ -1052,12 +1183,40 @@ function ContactsStage({
           <summary className="cursor-pointer text-sm font-bold">
             Supplier / Sender Abroad (optional)
           </summary>
-          <div className="mt-4">
+          <div className="mt-4 space-y-4">
             <ContactSection
               title="Supplier contact"
               contact={draft.supplier}
               onChange={value => update("supplier", value)}
             />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Company or business"
+                icon={Building2}
+                value={draft.supplierCompany}
+                onChange={value => update("supplierCompany", value)}
+                placeholder="Company name"
+              />
+              <TextField
+                label="Supplier email"
+                icon={FileText}
+                value={draft.supplierEmail}
+                onChange={value => update("supplierEmail", value)}
+                placeholder="supplier@example.com"
+              />
+            </div>
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold text-ink/50">
+                Other contact details
+              </span>
+              <textarea
+                value={draft.supplierNotes}
+                onChange={event => update("supplierNotes", event.target.value)}
+                rows={3}
+                placeholder="Address or additional contact information"
+                className="w-full resize-none rounded-xl border border-ink/10 bg-[#f7f8fb] p-4 text-sm outline-none focus:border-cargo-yellow"
+              />
+            </label>
           </div>
         </details>
       )}
@@ -1158,6 +1317,12 @@ function CustomDetailsStage({
   );
 }
 
+const localVehicleLabels: Record<LocalDeliveryVehicle, string> = {
+  scooter: "Bike",
+  small_van: "Small van",
+  cargo_van: "Cargo van",
+};
+
 function ReviewStage({
   service,
   draft,
@@ -1175,11 +1340,17 @@ function ReviewStage({
     ["Service", journey.label],
     ["Route", `${draft.pickup} to ${draft.destination}`],
     ...(service === "custom" ? [["Request", draft.requestType]] : []),
+    ...(service === "local"
+      ? [["Vehicle", localVehicleLabels[draft.vehicle]]]
+      : []),
     [
       "Cargo",
       draft.cargoRows.map(item => `${item.name} x ${item.quantity}`).join(", "),
     ],
     ["Receiver", `${draft.receiver.name} - ${draft.receiver.phone}`],
+    ...(service === "import" && draft.supplier.name
+      ? [["Supplier", `${draft.supplier.name} - ${draft.supplier.phone}`]]
+      : []),
     ...(service === "import"
       ? [["Method", draft.transport === "air" ? "Air Freight" : "Sea Freight"]]
       : []),
@@ -1359,6 +1530,159 @@ function BranchField({
     </label>
   );
 }
+
+function LocationSearchField({
+  label,
+  target,
+  active,
+  value,
+  offices,
+  onFocusTarget,
+  onSelect,
+  onClear,
+}: {
+  label: string;
+  target: RouteTarget;
+  active: boolean;
+  value: string;
+  offices: Office[];
+  onFocusTarget: (target: RouteTarget) => void;
+  onSelect: (office: Office) => void;
+  onClear: () => void;
+}) {
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  useEffect(() => setQuery(value), [value]);
+  const suggestions = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    const matches = normalized
+      ? offices.filter(office =>
+          [office.name, office.address, office.city]
+            .filter(Boolean)
+            .some(item => item!.toLowerCase().includes(normalized))
+        )
+      : offices;
+    return matches.slice(0, 6);
+  }, [offices, query]);
+  const choose = (office: Office) => {
+    onSelect(office);
+    setQuery(`${office.name} - ${office.address}`);
+    setOpen(false);
+    setHighlight(0);
+  };
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-xs font-bold text-ink/50">{label}</span>
+        {active && (
+          <span className="rounded-full bg-cargo-yellow/20 px-2 py-1 text-[10px] font-extrabold text-ink">
+            Active on map
+          </span>
+        )}
+      </div>
+      <div
+        className={`rounded-xl border bg-[#f7f8fb] px-4 ${active ? "border-cargo-yellow shadow-[0_0_0_3px_rgba(255,200,61,0.18)]" : "border-ink/10"}`}
+      >
+        <div className="flex items-center gap-3">
+          <MapPin className="size-4 shrink-0 text-ink/40" />
+          <input
+            value={query}
+            onFocus={() => {
+              onFocusTarget(target);
+              setOpen(true);
+            }}
+            onChange={event => {
+              setQuery(event.target.value);
+              setOpen(true);
+              setHighlight(0);
+              onFocusTarget(target);
+            }}
+            onKeyDown={event => {
+              if (!open && (event.key === "ArrowDown" || event.key === "Enter")) {
+                setOpen(true);
+                return;
+              }
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                setHighlight(index =>
+                  Math.min(index + 1, Math.max(0, suggestions.length - 1))
+                );
+              }
+              if (event.key === "ArrowUp") {
+                event.preventDefault();
+                setHighlight(index => Math.max(index - 1, 0));
+              }
+              if (event.key === "Enter" && suggestions[highlight]) {
+                event.preventDefault();
+                choose(suggestions[highlight]);
+              }
+              if (event.key === "Escape") setOpen(false);
+            }}
+            placeholder={
+              target === "pickup"
+                ? "Search where it is coming from"
+                : "Search where it is going"
+            }
+            aria-label={label}
+            aria-expanded={open}
+            className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
+          />
+          {value && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                onClear();
+                setOpen(true);
+              }}
+              className="rounded-lg px-2 py-1 text-xs font-bold text-ink/45 hover:bg-white hover:text-ink"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+      {open && (
+        <div className="mt-2 overflow-hidden rounded-xl border border-ink/10 bg-white shadow-lg">
+          {suggestions.length ? (
+            suggestions.map((office, index) => (
+              <button
+                key={office.id}
+                type="button"
+                onMouseEnter={() => setHighlight(index)}
+                onMouseDown={event => event.preventDefault()}
+                onClick={() => choose(office)}
+                className={`flex w-full items-start gap-3 px-4 py-3 text-left transition ${index === highlight ? "bg-cargo-yellow/15" : "hover:bg-ink/[0.03]"}`}
+              >
+                <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-[#f7f8fb] text-ink/55">
+                  {value.includes(office.id) ? (
+                    <Check className="size-3.5" />
+                  ) : (
+                    <MapPin className="size-3.5" />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold text-foreground">
+                    {office.name}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-5 text-ink/55">
+                    {office.address}
+                  </span>
+                </span>
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-5 text-sm font-semibold text-ink/55">
+              No matching place found. Try a city, area, road, or office name.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Choice({
   selected,
   icon: Icon,

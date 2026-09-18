@@ -130,6 +130,9 @@ export function BookingRouteMap({
   offices = [],
   international = false,
   allowMapSelection = true,
+  centerPinSelection = false,
+  activeTarget,
+  onActiveTargetChange,
   className = "",
   onPointSelect,
 }: {
@@ -138,6 +141,9 @@ export function BookingRouteMap({
   offices?: RouteMapOffice[];
   international?: boolean;
   allowMapSelection?: boolean;
+  centerPinSelection?: boolean;
+  activeTarget?: RouteTarget;
+  onActiveTargetChange?: (target: RouteTarget) => void;
   className?: string;
   onPointSelect: (target: RouteTarget, point: Required<RouteMapPoint>) => void;
 }) {
@@ -153,8 +159,19 @@ export function BookingRouteMap({
     "loading" | "ready" | "missing" | "error"
   >("loading");
   const [locating, setLocating] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [pendingPoint, setPendingPoint] =
+    useState<Required<RouteMapPoint> | null>(null);
+  const [confirmState, setConfirmState] = useState<"idle" | "done">("idle");
+  const [confirmedTarget, setConfirmedTarget] = useState<RouteTarget>("pickup");
   const pickupCoordinates = pointToLatLng(pickup);
   const destinationCoordinates = pointToLatLng(destination);
+  const currentTarget = activeTarget ?? target;
+  const setCurrentTarget = (next: RouteTarget) => {
+    setTarget(next);
+    onActiveTargetChange?.(next);
+  };
   const officeCoordinates = useMemo(
     () =>
       offices.flatMap(office => {
@@ -205,7 +222,7 @@ export function BookingRouteMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!maps || !map || !allowMapSelection) return;
+    if (!maps || !map || !allowMapSelection || centerPinSelection) return;
     const listener = map.addListener(
       "click",
       (event: google.maps.MapMouseEvent) => {
@@ -218,12 +235,51 @@ export function BookingRouteMap({
             latitude: point.lat,
             longitude: point.lng,
           });
-          setTarget(target === "pickup" ? "destination" : "pickup");
+          setCurrentTarget(target === "pickup" ? "destination" : "pickup");
         });
       }
     );
     return () => listener.remove();
-  }, [allowMapSelection, maps, onPointSelect, target]);
+  }, [allowMapSelection, centerPinSelection, maps, onPointSelect, target]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!maps || !map || !allowMapSelection || !centerPinSelection) return;
+    let timer: number | undefined;
+    const dragStart = map.addListener("dragstart", () => {
+      setMoving(true);
+      setConfirmState("idle");
+    });
+    const zoomChanged = map.addListener("zoom_changed", () => {
+      setMoving(true);
+      setConfirmState("idle");
+    });
+    const idle = map.addListener("idle", () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const center = map.getCenter();
+        if (!center) return;
+        const point = { lat: center.lat(), lng: center.lng() };
+        setMoving(false);
+        setResolving(true);
+        void googleLabel(maps, point)
+          .then(label =>
+            setPendingPoint({
+              label,
+              latitude: point.lat,
+              longitude: point.lng,
+            })
+          )
+          .finally(() => setResolving(false));
+      }, 450);
+    });
+    return () => {
+      window.clearTimeout(timer);
+      dragStart.remove();
+      zoomChanged.remove();
+      idle.remove();
+    };
+  }, [allowMapSelection, centerPinSelection, maps]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -331,6 +387,16 @@ export function BookingRouteMap({
     pickupCoordinates,
   ]);
 
+  const confirmPendingPoint = () => {
+    if (!pendingPoint) return;
+    const confirmed = currentTarget;
+    onPointSelect(currentTarget, pendingPoint);
+    setConfirmedTarget(confirmed);
+    setConfirmState("done");
+    if (confirmed === "pickup") setCurrentTarget("destination");
+    window.setTimeout(() => setConfirmState("idle"), 1600);
+  };
+
   const useCurrentLocation = () => {
     if (!navigator.geolocation || !maps) return;
     setLocating(true);
@@ -386,14 +452,14 @@ export function BookingRouteMap({
             </div>
             <p className="mt-4 text-sm font-bold text-ink">
               {status === "missing"
-                ? "Google Maps key is not configured"
+                ? "Interactive map is temporarily unavailable"
                 : status === "error"
-                  ? "Google Maps could not load"
-                  : "Loading Google Maps..."}
+                  ? "Interactive map could not load"
+                  : "Loading map..."}
             </p>
             <p className="mt-2 text-xs leading-5 text-ink/55">
-              The route details are still saved. Configure
-              VITE_GOOGLE_MAPS_API_KEY for the live interactive map.
+              Your route details are still saved. You can continue using the
+              location fields and try the map again shortly.
             </p>
           </div>
         </div>
@@ -404,19 +470,19 @@ export function BookingRouteMap({
           <div className="pointer-events-auto flex rounded-xl border border-ink/10 bg-white p-1 shadow-lg">
             <button
               type="button"
-              onClick={() => setTarget("pickup")}
-              aria-pressed={target === "pickup"}
-              className={`inline-flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-bold ${target === "pickup" ? "bg-ink text-white" : "text-ink/65"}`}
+              onClick={() => setCurrentTarget("pickup")}
+              aria-pressed={currentTarget === "pickup"}
+              className={`inline-flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-bold ${currentTarget === "pickup" ? "bg-ink text-white" : "text-ink/65"}`}
             >
-              <Crosshair className="size-4" /> Pickup
+              <Crosshair className="size-4" /> From
             </button>
             <button
               type="button"
-              onClick={() => setTarget("destination")}
-              aria-pressed={target === "destination"}
-              className={`inline-flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-bold ${target === "destination" ? "bg-cargo-yellow text-ink" : "text-ink/65"}`}
+              onClick={() => setCurrentTarget("destination")}
+              aria-pressed={currentTarget === "destination"}
+              className={`inline-flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-bold ${currentTarget === "destination" ? "bg-cargo-yellow text-ink" : "text-ink/65"}`}
             >
-              <MapPin className="size-4" /> Destination
+              <MapPin className="size-4" /> To
             </button>
           </div>
         ) : (
@@ -461,10 +527,41 @@ export function BookingRouteMap({
       </div>
 
       {allowMapSelection && (
-        <p className="pointer-events-none absolute inset-x-3 bottom-3 z-10 rounded-xl bg-ink/90 px-3 py-2 text-center text-[11px] font-semibold text-white shadow-lg">
-          Click the map to set the{" "}
-          {target === "pickup" ? "pickup" : "destination"} point
-        </p>
+        <>
+          {centerPinSelection && (
+            <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center">
+              <div className="translate-y-[-18px]">
+                <MapPin
+                  className={`size-11 drop-shadow-lg ${currentTarget === "pickup" ? "fill-white text-ink" : "fill-cargo-yellow text-ink"}`}
+                />
+              </div>
+            </div>
+          )}
+          <div className="absolute inset-x-3 bottom-3 z-20 rounded-xl bg-ink/90 p-3 text-white shadow-lg">
+            <p className="text-center text-[11px] font-semibold">
+              {centerPinSelection
+                ? moving
+                  ? `Move the map to position ${currentTarget === "pickup" ? "From" : "To"}`
+                  : resolving
+                    ? "Finding the location under the pin..."
+                    : confirmState === "done"
+                      ? `${confirmedTarget === "pickup" ? "From" : "To"} location confirmed`
+                      : pendingPoint?.label ||
+                        `Move the map under the fixed pin, then confirm ${currentTarget === "pickup" ? "From" : "To"}`
+                : `Click the map to set the ${currentTarget === "pickup" ? "From" : "To"} point`}
+            </p>
+            {centerPinSelection && (
+              <button
+                type="button"
+                onClick={confirmPendingPoint}
+                disabled={!pendingPoint || resolving || moving}
+                className="mt-2 h-10 w-full rounded-lg bg-cargo-yellow text-xs font-extrabold text-ink disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Confirm {currentTarget === "pickup" ? "From" : "To"} location
+              </button>
+            )}
+          </div>
+        </>
       )}
     </section>
   );
