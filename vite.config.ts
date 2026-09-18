@@ -196,6 +196,7 @@ const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(
 
 export default defineConfig({
   plugins,
+  envPrefix: ["VITE_", "EXPO_PUBLIC_"],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),

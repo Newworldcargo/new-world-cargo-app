@@ -23,13 +23,30 @@ export type RouteMapOffice = RouteMapPoint & {
 type RouteTarget = "pickup" | "destination";
 type GoogleMaps = typeof google;
 type LatLng = google.maps.LatLngLiteral;
+type MapService = "local" | "intercity" | "import" | "custom";
 
 const lusaka: LatLng = { lat: -15.3875, lng: 28.3228 };
+const worldOverview = { lat: 2, lng: 35 };
 const googleMapsKey =
   import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() ||
   import.meta.env.VITE_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
+  import.meta.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
   "";
 let googleMapsPromise: Promise<GoogleMaps> | null = null;
+
+const brandMapStyle: google.maps.MapTypeStyle[] = [
+  { elementType: "geometry", stylers: [{ color: "#F5F3EA" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#38505C" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#FFFFFF" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#D4E5EA" }] },
+  { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#E8EDDF" }] },
+  { featureType: "landscape.man_made", elementType: "geometry", stylers: [{ color: "#F1EFE5" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#E9EBDD" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#FFFFFF" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#F5DEA0" }] },
+  { featureType: "poi", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+];
 
 function loadGoogleMaps() {
   if (window.google?.maps) return Promise.resolve(window.google);
@@ -69,21 +86,22 @@ function pointToLatLng(point?: RouteMapPoint): LatLng | null {
 function fitBounds(
   map: google.maps.Map,
   points: LatLng[],
-  international: boolean
+  international: boolean,
+  zoomedOut = false
 ) {
   if (points.length > 1) {
     const bounds = new google.maps.LatLngBounds();
     points.forEach(point => bounds.extend(point));
-    map.fitBounds(bounds, 64);
+    map.fitBounds(bounds, international ? 92 : 64);
     return;
   }
   if (points[0]) {
     map.panTo(points[0]);
-    map.setZoom(international ? 5 : 13);
+    map.setZoom(international ? (zoomedOut ? 3 : 5) : 13);
     return;
   }
-  map.setCenter(international ? { lat: 2, lng: 35 } : lusaka);
-  map.setZoom(international ? 3 : 6);
+  map.setCenter(international ? worldOverview : lusaka);
+  map.setZoom(international ? 2 : 6);
 }
 
 function markerIcon(kind: "pickup" | "destination" | "office" | "current") {
@@ -101,6 +119,36 @@ function markerIcon(kind: "pickup" | "destination" | "office" | "current") {
     strokeColor: kind === "pickup" ? "#012642" : "#ffffff",
     strokeWeight: kind === "office" ? 3 : 4,
   };
+}
+
+const radians = (degrees: number) => (degrees * Math.PI) / 180;
+
+function internationalRoutePoints(origin: LatLng, destination: LatLng): LatLng[] {
+  const vector = (point: LatLng) => {
+    const lat = radians(point.lat);
+    const lng = radians(point.lng);
+    return [
+      Math.cos(lat) * Math.cos(lng),
+      Math.cos(lat) * Math.sin(lng),
+      Math.sin(lat),
+    ];
+  };
+  const a = vector(origin);
+  const b = vector(destination);
+  const angle = Math.acos(
+    Math.max(-1, Math.min(1, a.reduce((sum, value, index) => sum + value * b[index], 0)))
+  );
+  if (Math.abs(Math.sin(angle)) < 0.000001) return [origin, destination];
+  return Array.from({ length: 65 }, (_, index) => {
+    const t = index / 64;
+    const first = Math.sin((1 - t) * angle) / Math.sin(angle);
+    const second = Math.sin(t * angle) / Math.sin(angle);
+    const [x, y, z] = a.map((value, vectorIndex) => first * value + second * b[vectorIndex]);
+    return {
+      lat: (Math.atan2(z, Math.hypot(x, y)) * 180) / Math.PI,
+      lng: (Math.atan2(y, x) * 180) / Math.PI,
+    };
+  });
 }
 
 function clearOverlays(overlays: google.maps.MVCObject[]) {
@@ -128,6 +176,7 @@ export function BookingRouteMap({
   pickup,
   destination,
   offices = [],
+  service = "local",
   international = false,
   allowMapSelection = true,
   centerPinSelection = false,
@@ -139,6 +188,7 @@ export function BookingRouteMap({
   pickup: RouteMapPoint;
   destination: RouteMapPoint;
   offices?: RouteMapOffice[];
+  service?: MapService;
   international?: boolean;
   allowMapSelection?: boolean;
   centerPinSelection?: boolean;
@@ -159,6 +209,7 @@ export function BookingRouteMap({
     "loading" | "ready" | "missing" | "error"
   >("loading");
   const [locating, setLocating] = useState(false);
+  const [routeState, setRouteState] = useState<"idle" | "loading" | "ready" | "fallback">("idle");
   const [moving, setMoving] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [pendingPoint, setPendingPoint] =
@@ -205,18 +256,15 @@ export function BookingRouteMap({
   useEffect(() => {
     if (!maps || !containerRef.current || mapRef.current) return;
     mapRef.current = new maps.maps.Map(containerRef.current, {
-      center: international ? { lat: 2, lng: 35 } : lusaka,
-      zoom: international ? 3 : 6,
+      center: international ? worldOverview : lusaka,
+      zoom: international ? 2 : 6,
       mapTypeControl: false,
       fullscreenControl: false,
       streetViewControl: false,
       zoomControl: false,
       clickableIcons: true,
       gestureHandling: "greedy",
-      styles: [
-        { featureType: "poi.business", stylers: [{ visibility: "off" }] },
-        { featureType: "transit", stylers: [{ visibility: "off" }] },
-      ],
+      styles: brandMapStyle,
     });
   }, [international, maps]);
 
@@ -326,24 +374,39 @@ export function BookingRouteMap({
       destinationCoordinates,
       ...officeCoordinates.map(item => item.value),
     ].filter((point): point is LatLng => Boolean(point));
-    fitBounds(map, visiblePoints, international);
+    fitBounds(map, visiblePoints, international, service === "import");
 
     if (pickupCoordinates && destinationCoordinates) {
       if (international) {
+        const path = internationalRoutePoints(pickupCoordinates, destinationCoordinates);
         overlaysRef.current.push(
           new maps.maps.Polyline({
             map,
-            path: [pickupCoordinates, destinationCoordinates],
+            path,
             geodesic: true,
             strokeColor: "#012642",
-            strokeOpacity: 0.86,
-            strokeWeight: 5,
+            strokeOpacity: 0,
+            strokeWeight: 0,
+            icons: [
+              {
+                icon: {
+                  path: "M 0,-1 0,1",
+                  strokeOpacity: 0.9,
+                  strokeColor: "#012642",
+                  scale: 4,
+                },
+                offset: "0",
+                repeat: "18px",
+              },
+            ],
           })
         );
+        setRouteState("ready");
         return;
       }
-      const service = new maps.maps.DirectionsService();
-      void service
+      setRouteState("loading");
+      const directionsService = new maps.maps.DirectionsService();
+      void directionsService
         .route({
           origin: pickupCoordinates,
           destination: destinationCoordinates,
@@ -363,6 +426,7 @@ export function BookingRouteMap({
             },
           });
           overlaysRef.current.push(renderer);
+          setRouteState("ready");
         })
         .catch(() => {
           if (routeToken !== routeTokenRef.current) return;
@@ -375,8 +439,11 @@ export function BookingRouteMap({
               strokeWeight: 5,
             })
           );
+          setRouteState("fallback");
         });
+      return;
     }
+    setRouteState("idle");
   }, [
     destination.label,
     destinationCoordinates,
@@ -385,6 +452,7 @@ export function BookingRouteMap({
     officeCoordinates,
     pickup.label,
     pickupCoordinates,
+    service,
   ]);
 
   const confirmPendingPoint = () => {
@@ -550,6 +618,22 @@ export function BookingRouteMap({
                         `Move the map under the fixed pin, then confirm ${currentTarget === "pickup" ? "From" : "To"}`
                 : `Click the map to set the ${currentTarget === "pickup" ? "From" : "To"} point`}
             </p>
+            {routeState === "loading" && (
+              <p className="mt-1 text-center text-[10px] font-semibold text-white/75">
+                Updating route preview...
+              </p>
+            )}
+            {routeState === "fallback" && (
+              <p className="mt-1 text-center text-[10px] font-semibold text-white/75">
+                Road route is unavailable. From and To pins are shown.
+              </p>
+            )}
+            {international && pickupCoordinates && destinationCoordinates && (
+              <p className="mt-1 text-center text-[10px] font-semibold text-white/75">
+                Dotted international lane shown. Zoom in for street-level map
+                detail.
+              </p>
+            )}
             {centerPinSelection && (
               <button
                 type="button"

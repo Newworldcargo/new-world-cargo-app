@@ -38,6 +38,16 @@ type CargoRow = { id: number; name: string; quantity: string };
 type Contact = { name: string; phone: string };
 type LocalDeliveryVehicle = "scooter" | "small_van" | "cargo_van";
 type RouteTarget = "pickup" | "destination";
+type LocationSuggestion = {
+  id: string;
+  label: string;
+  detail: string;
+  source: "office" | "google";
+  latitude?: number;
+  longitude?: number;
+  branchId?: string;
+  placeId?: string;
+};
 type BookingQuote = {
   source: "server";
   quotePayload: Record<string, unknown>;
@@ -780,6 +790,94 @@ function officeMapPoint(office: Office): RouteMapOffice {
   };
 }
 
+const googleMapsKey =
+  import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() ||
+  import.meta.env.VITE_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
+  import.meta.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
+  "";
+
+async function searchGooglePlaces(query: string): Promise<LocationSuggestion[]> {
+  if (!googleMapsKey || query.trim().length < 3) return [];
+  const response = await fetch(
+    "https://places.googleapis.com/v1/places:autocomplete",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": googleMapsKey,
+        "X-Goog-FieldMask":
+          "suggestions.placePrediction.placeId,suggestions.placePrediction.text.text,suggestions.placePrediction.structuredFormat",
+      },
+      body: JSON.stringify({
+        input: query.trim(),
+        languageCode: "en",
+        regionCode: "zm",
+        includedRegionCodes: ["zm"],
+      }),
+    }
+  );
+  if (!response.ok) throw new Error("Live location search is unavailable.");
+  const payload = (await response.json()) as {
+    suggestions?: Array<{
+      placePrediction?: {
+        placeId?: string;
+        text?: { text?: string };
+        structuredFormat?: {
+          mainText?: { text?: string };
+          secondaryText?: { text?: string };
+        };
+      };
+    }>;
+  };
+  return (payload.suggestions ?? []).flatMap(({ placePrediction }) => {
+    if (!placePrediction?.placeId) return [];
+    const label =
+      placePrediction.structuredFormat?.mainText?.text ||
+      placePrediction.text?.text ||
+      "Google Maps place";
+    return [
+      {
+        id: `google-${placePrediction.placeId}`,
+        placeId: placePrediction.placeId,
+        label,
+        detail:
+          placePrediction.structuredFormat?.secondaryText?.text ||
+          placePrediction.text?.text ||
+          "Google Maps",
+        source: "google" as const,
+      },
+    ];
+  });
+}
+
+async function resolveGoogleSuggestion(
+  suggestion: LocationSuggestion
+): Promise<LocationSuggestion> {
+  if (!googleMapsKey || !suggestion.placeId) return suggestion;
+  const response = await fetch(
+    `https://places.googleapis.com/v1/places/${encodeURIComponent(suggestion.placeId)}`,
+    {
+      headers: {
+        "X-Goog-Api-Key": googleMapsKey,
+        "X-Goog-FieldMask": "id,displayName,formattedAddress,location",
+      },
+    }
+  );
+  if (!response.ok) throw new Error("We could not confirm that map location.");
+  const details = (await response.json()) as {
+    displayName?: { text?: string };
+    formattedAddress?: string;
+    location?: { latitude?: number; longitude?: number };
+  };
+  return {
+    ...suggestion,
+    label: details.displayName?.text || suggestion.label,
+    detail: details.formattedAddress || suggestion.detail,
+    latitude: details.location?.latitude,
+    longitude: details.location?.longitude,
+  };
+}
+
 function RouteStage({
   service,
   draft,
@@ -838,8 +936,26 @@ function RouteStage({
     update("destinationLatitude", point.latitude);
     update("destinationLongitude", point.longitude);
   };
+  const selectLocationSuggestion = (
+    target: "pickup" | "destination",
+    suggestion: LocationSuggestion
+  ) => {
+    const label = `${suggestion.label} - ${suggestion.detail}`;
+    if (target === "pickup") {
+      update("pickupBranchId", suggestion.branchId ?? "");
+      update("pickup", label);
+      update("pickupLatitude", suggestion.latitude);
+      update("pickupLongitude", suggestion.longitude);
+      return;
+    }
+    update("destinationBranchId", suggestion.branchId ?? "");
+    update("destination", label);
+    update("destinationLatitude", suggestion.latitude);
+    update("destinationLongitude", suggestion.longitude);
+  };
   const routeMap = (
     <BookingRouteMap
+      service={service}
       pickup={pickupPoint}
       destination={destinationPoint}
       offices={mapOffices}
@@ -872,8 +988,8 @@ function RouteStage({
             update("pickupBranchId", "");
             onActiveRouteTargetChange("pickup");
           }}
-          onSelect={office => {
-            selectBranch("pickup", office);
+          onSelect={suggestion => {
+            selectLocationSuggestion("pickup", suggestion);
             onActiveRouteTargetChange("pickup");
           }}
         />
@@ -891,8 +1007,8 @@ function RouteStage({
             update("destinationBranchId", "");
             onActiveRouteTargetChange("destination");
           }}
-          onSelect={office => {
-            selectBranch("destination", office);
+          onSelect={suggestion => {
+            selectLocationSuggestion("destination", suggestion);
             onActiveRouteTargetChange("destination");
           }}
         />
@@ -1547,14 +1663,19 @@ function LocationSearchField({
   value: string;
   offices: Office[];
   onFocusTarget: (target: RouteTarget) => void;
-  onSelect: (office: Office) => void;
+  onSelect: (suggestion: LocationSuggestion) => void;
   onClear: () => void;
 }) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
+  const [googleSuggestions, setGoogleSuggestions] = useState<
+    LocationSuggestion[]
+  >([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
   useEffect(() => setQuery(value), [value]);
-  const suggestions = useMemo(() => {
+  const officeSuggestions = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     const matches = normalized
       ? offices.filter(office =>
@@ -1563,11 +1684,70 @@ function LocationSearchField({
             .some(item => item!.toLowerCase().includes(normalized))
         )
       : offices;
-    return matches.slice(0, 6);
+    return matches.slice(0, 5).map(office => {
+      const mapped = officeMapPoint(office);
+      return {
+        id: `office-${office.id}`,
+        label: office.name,
+        detail: office.address,
+        source: "office" as const,
+        branchId: office.id,
+        latitude: mapped.latitude,
+        longitude: mapped.longitude,
+      };
+    });
   }, [offices, query]);
-  const choose = (office: Office) => {
-    onSelect(office);
-    setQuery(`${office.name} - ${office.address}`);
+  useEffect(() => {
+    let active = true;
+    setSearchError("");
+    if (!open || query.trim().length < 3) {
+      setGoogleSuggestions([]);
+      setSearching(false);
+      return () => {
+        active = false;
+      };
+    }
+    setSearching(true);
+    const timer = window.setTimeout(() => {
+      void searchGooglePlaces(query)
+        .then(results => {
+          if (active) setGoogleSuggestions(results);
+        })
+        .catch(error => {
+          if (active)
+            setSearchError(
+              error instanceof Error
+                ? error.message
+                : "Live location search is unavailable."
+            );
+        })
+        .finally(() => {
+          if (active) setSearching(false);
+        });
+    }, 300);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [open, query]);
+  const suggestions = useMemo(() => {
+    const seen = new Set<string>();
+    return [...officeSuggestions, ...googleSuggestions]
+      .filter(item => {
+        const key = `${item.label}-${item.detail}`.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 7);
+  }, [googleSuggestions, officeSuggestions]);
+  const choose = async (suggestion: LocationSuggestion) => {
+    const resolved =
+      suggestion.source === "google"
+        ? await resolveGoogleSuggestion(suggestion)
+        : suggestion;
+    onSelect(resolved);
+    setQuery(`${resolved.label} - ${resolved.detail}`);
     setOpen(false);
     setHighlight(0);
   };
@@ -1615,7 +1795,7 @@ function LocationSearchField({
               }
               if (event.key === "Enter" && suggestions[highlight]) {
                 event.preventDefault();
-                choose(suggestions[highlight]);
+                void choose(suggestions[highlight]);
               }
               if (event.key === "Escape") setOpen(false);
             }}
@@ -1652,11 +1832,11 @@ function LocationSearchField({
                 type="button"
                 onMouseEnter={() => setHighlight(index)}
                 onMouseDown={event => event.preventDefault()}
-                onClick={() => choose(office)}
+                onClick={() => void choose(office)}
                 className={`flex w-full items-start gap-3 px-4 py-3 text-left transition ${index === highlight ? "bg-cargo-yellow/15" : "hover:bg-ink/[0.03]"}`}
               >
                 <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-[#f7f8fb] text-ink/55">
-                  {value.includes(office.id) ? (
+                  {value.includes(office.label) ? (
                     <Check className="size-3.5" />
                   ) : (
                     <MapPin className="size-3.5" />
@@ -1664,17 +1844,26 @@ function LocationSearchField({
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-bold text-foreground">
-                    {office.name}
+                    {office.label}
                   </span>
                   <span className="mt-0.5 block text-xs leading-5 text-ink/55">
-                    {office.address}
+                    {office.detail}
+                    {office.source === "google" ? " · Google Maps" : ""}
                   </span>
                 </span>
               </button>
             ))
           ) : (
             <div className="px-4 py-5 text-sm font-semibold text-ink/55">
-              No matching place found. Try a city, area, road, or office name.
+              {searching
+                ? "Searching live Google Maps locations..."
+                : searchError ||
+                  "No matching place found. Try a city, area, road, or office name."}
+            </div>
+          )}
+          {searching && suggestions.length > 0 && (
+            <div className="border-t border-ink/10 px-4 py-3 text-xs font-semibold text-ink/55">
+              Searching live Google Maps locations...
             </div>
           )}
         </div>
