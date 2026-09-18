@@ -27,7 +27,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { feedback } from "@/lib/feedback";
 import { SubpageBackButton } from "@/components/subpage-back-button";
-import { BookingServiceGrid, BookingServiceTabs, type BookingService } from "@/components/booking-service-grid";
+import { BookingServiceGrid, BookingServiceTabs, bookingStartPath, type BookingService } from "@/components/booking-service-grid";
 import { useAddressMutations, useCustomerAddresses, useCustomerDrafts, useCustomerRecipients, useCustomerReferenceData, useShipmentDraftMutations } from "@/api/hooks";
 import { useCustomerWorkflowStore } from "@/stores/customer-workflow-store";
 import { apiRequest } from "@/api/http";
@@ -241,18 +241,7 @@ export default function SendShipment() {
   const pickupOffices = referenceData?.pickupOfficeSuggestions ?? [];
   const selectedTransport = transportOptions.find((option) => option.id === transport) ?? { id: transport, name: transport === "air" ? "Air cargo" : "Sea cargo", detail: "Loading service options", eta: "To be confirmed" };
   const selectService = (nextService: BookingService) => {
-    setService(nextService);
-    setStep(0);
-    setSuccess(false);
-    setSavedDraftId(null);
-    setSubmittedShipment(null);
-    setTransport("air");
-    setHandover("collect");
-    setEvidence({ photos: [], documents: [] });
-    setCargoRows([{ id: 1, name: "", quantity: "1" }, { id: 2, name: "", quantity: "1" }]);
-    setNextCargoId(3);
-    setForm({ pickup: "", pickupBranchId: "", destinationBranchId: "", recipient: "", phone: "", recipientNotes: "", destination: "", contents: "", packages: "" });
-    navigate(`/send?service=${nextService}`);
+    navigate(bookingStartPath[nextService]);
   };
 
   if (!requestedService && !requestedDraftId && !usesLatestQuote) {

@@ -3,6 +3,13 @@ import { useLocation } from "wouter";
 
 export type BookingService = "import" | "intercity" | "local" | "custom";
 
+export const bookingStartPath: Record<BookingService, string> = {
+  import: "/send/import/route",
+  intercity: "/send/intercity/route",
+  local: "/send/local/route",
+  custom: "/send/custom/route",
+};
+
 const services: Array<{
   id: BookingService;
   title: string;
@@ -70,7 +77,7 @@ export function BookingServiceGrid({
   const [, navigate] = useLocation();
   const select = (service: BookingService) => {
     if (onSelect) onSelect(service);
-    else navigate(`/send?service=${service}`);
+    else navigate(bookingStartPath[service]);
   };
 
   return (
