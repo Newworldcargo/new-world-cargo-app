@@ -539,15 +539,8 @@ export default function BookingWizard() {
       />
     );
 
-  return (
-    <div className="mx-auto max-w-4xl pb-24 sm:pb-8">
-      <button
-        type="button"
-        onClick={goBack}
-        className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-ink/60"
-      >
-        <ArrowLeft className="size-4" /> Back
-      </button>
+  const header = (
+    <>
       <BookingServiceTabs selected={service} onSelect={selectService} />
       <header className="mt-7">
         <div className="flex items-center justify-between gap-4">
@@ -583,16 +576,97 @@ export default function BookingWizard() {
           ))}
         </div>
       </header>
+    </>
+  );
 
-      <main className="mt-7 rounded-[28px] border border-ink/10 bg-white p-5 sm:p-8">
-        {activeStage.id === "route" && (
+  const footerActions = (
+    <div className="mt-8 flex flex-col-reverse gap-3 border-t border-ink/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={goBack}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-ink/10 px-4 py-3 text-sm font-bold text-foreground"
+        >
+          <ArrowLeft className="size-4" /> Back
+        </button>
+        {activeStage.id !== "review" && (
+          <button
+            type="button"
+            onClick={saveDraft}
+            disabled={mutations.create.isPending}
+            className="rounded-xl border border-cargo-yellow/40 bg-cargo-yellow/10 px-4 py-3 text-sm font-bold text-foreground"
+          >
+            Save draft
+          </button>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={activeStage.id === "review" ? submit : next}
+        disabled={busy || mutations.submit.isPending}
+        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cargo-yellow px-6 text-sm font-bold text-ink disabled:opacity-50"
+      >
+        {busy
+          ? "Please wait..."
+          : activeStage.id === "review"
+            ? service === "local"
+              ? "Confirm delivery request"
+              : "Request a quote"
+            : `Continue to ${journey.stages[stageIndex + 1]?.label ?? "review"}`}
+        <ArrowRight className="size-4" />
+      </button>
+    </div>
+  );
+
+  if (activeStage.id === "route") {
+    return (
+      <div className="pb-24 sm:pb-8">
+        <button
+          type="button"
+          onClick={goBack}
+          className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-ink/60"
+        >
+          <ArrowLeft className="size-4" /> Back
+        </button>
+        <div className="grid gap-7 xl:grid-cols-[minmax(390px,560px)_minmax(0,1fr)] xl:items-stretch">
+          <div className="mx-auto w-full max-w-xl xl:mx-0">
+            {header}
+            <main className="mt-7 rounded-[28px] border border-ink/10 bg-white p-5 sm:p-8">
+              <RouteStage
+                service={service}
+                draft={draft}
+                offices={offices}
+                update={update}
+                mode="fields"
+              />
+              {footerActions}
+            </main>
+          </div>
           <RouteStage
             service={service}
             draft={draft}
             offices={offices}
             update={update}
+            mode="map"
+            mapClassName="min-h-[520px] xl:-mr-12 xl:min-h-[calc(100dvh-8rem)] xl:rounded-l-[28px] xl:rounded-r-none"
           />
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl pb-24 sm:pb-8">
+      <button
+        type="button"
+        onClick={goBack}
+        className="mb-5 inline-flex items-center gap-2 text-sm font-bold text-ink/60"
+      >
+        <ArrowLeft className="size-4" /> Back
+      </button>
+      {header}
+
+      <main className="mt-7 rounded-[28px] border border-ink/10 bg-white p-5 sm:p-8">
         {activeStage.id === "cargo" && (
           <CargoStage draft={draft} update={update} />
         )}
@@ -619,43 +693,7 @@ export default function BookingWizard() {
             onEdit={target => navigate(`/send/${service}/${target}`)}
           />
         )}
-
-        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-ink/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={goBack}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-ink/10 px-4 py-3 text-sm font-bold text-foreground"
-            >
-              <ArrowLeft className="size-4" /> Back
-            </button>
-            {activeStage.id !== "review" && (
-              <button
-                type="button"
-                onClick={saveDraft}
-                disabled={mutations.create.isPending}
-                className="rounded-xl border border-cargo-yellow/40 bg-cargo-yellow/10 px-4 py-3 text-sm font-bold text-foreground"
-              >
-                Save draft
-              </button>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={activeStage.id === "review" ? submit : next}
-            disabled={busy || mutations.submit.isPending}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cargo-yellow px-6 text-sm font-bold text-ink disabled:opacity-50"
-          >
-            {busy
-              ? "Please wait..."
-              : activeStage.id === "review"
-                ? service === "local"
-                  ? "Confirm delivery request"
-                  : "Request a quote"
-                : `Continue to ${journey.stages[stageIndex + 1]?.label ?? "review"}`}
-            <ArrowRight className="size-4" />
-          </button>
-        </div>
+        {footerActions}
       </main>
     </div>
   );
@@ -724,11 +762,15 @@ function RouteStage({
   draft,
   offices,
   update,
+  mode = "combined",
+  mapClassName,
 }: {
   service: BookingService;
   draft: WizardDraft;
   offices: Office[];
   update: UpdateDraft;
+  mode?: "fields" | "map" | "combined";
+  mapClassName?: string;
 }) {
   const mapOffices = offices.map(officeMapPoint);
   const pickupPoint: RouteMapPoint = {
@@ -769,93 +811,104 @@ function RouteStage({
     update("destinationLatitude", point.latitude);
     update("destinationLongitude", point.longitude);
   };
+  const routeMap = (
+    <BookingRouteMap
+      pickup={pickupPoint}
+      destination={destinationPoint}
+      offices={mapOffices}
+      international={service === "import"}
+      allowMapSelection={service !== "intercity" && service !== "import"}
+      className={mapClassName}
+      onPointSelect={selectMapPoint}
+    />
+  );
 
-  if (service === "intercity" || service === "import")
-    return (
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
-        <div className="space-y-5">
-          <BranchField
-            label={service === "import" ? "Origin office" : "Origin branch"}
-            value={draft.pickupBranchId}
-            offices={offices}
-            onSelect={office => selectBranch("pickup", office)}
-          />
-          <BranchField
-            label={
-              service === "import"
-                ? "Zambia receiving branch"
-                : "Destination branch"
-            }
-            value={draft.destinationBranchId}
-            offices={offices.filter(item => item.id !== draft.pickupBranchId)}
-            onSelect={office => selectBranch("destination", office)}
-          />
-          {service === "import" && (
-            <section>
-              <p className="mb-3 text-xs font-bold text-ink/50">
-                Shipping method
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                <Choice
-                  selected={draft.transport === "air"}
-                  icon={Plane}
-                  title="Air Freight"
-                  detail="Faster for time-sensitive cargo."
-                  onClick={() => update("transport", "air")}
-                />
-                <Choice
-                  selected={draft.transport === "sea"}
-                  icon={Ship}
-                  title="Sea Freight"
-                  detail="Best for larger or flexible shipments."
-                  onClick={() => update("transport", "sea")}
-                />
-              </div>
-            </section>
-          )}
-        </div>
-        <BookingRouteMap
-          pickup={pickupPoint}
-          destination={destinationPoint}
-          offices={mapOffices}
-          international={service === "import"}
-          allowMapSelection={false}
-          onPointSelect={selectMapPoint}
+  if (mode === "map") return routeMap;
+
+  if (service === "intercity" || service === "import") {
+    const fields = (
+      <div className="space-y-5">
+        <BranchField
+          label={service === "import" ? "Origin office" : "Origin branch"}
+          value={draft.pickupBranchId}
+          offices={offices}
+          onSelect={office => selectBranch("pickup", office)}
         />
+        <BranchField
+          label={
+            service === "import"
+              ? "Zambia receiving branch"
+              : "Destination branch"
+          }
+          value={draft.destinationBranchId}
+          offices={offices.filter(item => item.id !== draft.pickupBranchId)}
+          onSelect={office => selectBranch("destination", office)}
+        />
+        {service === "import" && (
+          <section>
+            <p className="mb-3 text-xs font-bold text-ink/50">
+              Shipping method
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <Choice
+                selected={draft.transport === "air"}
+                icon={Plane}
+                title="Air Freight"
+                detail="Faster for time-sensitive cargo."
+                onClick={() => update("transport", "air")}
+              />
+              <Choice
+                selected={draft.transport === "sea"}
+                icon={Ship}
+                title="Sea Freight"
+                detail="Best for larger or flexible shipments."
+                onClick={() => update("transport", "sea")}
+              />
+            </div>
+          </section>
+        )}
       </div>
     );
+    if (mode === "fields") return fields;
+    return (
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
+        {fields}
+        {routeMap}
+      </div>
+    );
+  }
+
+  const fields = (
+    <div className="space-y-5">
+      <TextField
+        label="Pickup location"
+        icon={MapPin}
+        value={draft.pickup}
+        onChange={value => {
+          update("pickup", value);
+          update("pickupLatitude", undefined);
+          update("pickupLongitude", undefined);
+        }}
+        placeholder="Street, area and city"
+      />
+      <TextField
+        label="Delivery location"
+        icon={MapPin}
+        value={draft.destination}
+        onChange={value => {
+          update("destination", value);
+          update("destinationLatitude", undefined);
+          update("destinationLongitude", undefined);
+        }}
+        placeholder="Street, area and city"
+      />
+    </div>
+  );
+  if (mode === "fields") return fields;
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
-      <div className="space-y-5">
-        <TextField
-          label="Pickup location"
-          icon={MapPin}
-          value={draft.pickup}
-          onChange={value => {
-            update("pickup", value);
-            update("pickupLatitude", undefined);
-            update("pickupLongitude", undefined);
-          }}
-          placeholder="Street, area and city"
-        />
-        <TextField
-          label="Delivery location"
-          icon={MapPin}
-          value={draft.destination}
-          onChange={value => {
-            update("destination", value);
-            update("destinationLatitude", undefined);
-            update("destinationLongitude", undefined);
-          }}
-          placeholder="Street, area and city"
-        />
-      </div>
-      <BookingRouteMap
-        pickup={pickupPoint}
-        destination={destinationPoint}
-        offices={mapOffices}
-        onPointSelect={selectMapPoint}
-      />
+      {fields}
+      {routeMap}
     </div>
   );
 }

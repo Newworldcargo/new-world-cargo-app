@@ -1,18 +1,12 @@
-import "leaflet/dist/leaflet.css";
-
-import { Crosshair, MapPin, Navigation } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
 import {
-  CircleMarker,
-  MapContainer,
-  Polyline,
-  Popup,
-  TileLayer,
-  Tooltip,
-  useMap,
-  useMapEvents,
-} from "react-leaflet";
-import type { LatLngExpression, LatLngTuple } from "leaflet";
+  Crosshair,
+  LocateFixed,
+  MapPin,
+  Minus,
+  Plus,
+  Route,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type RouteMapPoint = {
   label: string;
@@ -27,61 +21,106 @@ export type RouteMapOffice = RouteMapPoint & {
 };
 
 type RouteTarget = "pickup" | "destination";
+type GoogleMaps = typeof google;
+type LatLng = google.maps.LatLngLiteral;
 
-const lusaka: LatLngTuple = [-15.3875, 28.3228];
+const lusaka: LatLng = { lat: -15.3875, lng: 28.3228 };
+const googleMapsKey =
+  import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() ||
+  import.meta.env.VITE_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
+  "";
+let googleMapsPromise: Promise<GoogleMaps> | null = null;
 
-function coordinates(point?: RouteMapPoint): LatLngTuple | null {
+function loadGoogleMaps() {
+  if (window.google?.maps) return Promise.resolve(window.google);
+  if (!googleMapsKey)
+    return Promise.reject(new Error("Google Maps key missing"));
+  if (googleMapsPromise) return googleMapsPromise;
+  googleMapsPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-nwc-google-maps="true"]'
+    );
+    if (existing) {
+      existing.addEventListener("load", () => resolve(window.google));
+      existing.addEventListener("error", () =>
+        reject(new Error("Google Maps failed to load"))
+      );
+      return;
+    }
+    const script = document.createElement("script");
+    script.dataset.nwcGoogleMaps = "true";
+    script.async = true;
+    script.defer = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleMapsKey)}&v=weekly&libraries=marker,places,geometry`;
+    script.onload = () => resolve(window.google);
+    script.onerror = () => reject(new Error("Google Maps failed to load"));
+    document.head.appendChild(script);
+  });
+  return googleMapsPromise;
+}
+
+function pointToLatLng(point?: RouteMapPoint): LatLng | null {
   if (!Number.isFinite(point?.latitude) || !Number.isFinite(point?.longitude)) {
     return null;
   }
-  return [point!.latitude!, point!.longitude!];
+  return { lat: point!.latitude!, lng: point!.longitude! };
 }
 
-function MapViewport({
-  points,
-  fallback,
-}: {
-  points: LatLngTuple[];
-  fallback: LatLngTuple;
-}) {
-  const map = useMap();
+function fitBounds(
+  map: google.maps.Map,
+  points: LatLng[],
+  international: boolean
+) {
+  if (points.length > 1) {
+    const bounds = new google.maps.LatLngBounds();
+    points.forEach(point => bounds.extend(point));
+    map.fitBounds(bounds, 64);
+    return;
+  }
+  if (points[0]) {
+    map.panTo(points[0]);
+    map.setZoom(international ? 5 : 13);
+    return;
+  }
+  map.setCenter(international ? { lat: 2, lng: 35 } : lusaka);
+  map.setZoom(international ? 3 : 6);
+}
 
-  useEffect(() => {
-    if (points.length > 1) {
-      map.fitBounds(points, { padding: [42, 42], maxZoom: 14 });
-    } else if (points.length === 1) {
-      map.flyTo(points[0], 14, { duration: 0.55 });
-    } else {
-      map.setView(fallback, 6);
+function markerIcon(kind: "pickup" | "destination" | "office" | "current") {
+  const fill = {
+    pickup: "#ffffff",
+    destination: "#ffc83d",
+    office: "#087f8c",
+    current: "#012642",
+  }[kind];
+  return {
+    path: google.maps.SymbolPath.CIRCLE,
+    scale: kind === "office" ? 8 : 10,
+    fillColor: fill,
+    fillOpacity: 1,
+    strokeColor: kind === "pickup" ? "#012642" : "#ffffff",
+    strokeWeight: kind === "office" ? 3 : 4,
+  };
+}
+
+function clearOverlays(overlays: google.maps.MVCObject[]) {
+  overlays.forEach(item => {
+    if ("setMap" in item && typeof item.setMap === "function") {
+      item.setMap(null);
     }
-  }, [fallback, map, points]);
-
-  return null;
-}
-
-function MapClick({ onSelect }: { onSelect: (point: LatLngTuple) => void }) {
-  useMapEvents({
-    click(event) {
-      onSelect([event.latlng.lat, event.latlng.lng]);
-    },
   });
-  return null;
 }
 
-async function locationLabel([latitude, longitude]: LatLngTuple) {
+async function googleLabel(googleMaps: GoogleMaps, point: LatLng) {
   try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
-      { headers: { Accept: "application/json" } }
-    );
-    if (!response.ok) throw new Error("Reverse geocoding failed");
-    const result = (await response.json()) as { display_name?: string };
+    const geocoder = new googleMaps.maps.Geocoder();
+    const result = await geocoder.geocode({ location: point });
     return (
-      result.display_name?.trim() ||
-      `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+      result.results[0]?.formatted_address ||
+      `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`
     );
   } catch {
-    return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+    return `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
   }
 }
 
@@ -91,6 +130,7 @@ export function BookingRouteMap({
   offices = [],
   international = false,
   allowMapSelection = true,
+  className = "",
   onPointSelect,
 }: {
   pickup: RouteMapPoint;
@@ -98,145 +138,268 @@ export function BookingRouteMap({
   offices?: RouteMapOffice[];
   international?: boolean;
   allowMapSelection?: boolean;
+  className?: string;
   onPointSelect: (target: RouteTarget, point: Required<RouteMapPoint>) => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const overlaysRef = useRef<google.maps.MVCObject[]>([]);
+  const routeTokenRef = useRef(0);
+  const [maps, setMaps] = useState<GoogleMaps | null>(null);
   const [target, setTarget] = useState<RouteTarget>(
     pickup.label ? "destination" : "pickup"
   );
+  const [status, setStatus] = useState<
+    "loading" | "ready" | "missing" | "error"
+  >("loading");
   const [locating, setLocating] = useState(false);
-  const pickupCoordinates = coordinates(pickup);
-  const destinationCoordinates = coordinates(destination);
+  const pickupCoordinates = pointToLatLng(pickup);
+  const destinationCoordinates = pointToLatLng(destination);
   const officeCoordinates = useMemo(
     () =>
       offices.flatMap(office => {
-        const value = coordinates(office);
+        const value = pointToLatLng(office);
         return value ? [{ office, value }] : [];
       }),
     [offices]
   );
-  const visiblePoints = useMemo(
-    () =>
-      [
-        pickupCoordinates,
-        destinationCoordinates,
-        ...officeCoordinates.map(item => item.value),
-      ].filter((point): point is LatLngTuple => Boolean(point)),
-    [destinationCoordinates, officeCoordinates, pickupCoordinates]
-  );
-  const fallback = international ? ([2, 35] as LatLngTuple) : lusaka;
 
-  const select = async (selectedTarget: RouteTarget, point: LatLngTuple) => {
-    const label = await locationLabel(point);
-    onPointSelect(selectedTarget, {
-      label,
-      latitude: point[0],
-      longitude: point[1],
+  useEffect(() => {
+    let active = true;
+    loadGoogleMaps()
+      .then(value => {
+        if (!active) return;
+        setMaps(value);
+        setStatus("ready");
+      })
+      .catch(error => {
+        if (!active) return;
+        setStatus(
+          error instanceof Error && error.message.includes("key")
+            ? "missing"
+            : "error"
+        );
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!maps || !containerRef.current || mapRef.current) return;
+    mapRef.current = new maps.maps.Map(containerRef.current, {
+      center: international ? { lat: 2, lng: 35 } : lusaka,
+      zoom: international ? 3 : 6,
+      mapTypeControl: false,
+      fullscreenControl: false,
+      streetViewControl: false,
+      zoomControl: false,
+      clickableIcons: true,
+      gestureHandling: "greedy",
+      styles: [
+        { featureType: "poi.business", stylers: [{ visibility: "off" }] },
+        { featureType: "transit", stylers: [{ visibility: "off" }] },
+      ],
     });
-    setTarget(selectedTarget === "pickup" ? "destination" : "pickup");
-  };
+  }, [international, maps]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!maps || !map || !allowMapSelection) return;
+    const listener = map.addListener(
+      "click",
+      (event: google.maps.MapMouseEvent) => {
+        const latLng = event.latLng;
+        if (!latLng) return;
+        const point = { lat: latLng.lat(), lng: latLng.lng() };
+        void googleLabel(maps, point).then(label => {
+          onPointSelect(target, {
+            label,
+            latitude: point.lat,
+            longitude: point.lng,
+          });
+          setTarget(target === "pickup" ? "destination" : "pickup");
+        });
+      }
+    );
+    return () => listener.remove();
+  }, [allowMapSelection, maps, onPointSelect, target]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!maps || !map) return;
+    clearOverlays(overlaysRef.current);
+    overlaysRef.current = [];
+
+    officeCoordinates.forEach(({ office, value }) => {
+      overlaysRef.current.push(
+        new maps.maps.Marker({
+          map,
+          position: value,
+          title: `${office.name} - ${office.address}`,
+          icon: markerIcon("office"),
+        })
+      );
+    });
+    if (pickupCoordinates) {
+      overlaysRef.current.push(
+        new maps.maps.Marker({
+          map,
+          position: pickupCoordinates,
+          title: pickup.label || "Pickup",
+          icon: markerIcon("pickup"),
+          zIndex: 10,
+        })
+      );
+    }
+    if (destinationCoordinates) {
+      overlaysRef.current.push(
+        new maps.maps.Marker({
+          map,
+          position: destinationCoordinates,
+          title: destination.label || "Destination",
+          icon: markerIcon("destination"),
+          zIndex: 11,
+        })
+      );
+    }
+
+    const routeToken = ++routeTokenRef.current;
+    const visiblePoints = [
+      pickupCoordinates,
+      destinationCoordinates,
+      ...officeCoordinates.map(item => item.value),
+    ].filter((point): point is LatLng => Boolean(point));
+    fitBounds(map, visiblePoints, international);
+
+    if (pickupCoordinates && destinationCoordinates) {
+      if (international) {
+        overlaysRef.current.push(
+          new maps.maps.Polyline({
+            map,
+            path: [pickupCoordinates, destinationCoordinates],
+            geodesic: true,
+            strokeColor: "#012642",
+            strokeOpacity: 0.86,
+            strokeWeight: 5,
+          })
+        );
+        return;
+      }
+      const service = new maps.maps.DirectionsService();
+      void service
+        .route({
+          origin: pickupCoordinates,
+          destination: destinationCoordinates,
+          travelMode: maps.maps.TravelMode.DRIVING,
+        })
+        .then(result => {
+          if (routeToken !== routeTokenRef.current) return;
+          const renderer = new maps.maps.DirectionsRenderer({
+            map,
+            directions: result,
+            suppressMarkers: true,
+            preserveViewport: true,
+            polylineOptions: {
+              strokeColor: "#012642",
+              strokeOpacity: 0.86,
+              strokeWeight: 5,
+            },
+          });
+          overlaysRef.current.push(renderer);
+        })
+        .catch(() => {
+          if (routeToken !== routeTokenRef.current) return;
+          overlaysRef.current.push(
+            new maps.maps.Polyline({
+              map,
+              path: [pickupCoordinates, destinationCoordinates],
+              strokeColor: "#012642",
+              strokeOpacity: 0.86,
+              strokeWeight: 5,
+            })
+          );
+        });
+    }
+  }, [
+    destination.label,
+    destinationCoordinates,
+    international,
+    maps,
+    officeCoordinates,
+    pickup.label,
+    pickupCoordinates,
+  ]);
 
   const useCurrentLocation = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation || !maps) return;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       position => {
-        void select("pickup", [
-          position.coords.latitude,
-          position.coords.longitude,
-        ]).finally(() => setLocating(false));
+        const point = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        const marker = new maps.maps.Marker({
+          map: mapRef.current,
+          position: point,
+          title: "Your current location",
+          icon: markerIcon("current"),
+          zIndex: 12,
+        });
+        overlaysRef.current.push(marker);
+        mapRef.current?.panTo(point);
+        mapRef.current?.setZoom(14);
+        void googleLabel(maps, point)
+          .then(label =>
+            onPointSelect("pickup", {
+              label,
+              latitude: point.lat,
+              longitude: point.lng,
+            })
+          )
+          .finally(() => setLocating(false));
       },
       () => setLocating(false),
       { enableHighAccuracy: true, timeout: 10_000 }
     );
   };
 
+  const zoomBy = (amount: number) => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.setZoom((map.getZoom() ?? (international ? 3 : 6)) + amount);
+  };
+
   return (
     <section
-      className="relative h-[340px] min-h-[340px] overflow-hidden rounded-2xl border border-ink/10 bg-[#dfe8e9] sm:h-[420px]"
+      className={`relative min-h-[420px] overflow-hidden rounded-2xl border border-ink/10 bg-[#dfe8e9] ${className}`}
       aria-label="Booking route map"
     >
-      <MapContainer
-        center={fallback as LatLngExpression}
-        zoom={international ? 3 : 6}
-        className="h-full w-full"
-        zoomControl={false}
-        attributionControl
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <MapViewport points={visiblePoints} fallback={fallback} />
-        {allowMapSelection && (
-          <MapClick onSelect={point => void select(target, point)} />
-        )}
-        {pickupCoordinates && (
-          <CircleMarker
-            center={pickupCoordinates}
-            radius={10}
-            pathOptions={{
-              color: "#012642",
-              fillColor: "#ffffff",
-              fillOpacity: 1,
-              weight: 4,
-            }}
-          >
-            <Popup>{pickup.label || "Pickup"}</Popup>
-            <Tooltip direction="top" offset={[0, -8]}>
-              Pickup
-            </Tooltip>
-          </CircleMarker>
-        )}
-        {destinationCoordinates && (
-          <CircleMarker
-            center={destinationCoordinates}
-            radius={11}
-            pathOptions={{
-              color: "#012642",
-              fillColor: "#ffc83d",
-              fillOpacity: 1,
-              weight: 4,
-            }}
-          >
-            <Popup>{destination.label || "Destination"}</Popup>
-            <Tooltip direction="top" offset={[0, -8]}>
-              Destination
-            </Tooltip>
-          </CircleMarker>
-        )}
-        {pickupCoordinates && destinationCoordinates && (
-          <Polyline
-            positions={[pickupCoordinates, destinationCoordinates]}
-            pathOptions={{
-              color: "#012642",
-              weight: 5,
-              opacity: 0.82,
-              dashArray: international ? "10 9" : undefined,
-            }}
-          />
-        )}
-        {officeCoordinates.map(({ office, value }) => (
-          <CircleMarker
-            key={office.id}
-            center={value}
-            radius={7}
-            pathOptions={{
-              color: "#ffffff",
-              fillColor: "#087f8c",
-              fillOpacity: 1,
-              weight: 3,
-            }}
-          >
-            <Popup>
-              <strong>{office.name}</strong>
-              <br />
-              {office.address}
-            </Popup>
-          </CircleMarker>
-        ))}
-      </MapContainer>
+      <div ref={containerRef} className="absolute inset-0" />
 
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-[500] flex items-start justify-between gap-2">
+      {status !== "ready" && (
+        <div className="absolute inset-0 grid place-items-center bg-[#e8eef0] p-6 text-center">
+          <div className="max-w-sm">
+            <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-white text-ink shadow-sm">
+              <Route className="size-5" />
+            </div>
+            <p className="mt-4 text-sm font-bold text-ink">
+              {status === "missing"
+                ? "Google Maps key is not configured"
+                : status === "error"
+                  ? "Google Maps could not load"
+                  : "Loading Google Maps..."}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-ink/55">
+              The route details are still saved. Configure
+              VITE_GOOGLE_MAPS_API_KEY for the live interactive map.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-2">
         {allowMapSelection ? (
           <div className="pointer-events-auto flex rounded-xl border border-ink/10 bg-white p-1 shadow-lg">
             <button
@@ -261,23 +424,45 @@ export function BookingRouteMap({
             Select branches below
           </span>
         )}
-        {allowMapSelection && (
+        <div className="pointer-events-auto grid gap-2">
+          {allowMapSelection && (
+            <button
+              type="button"
+              onClick={useCurrentLocation}
+              disabled={locating || status !== "ready"}
+              className="grid size-11 place-items-center rounded-xl border border-ink/10 bg-white text-ink shadow-lg disabled:opacity-50"
+              aria-label="Use current location"
+              title="Use current location"
+            >
+              <LocateFixed className="size-4" />
+            </button>
+          )}
           <button
             type="button"
-            onClick={useCurrentLocation}
-            disabled={locating}
-            className="pointer-events-auto grid size-11 place-items-center rounded-xl border border-ink/10 bg-white text-ink shadow-lg disabled:opacity-50"
-            aria-label="Use current location"
-            title="Use current location"
+            onClick={() => zoomBy(1)}
+            disabled={status !== "ready"}
+            className="grid size-11 place-items-center rounded-xl border border-ink/10 bg-white text-ink shadow-lg disabled:opacity-50"
+            aria-label="Zoom in"
+            title="Zoom in"
           >
-            <Navigation className="size-4" />
+            <Plus className="size-4" />
           </button>
-        )}
+          <button
+            type="button"
+            onClick={() => zoomBy(-1)}
+            disabled={status !== "ready"}
+            className="grid size-11 place-items-center rounded-xl border border-ink/10 bg-white text-ink shadow-lg disabled:opacity-50"
+            aria-label="Zoom out"
+            title="Zoom out"
+          >
+            <Minus className="size-4" />
+          </button>
+        </div>
       </div>
 
       {allowMapSelection && (
-        <p className="pointer-events-none absolute inset-x-3 bottom-3 z-[500] rounded-xl bg-ink/90 px-3 py-2 text-center text-[11px] font-semibold text-white shadow-lg">
-          Tap the map to set the{" "}
+        <p className="pointer-events-none absolute inset-x-3 bottom-3 z-10 rounded-xl bg-ink/90 px-3 py-2 text-center text-[11px] font-semibold text-white shadow-lg">
+          Click the map to set the{" "}
           {target === "pickup" ? "pickup" : "destination"} point
         </p>
       )}

@@ -63,10 +63,11 @@ describe("service-specific booking wizards", () => {
     expect(wizardSource).toContain("pickupLatitude");
     expect(wizardSource).toContain("destinationLongitude");
     expect(wizardSource).toContain(
-      "lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
+      "xl:grid-cols-[minmax(390px,560px)_minmax(0,1fr)]"
     );
-    expect(routeMapSource).toContain("MapContainer");
+    expect(routeMapSource).toContain("maps.googleapis.com/maps/api/js");
+    expect(routeMapSource).toContain("DirectionsService");
+    expect(routeMapSource).toContain("Geocoder");
     expect(routeMapSource).toContain("navigator.geolocation");
-    expect(routeMapSource).toContain("nominatim.openstreetmap.org/reverse");
   });
 });
