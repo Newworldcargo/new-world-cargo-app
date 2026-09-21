@@ -67,7 +67,11 @@ function loadGoogleMaps() {
     script.defer = true;
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleMapsKey)}&v=weekly&libraries=marker,places,geometry`;
     script.onload = () => resolve(window.google);
-    script.onerror = () => reject(new Error("Google Maps failed to load"));
+    script.onerror = () => {
+      script.remove();
+      googleMapsPromise = null;
+      reject(new Error("Google Maps failed to load"));
+    };
     document.head.appendChild(script);
   });
   return googleMapsPromise;
@@ -206,6 +210,8 @@ export function BookingRouteMap({
     "loading" | "ready" | "missing" | "error"
   >("loading");
   const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [routeState, setRouteState] = useState<"idle" | "loading" | "ready" | "fallback">("idle");
   const [moving, setMoving] = useState(false);
   const [resolving, setResolving] = useState(false);
@@ -213,8 +219,8 @@ export function BookingRouteMap({
     useState<Required<RouteMapPoint> | null>(null);
   const [confirmState, setConfirmState] = useState<"idle" | "done">("idle");
   const [confirmedTarget, setConfirmedTarget] = useState<RouteTarget>("pickup");
-  const pickupCoordinates = pointToLatLng(pickup);
-  const destinationCoordinates = pointToLatLng(destination);
+  const pickupCoordinates = useMemo(() => pointToLatLng(pickup), [pickup.latitude, pickup.longitude]);
+  const destinationCoordinates = useMemo(() => pointToLatLng(destination), [destination.latitude, destination.longitude]);
   const currentTarget = activeTarget ?? target;
   const setCurrentTarget = (next: RouteTarget) => {
     setTarget(next);
@@ -248,7 +254,7 @@ export function BookingRouteMap({
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadAttempt]);
 
   useEffect(() => {
     if (!maps || !containerRef.current || mapRef.current) return;
@@ -275,17 +281,17 @@ export function BookingRouteMap({
         if (!latLng) return;
         const point = { lat: latLng.lat(), lng: latLng.lng() };
         void googleLabel(maps, point).then(label => {
-          onPointSelect(target, {
+          onPointSelect(currentTarget, {
             label,
             latitude: point.lat,
             longitude: point.lng,
           });
-          setCurrentTarget(target === "pickup" ? "destination" : "pickup");
+          setCurrentTarget(currentTarget === "pickup" ? "destination" : "pickup");
         });
       }
     );
     return () => listener.remove();
-  }, [allowMapSelection, centerPinSelection, maps, onPointSelect, target]);
+  }, [allowMapSelection, centerPinSelection, maps, onPointSelect, currentTarget]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -366,11 +372,9 @@ export function BookingRouteMap({
     }
 
     const routeToken = ++routeTokenRef.current;
-    const visiblePoints = [
-      pickupCoordinates,
-      destinationCoordinates,
-      ...officeCoordinates.map(item => item.value),
-    ].filter((point): point is LatLng => Boolean(point));
+    const selectedPoints = [pickupCoordinates, destinationCoordinates]
+      .filter((point): point is LatLng => Boolean(point));
+    const visiblePoints = selectedPoints.length ? selectedPoints : officeCoordinates.map(item => item.value);
     fitBounds(map, visiblePoints, international, service === "import");
 
     if (pickupCoordinates && destinationCoordinates) {
@@ -427,15 +431,6 @@ export function BookingRouteMap({
         })
         .catch(() => {
           if (routeToken !== routeTokenRef.current) return;
-          overlaysRef.current.push(
-            new maps.maps.Polyline({
-              map,
-              path: [pickupCoordinates, destinationCoordinates],
-              strokeColor: "#012642",
-              strokeOpacity: 0.86,
-              strokeWeight: 5,
-            })
-          );
           setRouteState("fallback");
         });
       return;
@@ -465,6 +460,7 @@ export function BookingRouteMap({
   const useCurrentLocation = () => {
     if (!navigator.geolocation || !maps) return;
     setLocating(true);
+    setLocationError("");
     navigator.geolocation.getCurrentPosition(
       position => {
         const point = {
@@ -483,7 +479,7 @@ export function BookingRouteMap({
         mapRef.current?.setZoom(14);
         void googleLabel(maps, point)
           .then(label =>
-            onPointSelect("pickup", {
+            onPointSelect(currentTarget, {
               label,
               latitude: point.lat,
               longitude: point.lng,
@@ -491,7 +487,10 @@ export function BookingRouteMap({
           )
           .finally(() => setLocating(false));
       },
-      () => setLocating(false),
+      () => {
+        setLocating(false);
+        setLocationError("Your location is unavailable. Search for a place or allow location access and try again.");
+      },
       { enableHighAccuracy: true, timeout: 10_000 }
     );
   };
@@ -508,6 +507,7 @@ export function BookingRouteMap({
       aria-label="Booking route map"
     >
       <div ref={containerRef} className="absolute inset-0" />
+      {locationError && <p role="alert" className="absolute inset-x-3 top-16 z-30 rounded-lg bg-white p-3 text-sm text-red-700">{locationError}</p>}
 
       {status !== "ready" && (
         <div className="absolute inset-0 grid place-items-center bg-[#e8eef0] p-6 text-center">
@@ -526,6 +526,10 @@ export function BookingRouteMap({
               Your route details are still saved. You can continue using the
               location fields and try the map again shortly.
             </p>
+            {status !== "loading" && <button type="button" onClick={() => {
+              setStatus("loading");
+              setLoadAttempt(value => value + 1);
+            }} className="mt-3 rounded-lg border border-ink/20 bg-white px-4 py-3 text-sm font-bold">Retry map</button>}
           </div>
         </div>
       )}
@@ -537,7 +541,7 @@ export function BookingRouteMap({
               type="button"
               onClick={() => setCurrentTarget("pickup")}
               aria-pressed={currentTarget === "pickup"}
-              className={`inline-flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-bold ${currentTarget === "pickup" ? "bg-ink text-white" : "text-ink/65"}`}
+              className={`inline-flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-bold ${currentTarget === "pickup" ? "bg-cargo-yellow text-ink" : "text-ink/65"}`}
             >
               <Crosshair className="size-4" /> From
             </button>
@@ -591,7 +595,7 @@ export function BookingRouteMap({
         </div>
       </div>
 
-      {allowMapSelection && (
+      {allowMapSelection && status === "ready" && (
         <>
           {centerPinSelection && (
             <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center">
@@ -602,7 +606,7 @@ export function BookingRouteMap({
               </div>
             </div>
           )}
-          <div className="absolute inset-x-3 bottom-3 z-20 rounded-xl bg-ink/90 p-3 text-white shadow-lg">
+          <div className="absolute inset-x-3 bottom-3 z-20 rounded-lg border border-ink/10 bg-white p-3 text-ink shadow-lg">
             <p className="text-center text-[11px] font-semibold">
               {centerPinSelection
                 ? moving

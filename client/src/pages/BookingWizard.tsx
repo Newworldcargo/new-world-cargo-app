@@ -16,7 +16,7 @@ import {
   Truck,
   UserRound,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { apiRequest } from "@/api/http";
 import { useAuth } from "@/contexts/AuthContext";
@@ -122,7 +122,7 @@ const journeys: Record<BookingService, { label: string; stages: Stage[] }> = {
         id: "route",
         label: "Route",
         title: "Which cities are you connecting?",
-        detail: "Choose the New World Cargo origin and destination branches.",
+        detail: "Choose where your cargo is coming from and where it is going.",
       },
       {
         id: "cargo",
@@ -296,6 +296,8 @@ export default function BookingWizard() {
     reference: string;
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [drawerExpanded, setDrawerExpanded] = useState(true);
+  const submitting = useRef(false);
   const [activeRouteTarget, setActiveRouteTarget] =
     useState<RouteTarget>("pickup");
   const offices = referenceData?.pickupOfficeSuggestions ?? [];
@@ -337,8 +339,9 @@ export default function BookingWizard() {
             draft.pickupBranchId !== draft.destinationBranchId
         )
       : true);
-  const cargoReady = draft.cargoRows.some(
-    row => row.name.trim() && Number(row.quantity) > 0
+  const namedCargo = draft.cargoRows.filter(row => row.name.trim());
+  const cargoReady = namedCargo.length > 0 && namedCargo.every(
+    row => Number.isInteger(Number(row.quantity)) && Number(row.quantity) > 0
   );
   const contactsReady =
     service === "custom" || service === "import"
@@ -536,7 +539,21 @@ export default function BookingWizard() {
   };
 
   const submit = async () => {
-    if (!service || !journey) return;
+    if (!service || !journey || submitting.current) return;
+    const missingStage = !routeReady ? "route" : !cargoReady
+      ? service === "custom" ? "details" : "cargo"
+      : !contactsReady ? service === "custom" ? "details" : service === "import" ? "receiver" : "contacts"
+      : service === "custom" && !draft.requestType.trim() ? "details" : null;
+    if (missingStage) {
+      feedback.error("Complete the required details before submitting.");
+      navigate(`/send/${service}/${missingStage}`);
+      return;
+    }
+    if (draft.schedule === "scheduled" && (!draft.scheduledAt || new Date(draft.scheduledAt).getTime() <= Date.now())) {
+      feedback.error("Choose a future pickup date and time.");
+      return;
+    }
+    submitting.current = true;
     setBusy(true);
     try {
       const quote = requiresServerQuote(service)
@@ -556,6 +573,7 @@ export default function BookingWizard() {
         "We could not submit this booking. Your details remain on this device."
       );
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   };
@@ -671,47 +689,8 @@ export default function BookingWizard() {
   );
 
   return (
-    <>
-      <div className="-mx-4 -my-6 min-h-[calc(100dvh-4.5rem)] overflow-hidden bg-[#e7eef0] sm:-mx-8 sm:-my-8 xl:hidden">
-        <div className="relative min-h-[calc(100dvh-4.5rem)]">
-          <div className="absolute inset-0">
-            <RouteStage
-              service={service}
-              draft={draft}
-              offices={offices}
-              update={update}
-              activeRouteTarget={activeRouteTarget}
-              onActiveRouteTargetChange={setActiveRouteTarget}
-              mode="map"
-              mapClassName="h-full min-h-full rounded-none border-0"
-            />
-          </div>
-          <section className="absolute inset-x-0 bottom-0 z-20 max-h-[72dvh] overflow-hidden rounded-t-[30px] border border-ink/10 bg-background shadow-[0_-18px_45px_rgba(1,38,66,0.18)]">
-            <div className="flex min-h-8 items-center justify-center">
-              <span className="h-1.5 w-12 rounded-full bg-ink/20" />
-            </div>
-            <div className="max-h-[calc(72dvh-2rem)] overflow-y-auto px-5 pb-5">
-              {header}
-              <main className="mt-5 rounded-[24px] border border-ink/10 bg-white p-5">
-                {stageContent}
-                {footerActions(true, false)}
-              </main>
-            </div>
-          </section>
-        </div>
-      </div>
-
-      <div className="-mx-4 -my-6 hidden min-h-[calc(100dvh-4.5rem)] bg-background sm:-mx-8 sm:-my-8 lg:-mx-12 lg:-my-10 xl:grid xl:min-h-[calc(100dvh-4.5rem)] xl:grid-cols-2">
-        <section className="min-h-[calc(100dvh-4.5rem)] overflow-y-auto border-r border-ink/10 bg-background px-10 py-10 2xl:px-14">
-          <div className="mx-auto max-w-xl">
-            {header}
-            <main className="mt-7 rounded-[28px] border border-ink/10 bg-white p-6 sm:p-8">
-              {stageContent}
-              {footerActions(true, false)}
-            </main>
-          </div>
-        </section>
-        <section className="relative min-h-[calc(100dvh-4.5rem)]">
+      <div className="-mx-4 -my-6 flex min-h-[calc(100dvh-4.5rem)] flex-col bg-background sm:-mx-8 sm:-my-8 lg:-mx-12 lg:-my-10 xl:grid xl:grid-cols-2">
+        <section className={`relative order-1 shrink-0 xl:order-2 xl:row-start-1 xl:col-start-2 xl:h-full xl:min-h-[calc(100dvh-4.5rem)] ${drawerExpanded ? "h-[36dvh]" : "h-[68dvh]"}`}>
           <RouteStage
             service={service}
             draft={draft}
@@ -720,11 +699,22 @@ export default function BookingWizard() {
             activeRouteTarget={activeRouteTarget}
             onActiveRouteTargetChange={setActiveRouteTarget}
             mode="map"
-            mapClassName="h-full min-h-full rounded-none border-0"
+            mapClassName="h-full !min-h-0 rounded-none border-0"
           />
         </section>
+        <section className="order-2 border-r border-ink/10 bg-background xl:order-1 xl:row-start-1 xl:col-start-1 xl:px-10 xl:py-10 2xl:px-14">
+          <button type="button" aria-label={drawerExpanded ? "Collapse booking form" : "Expand booking form"} aria-expanded={drawerExpanded} onClick={() => setDrawerExpanded(value => !value)} className="flex h-11 w-full items-center justify-center xl:hidden">
+            <span className="h-1.5 w-12 rounded-full bg-ink/20" />
+          </button>
+          <div className={`mx-auto max-w-xl px-5 pb-6 xl:block xl:px-0 ${drawerExpanded ? "block" : "hidden"}`}>
+            {header}
+            <main className="mt-5 xl:mt-7">
+              {stageContent}
+              {footerActions(true, false)}
+            </main>
+          </div>
+        </section>
       </div>
-    </>
   );
 }
 
@@ -889,7 +879,7 @@ function RouteStage({
   mode?: "fields" | "map" | "combined";
   mapClassName?: string;
 }) {
-  const mapOffices = offices.map(officeMapPoint);
+  const mapOffices = useMemo(() => offices.map(officeMapPoint), [offices]);
   const pickupPoint: RouteMapPoint = {
     label: draft.pickup,
     latitude: draft.pickupLatitude,
@@ -1079,27 +1069,35 @@ function RouteStage({
 
   const fields = (
     <div className="space-y-5">
-      <TextField
+      <LocationSearchField
         label="Pickup location"
-        icon={MapPin}
+        target="pickup"
+        active={activeRouteTarget === "pickup"}
+        offices={offices}
+        onFocusTarget={onActiveRouteTargetChange}
+        onSelect={suggestion => selectLocationSuggestion("pickup", suggestion)}
         value={draft.pickup}
-        onChange={value => {
-          update("pickup", value);
+        onClear={() => {
+          update("pickup", "");
+          update("pickupBranchId", "");
           update("pickupLatitude", undefined);
           update("pickupLongitude", undefined);
         }}
-        placeholder="Street, area and city"
       />
-      <TextField
+      <LocationSearchField
         label="Delivery location"
-        icon={MapPin}
+        target="destination"
+        active={activeRouteTarget === "destination"}
+        offices={offices}
+        onFocusTarget={onActiveRouteTargetChange}
+        onSelect={suggestion => selectLocationSuggestion("destination", suggestion)}
         value={draft.destination}
-        onChange={value => {
-          update("destination", value);
+        onClear={() => {
+          update("destination", "");
+          update("destinationBranchId", "");
           update("destinationLatitude", undefined);
           update("destinationLongitude", undefined);
         }}
-        placeholder="Street, area and city"
       />
       {service === "local" && (
         <section>
@@ -1617,28 +1615,21 @@ function BranchField({
   offices: Office[];
   onSelect: (office: Office) => void;
 }) {
+  const office = offices.find(item => item.id === value);
   return (
-    <label className="block">
-      <span className="mb-2 block text-xs font-bold text-ink/50">{label}</span>
-      <div className="flex items-center gap-3 rounded-xl border border-ink/10 bg-[#f7f8fb] px-4">
-        <Building2 className="size-4 text-ink/40" />
-        <select
-          value={value}
-          onChange={event => {
-            const office = offices.find(item => item.id === event.target.value);
-            if (office) onSelect(office);
-          }}
-          className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold"
-        >
-          <option value="">Choose a branch</option>
-          {offices.map(item => (
-            <option key={item.id} value={item.id}>
-              {item.name} - {item.address}
-            </option>
-          ))}
-        </select>
-      </div>
-    </label>
+    <LocationSearchField
+      label={label}
+      target="pickup"
+      active={false}
+      value={office ? `${office.name} - ${office.address}` : ""}
+      offices={offices}
+      officesOnly
+      onFocusTarget={() => {}}
+      onSelect={suggestion => {
+        const selected = offices.find(item => item.id === suggestion.branchId);
+        if (selected) onSelect(selected);
+      }}
+    />
   );
 }
 
@@ -1651,6 +1642,7 @@ function LocationSearchField({
   onFocusTarget,
   onSelect,
   onClear,
+  officesOnly = false,
 }: {
   label: string;
   target: RouteTarget;
@@ -1659,8 +1651,10 @@ function LocationSearchField({
   offices: Office[];
   onFocusTarget: (target: RouteTarget) => void;
   onSelect: (suggestion: LocationSuggestion) => void;
-  onClear: () => void;
+  onClear?: () => void;
+  officesOnly?: boolean;
 }) {
+  const listId = useId();
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
@@ -1669,9 +1663,10 @@ function LocationSearchField({
   >([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [selecting, setSelecting] = useState(false);
   useEffect(() => setQuery(value), [value]);
   const officeSuggestions = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const normalized = query === value ? "" : query.trim().toLowerCase();
     const matches = normalized
       ? offices.filter(office =>
           [office.name, office.address, office.city]
@@ -1691,11 +1686,11 @@ function LocationSearchField({
         longitude: mapped.longitude,
       };
     });
-  }, [offices, query]);
+  }, [offices, query, value]);
   useEffect(() => {
     let active = true;
     setSearchError("");
-    if (!open || query.trim().length < 3) {
+    if (officesOnly || !open || query === value || query.trim().length < 3) {
       setGoogleSuggestions([]);
       setSearching(false);
       return () => {
@@ -1724,7 +1719,7 @@ function LocationSearchField({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [open, query]);
+  }, [open, query, value, officesOnly]);
   const suggestions = useMemo(() => {
     const seen = new Set<string>();
     return [...officeSuggestions, ...googleSuggestions]
@@ -1737,6 +1732,10 @@ function LocationSearchField({
       .slice(0, 7);
   }, [googleSuggestions, officeSuggestions]);
   const choose = async (suggestion: LocationSuggestion) => {
+    if (selecting) return;
+    setSelecting(true);
+    setSearchError("");
+    try {
     const resolved =
       suggestion.source === "google"
         ? await resolveGoogleSuggestion(suggestion)
@@ -1745,9 +1744,19 @@ function LocationSearchField({
     setQuery(`${resolved.label} - ${resolved.detail}`);
     setOpen(false);
     setHighlight(0);
+    } catch {
+      setSearchError("We couldn't select that location. Please try again.");
+    } finally {
+      setSelecting(false);
+    }
   };
   return (
-    <div>
+    <div className="relative" onBlur={event => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+        setOpen(false);
+        setQuery(value);
+      }
+    }}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <span className="text-xs font-bold text-ink/50">{label}</span>
         {active && (
@@ -1762,10 +1771,15 @@ function LocationSearchField({
         <div className="flex items-center gap-3">
           <MapPin className="size-4 shrink-0 text-ink/40" />
           <input
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls={listId}
+            aria-activedescendant={open && suggestions[highlight] ? `${listId}-${highlight}` : undefined}
             value={query}
-            onFocus={() => {
+            onFocus={event => {
               onFocusTarget(target);
               setOpen(true);
+              event.currentTarget.select();
             }}
             onChange={event => {
               setQuery(event.target.value);
@@ -1795,7 +1809,7 @@ function LocationSearchField({
               if (event.key === "Escape") setOpen(false);
             }}
             placeholder={
-              target === "pickup"
+              officesOnly ? "Search offices" : target === "pickup"
                 ? "Search where it is coming from"
                 : "Search where it is going"
             }
@@ -1803,7 +1817,7 @@ function LocationSearchField({
             aria-expanded={open}
             className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
           />
-          {value && (
+          {value && onClear && (
             <button
               type="button"
               onClick={() => {
@@ -1819,11 +1833,16 @@ function LocationSearchField({
         </div>
       </div>
       {open && (
-        <div className="mt-2 overflow-hidden rounded-xl border border-ink/10 bg-white shadow-lg">
+        <div className="absolute inset-x-0 top-full z-40 mt-2 max-h-64 overflow-y-auto rounded-lg border border-ink/10 bg-white shadow-lg">
+          <div role="listbox" id={listId} aria-label={label} aria-busy={searching || selecting}>
           {suggestions.length ? (
             suggestions.map((office, index) => (
               <button
                 key={office.id}
+                id={`${listId}-${index}`}
+                role="option"
+                aria-selected={index === highlight}
+                disabled={selecting}
                 type="button"
                 onMouseEnter={() => setHighlight(index)}
                 onMouseDown={event => event.preventDefault()}
@@ -1856,6 +1875,9 @@ function LocationSearchField({
                   "No matching place found. Try a city, area, road, or office name."}
             </div>
           )}
+          </div>
+          {searchError && suggestions.length > 0 && <p role="alert" className="px-4 py-3 text-sm text-red-700">{searchError}</p>}
+          {selecting && <p role="status" className="px-4 py-3 text-sm">Selecting location...</p>}
           {searching && suggestions.length > 0 && (
             <div className="border-t border-ink/10 px-4 py-3 text-xs font-semibold text-ink/55">
               Searching live Google Maps locations...
