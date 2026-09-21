@@ -7,6 +7,7 @@ import {
   Route,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { GOOGLE_MAPS_API_KEY } from "@/config/api-keys";
 
 export type RouteMapPoint = {
   label: string;
@@ -27,11 +28,7 @@ type MapService = "local" | "intercity" | "import" | "custom";
 
 const lusaka: LatLng = { lat: -15.3875, lng: 28.3228 };
 const worldOverview = { lat: 2, lng: 35 };
-const googleMapsKey =
-  import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() ||
-  import.meta.env.VITE_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
-  import.meta.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
-  "";
+const googleMapsKey = GOOGLE_MAPS_API_KEY.trim();
 let googleMapsPromise: Promise<GoogleMaps> | null = null;
 
 const brandMapStyle: google.maps.MapTypeStyle[] = [

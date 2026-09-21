@@ -33,6 +33,7 @@ import {
   type RouteMapPoint,
 } from "@/components/booking-route-map";
 import { feedback } from "@/lib/feedback";
+import { GOOGLE_MAPS_API_KEY } from "@/config/api-keys";
 
 type CargoRow = { id: number; name: string; quantity: string };
 type Contact = { name: string; phone: string };
@@ -802,11 +803,7 @@ function officeMapPoint(office: Office): RouteMapOffice {
   };
 }
 
-const googleMapsKey =
-  import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() ||
-  import.meta.env.VITE_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
-  import.meta.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
-  "";
+const googleMapsKey = GOOGLE_MAPS_API_KEY.trim();
 
 async function searchGooglePlaces(query: string): Promise<LocationSuggestion[]> {
   if (!googleMapsKey || query.trim().length < 3) return [];

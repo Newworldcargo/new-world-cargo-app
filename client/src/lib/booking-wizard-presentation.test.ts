@@ -22,6 +22,10 @@ const appSource = readFileSync(
   fileURLToPath(new URL("../App.tsx", import.meta.url)),
   "utf8"
 );
+const apiKeysSource = readFileSync(
+  fileURLToPath(new URL("../config/api-keys.ts", import.meta.url)),
+  "utf8"
+);
 
 describe("service-specific booking wizards", () => {
   it("opens each service on its own route workflow", () => {
@@ -70,6 +74,13 @@ describe("service-specific booking wizards", () => {
     expect(wizardSource).toContain('mode="map"');
     expect(wizardSource).toContain('mode="fields"');
     expect(routeMapSource).toContain("maps.googleapis.com/maps/api/js");
+    expect(routeMapSource).toContain(
+      'import { GOOGLE_MAPS_API_KEY } from "@/config/api-keys"'
+    );
+    expect(wizardSource).toContain(
+      'import { GOOGLE_MAPS_API_KEY } from "@/config/api-keys"'
+    );
+    expect(apiKeysSource).toContain("export const GOOGLE_MAPS_API_KEY");
     expect(routeMapSource).toContain("DirectionsService");
     expect(routeMapSource).toContain("Geocoder");
     expect(routeMapSource).toContain("navigator.geolocation");
