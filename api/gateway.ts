@@ -145,7 +145,13 @@ function requestJsonBody(request: GatewayRequest): { body: string | undefined } 
   const declaredLength = Number(Array.isArray(contentLength) ? contentLength[0] : contentLength || 0);
   if (Number.isFinite(declaredLength) && declaredLength > gatewayBodyLimitBytes) return { error: "REQUEST_TOO_LARGE" };
 
-  if (request.body === undefined || request.body === null) return { body: undefined };
+  if (
+    request.body === undefined ||
+    request.body === null ||
+    (typeof request.body === "string" && request.body.trim() === "")
+  ) {
+    return { body: undefined };
+  }
   const contentType = String(request.headers["content-type"] || "").toLowerCase();
   if (!contentType.startsWith("application/json")) return { error: "UNSUPPORTED_MEDIA_TYPE" };
 

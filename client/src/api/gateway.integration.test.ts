@@ -142,4 +142,38 @@ describe("server-side BFF to Laravel integration", () => {
     expect(fetchMock.mock.calls[1][1].headers.get("cookie")).toContain("newworldcargo_session=session-token");
     expect(fetchMock.mock.calls[1][1].headers.get("x-csrf-token")).toBe("csrf-token-from-register");
   });
+
+  it("forwards an empty draft submission POST without requiring a content type", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ data: { id: "booking-1", status: "pending" } }), {
+        status: 201,
+        headers: { "content-type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = response();
+    await nodeHandler(
+      request({
+        method: "POST",
+        url: "https://app.newworldcargo.com/api/gateway?path=v1/shipment-drafts/42/submit",
+        query: { path: "v1/shipment-drafts/42/submit" },
+        headers: {
+          origin: "https://app.newworldcargo.com",
+          host: "app.newworldcargo.com",
+          cookie: "newworldcargo_session=session-token; nwc_csrf=csrf-token-123456",
+          "x-csrf-token": "csrf-token-123456",
+        },
+        body: "",
+      } as Partial<MockRequest> & { body: string }),
+      result as never
+    );
+
+    expect(result.statusCode).toBe(201);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0].toString()).toBe(
+      "https://admin.newworldcargo.com/api/v1/shipment-drafts/42/submit"
+    );
+    expect(fetchMock.mock.calls[0][1].body).toBeUndefined();
+  });
 });
