@@ -27,12 +27,12 @@ try {
   await expect(page.getByRole('option').first()).toContainText(expected);
   await inputs.first().press('Enter');
   await expect(inputs.first()).toHaveValue(new RegExp(expected));
-  await inputs.nth(1).fill('kitwwe xxzz');
-  await expect(page.getByRole('option').first()).toContainText('Kitwe office');
+  await inputs.nth(1).fill(service === 'local' ? 'luskaa xxzz' : 'kitwwe xxzz');
+  await expect(page.getByRole('option').first()).toContainText(service === 'local' ? 'Lusaka office' : 'Kitwe office');
   await inputs.nth(1).press('ArrowDown');
   await inputs.nth(1).press('ArrowUp');
   await inputs.nth(1).press('Enter');
-  await expect(inputs.nth(1)).toHaveValue(/Kitwe office/);
+  await expect(inputs.nth(1)).toHaveValue(service === 'local' ? /Lusaka office/ : /Kitwe office/);
   if(service!=='import') {
    await inputs.first().fill('Riverside qzxj');
    await expect(page.getByRole('option').filter({hasText:'Riverside'})).toBeVisible();

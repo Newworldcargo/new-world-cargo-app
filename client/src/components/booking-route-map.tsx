@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GOOGLE_MAPS_API_KEY } from "@/config/api-keys";
+import { serviceArea, serviceAreaMessage, withinServiceArea } from "@/lib/booking-service-area";
 
 export type RouteMapPoint = {
   label: string;
@@ -273,6 +274,19 @@ export function BookingRouteMap({
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!maps || !map) return;
+    const area = serviceArea(service);
+    map.data.forEach(feature => map.data.remove(feature));
+    map.setOptions({ restriction: area ? { latLngBounds: area.properties.bounds, strictBounds: false } : null });
+    if (area) {
+      map.data.addGeoJson(area);
+      map.data.setStyle({ fillColor: '#FFC83D', fillOpacity: 0.07, strokeColor: '#012642', strokeWeight: 2, clickable: false });
+      if (!pickup.latitude && !destination.latitude) map.fitBounds(area.properties.bounds, 32);
+    }
+  }, [maps, service]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!maps || !map || !allowMapSelection || centerPinSelection) return;
     const listener = map.addListener(
       "click",
@@ -280,6 +294,11 @@ export function BookingRouteMap({
         const latLng = event.latLng;
         if (!latLng) return;
         const point = { lat: latLng.lat(), lng: latLng.lng() };
+        if (!withinServiceArea(service, point.lat, point.lng)) {
+          setLocationError(serviceAreaMessage(service));
+          return;
+        }
+        setLocationError("");
         void googleLabel(maps, point).then(label => {
           onPointSelect(currentTarget, {
             label,
@@ -291,46 +310,63 @@ export function BookingRouteMap({
       }
     );
     return () => listener.remove();
-  }, [allowMapSelection, centerPinSelection, maps, onPointSelect, currentTarget]);
+  }, [allowMapSelection, centerPinSelection, maps, onPointSelect, currentTarget, service]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!maps || !map || !allowMapSelection || !centerPinSelection) return;
     let timer: number | undefined;
+    let revision = 0;
     const dragStart = map.addListener("dragstart", () => {
+      revision++;
+      window.clearTimeout(timer);
+      setPendingPoint(null);
       setMoving(true);
       setConfirmState("idle");
     });
     const zoomChanged = map.addListener("zoom_changed", () => {
+      revision++;
+      window.clearTimeout(timer);
+      setPendingPoint(null);
       setMoving(true);
       setConfirmState("idle");
     });
     const idle = map.addListener("idle", () => {
+      const lookupRevision = ++revision;
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         const center = map.getCenter();
         if (!center) return;
         const point = { lat: center.lat(), lng: center.lng() };
         setMoving(false);
+        if (!withinServiceArea(service, point.lat, point.lng)) {
+          setPendingPoint(null);
+          setResolving(false);
+          setLocationError(serviceAreaMessage(service));
+          return;
+        }
+        setLocationError("");
         setResolving(true);
         void googleLabel(maps, point)
-          .then(label =>
+          .then(label => {
+            if (lookupRevision !== revision) return;
             setPendingPoint({
               label,
               latitude: point.lat,
               longitude: point.lng,
-            })
-          )
-          .finally(() => setResolving(false));
+            });
+          })
+          .finally(() => { if (lookupRevision === revision) setResolving(false); });
       }, 450);
     });
     return () => {
+      revision++;
       window.clearTimeout(timer);
       dragStart.remove();
       zoomChanged.remove();
       idle.remove();
     };
-  }, [allowMapSelection, centerPinSelection, maps]);
+  }, [allowMapSelection, centerPinSelection, maps, service]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -448,7 +484,7 @@ export function BookingRouteMap({
   ]);
 
   const confirmPendingPoint = () => {
-    if (!pendingPoint) return;
+    if (!pendingPoint || !withinServiceArea(service, pendingPoint.latitude, pendingPoint.longitude)) return;
     const confirmed = currentTarget;
     onPointSelect(currentTarget, pendingPoint);
     setConfirmedTarget(confirmed);
@@ -467,6 +503,11 @@ export function BookingRouteMap({
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
+        if (!withinServiceArea(service, point.lat, point.lng)) {
+          setLocating(false);
+          setLocationError(serviceAreaMessage(service));
+          return;
+        }
         const marker = new maps.maps.Marker({
           map: mapRef.current,
           position: point,
@@ -607,6 +648,7 @@ export function BookingRouteMap({
             </div>
           )}
           <div className="absolute inset-x-3 bottom-3 z-20 rounded-lg border border-ink/10 bg-white p-3 text-ink shadow-lg">
+            {serviceArea(service) && <p className="mb-2 text-center text-xs font-bold">{service === "local" ? "Lusaka delivery area" : "Zambia delivery area"}</p>}
             <p className="text-center text-[11px] font-semibold">
               {centerPinSelection
                 ? moving
@@ -645,6 +687,7 @@ export function BookingRouteMap({
                 Confirm {currentTarget === "pickup" ? "From" : "To"} location
               </button>
             )}
+            {serviceArea(service) && <p className="mt-2 text-center text-[9px] text-ink/60">Boundary: {serviceArea(service)!.properties.attribution} · {serviceArea(service)!.properties.license}</p>}
           </div>
         </>
       )}

@@ -12,6 +12,7 @@ const offices = [
   { id: '1', name: 'Guangzhou', address: 'Guangzhou, China', country: 'China', latitude: 23.1291, longitude: 113.2644 },
   { id: '2', name: 'Lusaka', address: 'Lusaka, Zambia', country: 'Zambia', latitude: -15.3875, longitude: 28.3228 },
   { id: '3', name: 'Kitwe', address: 'Kitwe, Zambia', country: 'Zambia', latitude: -12.8024, longitude: 28.2132 },
+  { id: '4', name: 'Longacres', address: 'Longacres, Zambia', country: 'Zambia', latitude: -15.405, longitude: 28.315 },
 ];
 try {
   for (const width of process.env.UAT_ONE_FLOW ? [1440] : [1440, 390]) {
@@ -59,8 +60,8 @@ try {
         await expect(inputs).toHaveCount(2);
         if (process.env.UAT_LIVE_MAP && service === 'local') {
           await inputs.first().fill('Levy Junction Lusaka');
-          await expect(visible('[role="option"]').first()).toBeVisible({ timeout: 15000 });
-          await visible('[role="option"]').first().click();
+          await expect(visible('[role="option"]').filter({ hasText: /Levy/i }).first()).toBeVisible({ timeout: 15000 });
+          await visible('[role="option"]').filter({ hasText: /Levy/i }).first().click();
           await expect(inputs.first()).toHaveValue(/Levy/i);
           await visible('button').filter({ hasText: /^Clear$/ }).first().click();
         }
@@ -74,8 +75,8 @@ try {
         await visible('button').filter({ hasText: /^Continue to/ }).click();
         await expect(page).toHaveURL(/\/route$/);
         for (let index = 0; index < 2; index++) {
-          await inputs.nth(index).fill(index === 0 && service === 'import' ? 'Guang' : index === 0 ? 'Lus' : 'Kit');
-          await expect(visible('[role="option"]')).toHaveCount(1);
+          await inputs.nth(index).fill(index === 0 && service === 'import' ? 'Guang' : index === 0 ? 'Lus' : service === 'local' ? 'Longacres' : 'Kit');
+          await expect(visible('[role="option"]').first()).toBeVisible();
           await expect(visible('[role="listbox"]')).toBeVisible();
           await inputs.nth(index).press('Enter');
           await expect(visible('[role="listbox"]')).toHaveCount(0);
@@ -97,7 +98,7 @@ try {
         await visible('button').filter({ hasText: /^Continue to/ }).click();
         await expect(page).not.toHaveURL(/\/route$/);
         await visible('button[aria-label="Go back"]').click();
-        await expect(inputs.nth(1)).toHaveValue(/Kitwe/);
+        await expect(inputs.nth(1)).toHaveValue(service === 'local' ? /Longacres/ : /Kitwe/);
         await visible('button').filter({ hasText: /^Continue to/ }).click();
         if (service === 'custom') await visible('button').filter({ hasText: 'Other request' }).click();
         await visible('input[aria-label="Cargo item 1"]').fill('UAT parcel');

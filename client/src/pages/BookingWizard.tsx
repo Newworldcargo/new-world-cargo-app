@@ -34,6 +34,7 @@ import {
 } from "@/components/booking-route-map";
 import { feedback } from "@/lib/feedback";
 import { createPlaceSearch, searchWithRelaxedQuery } from "@/lib/location-search";
+import { serviceArea, serviceAreaMessage, withinServiceArea } from "@/lib/booking-service-area";
 import { GOOGLE_MAPS_API_KEY } from "@/config/api-keys";
 
 type CargoRow = { id: number; name: string; quantity: string };
@@ -333,6 +334,8 @@ export default function BookingWizard() {
       : navigate("/send");
   const routeReady =
     Boolean(draft.pickup.trim() && draft.destination.trim()) &&
+    withinServiceArea(service ?? "", draft.pickupLatitude, draft.pickupLongitude) &&
+    withinServiceArea(service ?? "", draft.destinationLatitude, draft.destinationLongitude) &&
     (service === "import"
       ? Boolean(
           draft.pickupBranchId &&
@@ -779,7 +782,7 @@ function officeMapPoint(office: Office): RouteMapOffice {
 
 const googleMapsKey = GOOGLE_MAPS_API_KEY.trim();
 
-async function fetchGooglePlaces(query: string, signal: AbortSignal): Promise<LocationSuggestion[]> {
+async function fetchGooglePlaces(query: string, signal: AbortSignal, service: string): Promise<LocationSuggestion[]> {
   if (!googleMapsKey || query.trim().length < 3) return [];
   const response = await fetch(
     "https://places.googleapis.com/v1/places:autocomplete",
@@ -797,6 +800,10 @@ async function fetchGooglePlaces(query: string, signal: AbortSignal): Promise<Lo
         languageCode: "en",
         regionCode: "zm",
         includedRegionCodes: ["zm"],
+        ...(service === "local" ? { locationRestriction: { rectangle: {
+          low: { latitude: serviceArea(service)!.properties.bounds.south, longitude: serviceArea(service)!.properties.bounds.west },
+          high: { latitude: serviceArea(service)!.properties.bounds.north, longitude: serviceArea(service)!.properties.bounds.east },
+        } } } : {}),
       }),
     }
   );
@@ -865,7 +872,7 @@ async function resolveGoogleSuggestion(
 function RouteStage({
   service,
   draft,
-  offices,
+  offices: allOffices,
   update,
   activeRouteTarget,
   onActiveRouteTargetChange,
@@ -881,6 +888,7 @@ function RouteStage({
   mode?: "fields" | "map" | "combined";
   mapClassName?: string;
 }) {
+  const offices = useMemo(() => allOffices.filter(office => withinServiceArea(service, office.latitude ?? undefined, office.longitude ?? undefined)), [allOffices, service]);
   const mapOffices = useMemo(() => offices.map(officeMapPoint), [offices]);
   const pickupPoint: RouteMapPoint = {
     label: draft.pickup,
@@ -910,6 +918,10 @@ function RouteStage({
     target: "pickup" | "destination",
     point: Required<RouteMapPoint>
   ) => {
+    if (!withinServiceArea(service, point.latitude, point.longitude)) {
+      feedback.error(serviceAreaMessage(service));
+      return;
+    }
     if (target === "pickup") {
       update("pickup", point.label);
       update("pickupLatitude", point.latitude);
@@ -959,6 +971,7 @@ function RouteStage({
     const fields = (
       <div className="space-y-5">
         <LocationSearchField
+          service={service}
           label="From location"
           target="pickup"
           active={activeRouteTarget === "pickup"}
@@ -978,6 +991,7 @@ function RouteStage({
           }}
         />
         <LocationSearchField
+          service={service}
           label="To location"
           target="destination"
           active={activeRouteTarget === "destination"}
@@ -1071,7 +1085,9 @@ function RouteStage({
 
   const fields = (
     <div className="space-y-5">
+      {service === "local" && <p className="text-sm font-semibold text-ink">Local delivery is currently available within Lusaka only.</p>}
       <LocationSearchField
+        service={service}
         label="Pickup location"
         target="pickup"
         active={activeRouteTarget === "pickup"}
@@ -1087,6 +1103,7 @@ function RouteStage({
         }}
       />
       <LocationSearchField
+        service={service}
         label="Delivery location"
         target="destination"
         active={activeRouteTarget === "destination"}
@@ -1636,6 +1653,7 @@ function BranchField({
 }
 
 function LocationSearchField({
+  service = "custom",
   label,
   target,
   active,
@@ -1646,6 +1664,7 @@ function LocationSearchField({
   onClear,
   officesOnly = false,
 }: {
+  service?: string;
   label: string;
   target: RouteTarget;
   active: boolean;
@@ -1697,7 +1716,7 @@ function LocationSearchField({
     }
     setSearching(true);
     const timer = window.setTimeout(() => {
-      void searchWithRelaxedQuery(query, candidate => fetchGooglePlaces(candidate, controller.signal), controller.signal)
+      void searchWithRelaxedQuery(query, candidate => fetchGooglePlaces(candidate, controller.signal, service), controller.signal)
         .then(results => {
           if (active) setGoogleSuggestions(results);
         })
@@ -1718,7 +1737,7 @@ function LocationSearchField({
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [open, query, value, officesOnly]);
+  }, [open, query, value, officesOnly, service]);
   const suggestions = useMemo(() => {
     const seen = new Set<string>();
     return [...officeSuggestions, ...googleSuggestions]
@@ -1739,6 +1758,10 @@ function LocationSearchField({
       suggestion.source === "google"
         ? await resolveGoogleSuggestion(suggestion)
         : suggestion;
+    if (!withinServiceArea(service, resolved.latitude, resolved.longitude)) {
+      setSearchError(serviceAreaMessage(service));
+      return;
+    }
     onSelect(resolved);
     setQuery(`${resolved.label} - ${resolved.detail}`);
     setOpen(false);
@@ -1757,6 +1780,7 @@ function LocationSearchField({
       }
     }}>
       <div className="mb-2 flex items-center justify-between gap-3">
+        {serviceArea(service) && <span className="text-xs font-semibold text-ink/65">{service === "local" ? "Lusaka only" : "Zambia only"}</span>}
         <span className="text-xs font-bold text-ink/50">{label}</span>
         {active && (
           <span className="rounded-full bg-cargo-yellow/20 px-2 py-1 text-[10px] font-extrabold text-ink">
