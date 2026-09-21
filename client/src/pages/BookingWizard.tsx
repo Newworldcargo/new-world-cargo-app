@@ -1539,7 +1539,7 @@ function ReviewStage({
         </p>
         <p className="mt-1 text-xs text-ink/55">
           {requiresServerQuote(service)
-            ? "This server-calculated amount is checked again when you submit."
+            ? "Your total will be confirmed when you submit this booking."
             : "Submit the booking now. No price or payment is required until operations reviews the request."}
         </p>
       </div>

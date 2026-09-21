@@ -283,7 +283,7 @@ export default function SendShipment() {
               <span>{service === "import" ? selectedTransport.name : "Delivery request"}</span>
             </div>
           </div>
-          <p className="mt-4 text-xs text-white/45">No payment was collected. You will be asked to pay only after the server provides an official invoice or quote.</p>
+          <p className="mt-4 text-xs text-white/45">No payment was collected. Payment is only requested after New World Cargo issues an official invoice or quote.</p>
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
             <button onClick={() => navigate(submittedShipment ? `/shipments/${submittedShipment.id}` : "/shipments")} className="rounded-2xl bg-white py-3 text-sm font-bold text-ink">
               View shipment
