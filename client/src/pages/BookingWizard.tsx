@@ -258,6 +258,10 @@ function isService(value?: string): value is BookingService {
   );
 }
 
+function requiresServerQuote(service: BookingService): boolean {
+  return service === "local" || service === "import";
+}
+
 export default function BookingWizard() {
   const [, params] = useRoute<{ service: string; stage: string }>(
     "/send/:service/:stage"
@@ -426,7 +430,7 @@ export default function BookingWizard() {
     [draft, service]
   );
 
-  const serverPayload = (quote: BookingQuote) => ({
+  const serverPayload = (quote?: BookingQuote) => ({
     service,
     title: journey?.label,
     progressLabel: "Review complete",
@@ -465,12 +469,16 @@ export default function BookingWizard() {
         name: row.name.trim(),
         quantity: Math.max(1, Number(row.quantity) || 1),
       })),
-    pricing: {
-      request: quoteRequest,
-      quotePayload: quote.quotePayload,
-      quoteSignature: quote.quoteSignature,
-      quoteSource: quote.source,
-    },
+    ...(quote
+      ? {
+          pricing: {
+            request: quoteRequest,
+            quotePayload: quote.quotePayload,
+            quoteSignature: quote.quoteSignature,
+            quoteSource: quote.source,
+          },
+        }
+      : {}),
   });
 
   const requestQuote = async () => {
@@ -491,7 +499,7 @@ export default function BookingWizard() {
     }
     const nextStage = journey.stages[stageIndex + 1];
     if (!nextStage) return;
-    if (nextStage.id === "review") {
+    if (nextStage.id === "review" && requiresServerQuote(service)) {
       setBusy(true);
       try {
         await requestQuote();
@@ -530,7 +538,9 @@ export default function BookingWizard() {
     if (!service || !journey) return;
     setBusy(true);
     try {
-      const quote = draft.quote ?? (await requestQuote());
+      const quote = requiresServerQuote(service)
+        ? draft.quote ?? (await requestQuote())
+        : undefined;
       const saved = await mutations.create.mutateAsync({
         payload: serverPayload(quote),
       });
@@ -604,9 +614,11 @@ export default function BookingWizard() {
         {busy
           ? "Please wait..."
           : activeStage.id === "review"
-            ? service === "local"
-              ? "Confirm delivery request"
-              : "Request a quote"
+            ? requiresServerQuote(service)
+              ? service === "local"
+                ? "Confirm delivery request"
+                : "Request a quote"
+              : "Submit booking request"
             : `Continue to ${journey.stages[stageIndex + 1]?.label ?? "review"}`}
         <ArrowRight className="size-4" />
       </button>
@@ -1541,11 +1553,14 @@ function ReviewStage({
       </div>
       <div className="rounded-xl border border-cargo-yellow/35 bg-cargo-yellow/10 p-4">
         <p className="text-sm font-bold text-foreground">
-          {draft.quote?.formattedTotal || "Quote pending"}
+          {requiresServerQuote(service)
+            ? draft.quote?.formattedTotal || "Quote pending"
+            : "Pricing to be confirmed by operations"}
         </p>
         <p className="mt-1 text-xs text-ink/55">
-          This server-calculated amount is checked again when you submit.
-          Operations confirms manually priced requests.
+          {requiresServerQuote(service)
+            ? "This server-calculated amount is checked again when you submit."
+            : "Submit the booking now. No price or payment is required until operations reviews the request."}
         </p>
       </div>
     </div>

@@ -57,6 +57,10 @@ type CargoRow = {
 
 type BookingQuote = { source: "server"; quotePayload: Record<string, unknown>; quoteSignature: string; formattedTotal: string };
 
+function requiresServerQuote(service: BookingService): boolean {
+  return service === "local" || service === "import";
+}
+
 export default function SendShipment() {
   const [location, navigate] = useLocation();
   const search = typeof window === "undefined" ? "" : window.location.search;
@@ -215,7 +219,9 @@ export default function SendShipment() {
       return;
     }
     try {
-      const quote = await apiRequest<BookingQuote>("/bookings/quote", { method: "POST", body: quoteRequest() });
+      const quote = requiresServerQuote(service)
+        ? await apiRequest<BookingQuote>("/bookings/quote", { method: "POST", body: quoteRequest() })
+        : undefined;
       const draft = await draftMutations.create.mutateAsync({ payload: draftPayload(quote) });
       const shipment = await draftMutations.submit.mutateAsync({ id: draft.id, revision: draft.revision });
       setSavedDraftId(draft.id);

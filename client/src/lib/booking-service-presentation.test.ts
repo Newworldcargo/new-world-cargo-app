@@ -32,5 +32,6 @@ describe("mobile booking service presentation", () => {
     expect(sendSource).toContain("payload: draftPayload()");
     expect(sendSource).toContain('apiRequest<BookingQuote>("/bookings/quote"');
     expect(sendSource).toContain("quoteSignature: quote.quoteSignature");
+    expect(sendSource).toContain("requiresServerQuote(service)");
   });
 });

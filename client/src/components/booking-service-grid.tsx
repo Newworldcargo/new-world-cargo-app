@@ -81,9 +81,9 @@ export function BookingServiceGrid({
                 : "col-span-2";
           const imageClass =
             service.id === "import"
-              ? "-bottom-7 -right-8 h-36 w-48"
+              ? "-bottom-5 -right-10 h-auto w-[calc(var(--spacing)*23)] sm:-bottom-7 sm:-right-2 sm:w-[calc(var(--spacing)*40)]"
               : service.id === "intercity"
-                ? "-bottom-7 -right-10 h-36 w-52"
+                ? "-bottom-5 -right-10 h-auto w-[calc(var(--spacing)*23)] sm:-bottom-7 sm:-right-2 sm:w-[calc(var(--spacing)*40)]"
                 : service.variant === "wide"
                   ? "-bottom-2 -right-6 h-32 w-40"
                   : "-bottom-1 -right-1 h-[62px] w-20";

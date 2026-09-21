@@ -49,13 +49,17 @@ describe("service-specific booking wizards", () => {
     expect(wizardSource).toMatch(/id: "details",\s*label: "Details"/);
   });
 
-  it("submits only server-signed booking quotes", () => {
+  it("requires signed quotes only for services with live pricing", () => {
+    expect(wizardSource).toContain(
+      'return service === "local" || service === "import"'
+    );
     expect(wizardSource).toContain(
       'apiRequest<BookingQuote>("/bookings/quote"'
     );
     expect(wizardSource).toContain("quotePayload: quote.quotePayload");
     expect(wizardSource).toContain("quoteSignature: quote.quoteSignature");
     expect(wizardSource).toContain("quoteSource: quote.source");
+    expect(wizardSource).toContain('"Submit booking request"');
   });
 
   it("keeps route maps wired into booking requests", () => {
