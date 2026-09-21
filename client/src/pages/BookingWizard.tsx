@@ -33,6 +33,7 @@ import {
   type RouteMapPoint,
 } from "@/components/booking-route-map";
 import { feedback } from "@/lib/feedback";
+import { createPlaceSearch, searchWithRelaxedQuery } from "@/lib/location-search";
 import { GOOGLE_MAPS_API_KEY } from "@/config/api-keys";
 
 type CargoRow = { id: number; name: string; quantity: string };
@@ -778,12 +779,13 @@ function officeMapPoint(office: Office): RouteMapOffice {
 
 const googleMapsKey = GOOGLE_MAPS_API_KEY.trim();
 
-async function searchGooglePlaces(query: string): Promise<LocationSuggestion[]> {
+async function fetchGooglePlaces(query: string, signal: AbortSignal): Promise<LocationSuggestion[]> {
   if (!googleMapsKey || query.trim().length < 3) return [];
   const response = await fetch(
     "https://places.googleapis.com/v1/places:autocomplete",
     {
       method: "POST",
+      signal,
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": googleMapsKey,
@@ -1665,15 +1667,9 @@ function LocationSearchField({
   const [searchError, setSearchError] = useState("");
   const [selecting, setSelecting] = useState(false);
   useEffect(() => setQuery(value), [value]);
+  const searchOffices = useMemo(() => createPlaceSearch(offices), [offices]);
   const officeSuggestions = useMemo(() => {
-    const normalized = query === value ? "" : query.trim().toLowerCase();
-    const matches = normalized
-      ? offices.filter(office =>
-          [office.name, office.address, office.city]
-            .filter(Boolean)
-            .some(item => item!.toLowerCase().includes(normalized))
-        )
-      : offices;
+    const matches = searchOffices(query === value ? "" : query);
     return matches.slice(0, 5).map(office => {
       const mapped = officeMapPoint(office);
       return {
@@ -1686,10 +1682,12 @@ function LocationSearchField({
         longitude: mapped.longitude,
       };
     });
-  }, [offices, query, value]);
+  }, [searchOffices, query, value]);
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     setSearchError("");
+    setGoogleSuggestions([]);
     if (officesOnly || !open || query === value || query.trim().length < 3) {
       setGoogleSuggestions([]);
       setSearching(false);
@@ -1699,7 +1697,7 @@ function LocationSearchField({
     }
     setSearching(true);
     const timer = window.setTimeout(() => {
-      void searchGooglePlaces(query)
+      void searchWithRelaxedQuery(query, candidate => fetchGooglePlaces(candidate, controller.signal), controller.signal)
         .then(results => {
           if (active) setGoogleSuggestions(results);
         })
@@ -1717,6 +1715,7 @@ function LocationSearchField({
     }, 300);
     return () => {
       active = false;
+      controller.abort();
       window.clearTimeout(timer);
     };
   }, [open, query, value, officesOnly]);
