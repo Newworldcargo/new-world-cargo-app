@@ -21,6 +21,8 @@ export const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: /^\/v1\/auth\/(verify|verify\/resend|password\/verify|password\/change|logout)$/, methods: ["POST"], access: "session", routeClass: "authentication" },
   { pattern: /^\/v1\/profile$/, methods: ["PATCH", "DELETE"], access: "session", routeClass: "profile" },
   { pattern: /^\/v1\/shipments$/, methods: ["GET"], access: "session", routeClass: "shipments" },
+  { pattern: /^\/v1\/shipments\/[0-9]+\/payments$/, methods: ["GET"], access: "session", routeClass: "shipments" },
+  { pattern: /^\/v1\/shipments\/[0-9]+\/receipts\/(payment|transaction|legacy)-[0-9]+$/, methods: ["GET"], access: "session", routeClass: "shipments" },
   { pattern: new RegExp(`^/v1/shipments/${ID_SEGMENT}$`), methods: ["GET"], access: "session", routeClass: "shipments" },
   { pattern: new RegExp(`^/v1/shipments/${ID_SEGMENT}/actions$`), methods: ["POST"], access: "session", routeClass: "shipment-action" },
   { pattern: new RegExp(`^/v1/public/tracking/${ID_SEGMENT}$`), methods: ["GET"], access: "public", routeClass: "public-tracking" },

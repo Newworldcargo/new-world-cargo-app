@@ -17,6 +17,7 @@ type PaymentModalProps = {
   amount: string;
   reference: string;
   invoiceId?: string;
+  unavailableMessage?: string;
   onClose: () => void;
   onSuccess: (payment: PaymentConfirmation) => void;
 };
@@ -29,7 +30,7 @@ function getInitialMethod(): PaymentMethodKind {
   return stored === "card" ? "card" : "mobile_money";
 }
 
-export function PaymentModal({ open, amount, reference, invoiceId, onClose, onSuccess }: PaymentModalProps) {
+export function PaymentModal({ open, amount, reference, invoiceId, unavailableMessage, onClose, onSuccess }: PaymentModalProps) {
   const [method, setMethod] = useState<PaymentMethodKind>(getInitialMethod);
   const [mobileProvider, setMobileProvider] = useState("Airtel Money");
   const [phone, setPhone] = useState("+260 977 123 456");
@@ -54,13 +55,20 @@ export function PaymentModal({ open, amount, reference, invoiceId, onClose, onSu
   const methodLabel = useMemo(() => method === "mobile_money" ? `${mobileProvider} · ${phone || "new number"}` : cardNumber ? `Card ending ${cardNumber.replace(/\D/g, "").slice(-4)}` : "New debit or ATM card", [cardNumber, method, mobileProvider, phone]);
 
   if (!open) return null;
+  if (unavailableMessage) return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/40 p-4" role="dialog" aria-modal="true" aria-label="Make a payment">
+    <div className="w-full max-w-lg rounded-lg bg-white p-6 text-ink">
+      <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-bold">Online payment</h2><button onClick={onClose} aria-label="Close payment" className="grid size-11 place-items-center"><X className="size-5" /></button></div>
+      <p className="mt-3 font-semibold">{reference} · {amount}</p><p className="mt-4 text-sm" role="status">{unavailableMessage}</p>
+      <button onClick={onClose} className="mt-5 rounded-lg bg-cargo-yellow px-5 py-3 font-bold text-ink">Close</button>
+    </div>
+  </div>;
 
   const submitPayment = async () => {
     if (method === "mobile_money" && phone.replace(/\D/g, "").length < 9) return;
     if (method === "card" && (cardNumber.replace(/\D/g, "").length < 12 || !cardName.trim() || cardExpiry.length < 4 || cardCvv.length < 3)) return;
     if (!invoiceId) {
       setPaymentState("failed");
-      setErrorMessage("This payment is not linked to a server invoice yet. No money was collected.");
+      setErrorMessage("Your bill is not ready for online payment yet. Please contact your branch.");
       return;
     }
 

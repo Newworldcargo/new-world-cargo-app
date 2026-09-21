@@ -3,7 +3,6 @@ import {
   CalendarDays,
   CheckCircle2,
   CircleHelp,
-  Download,
   FileCheck2,
   MoreHorizontal,
   PackageOpen,
@@ -21,13 +20,10 @@ import {
   StatusBadge,
   Timeline,
 } from "@/components/shipment-ui";
-import {
-  PaymentModal,
-  type PaymentConfirmation,
-} from "@/components/payment-modal";
-import { canModifyShipment, canPayShipment } from "@/lib/workflow-completion";
+import { ShipmentPayments } from "@/components/shipment-payments";
+import { canModifyShipment } from "@/lib/workflow-completion";
 import { cargoAssets } from "@/lib/cargo-assets";
-import { useCustomerInvoices, useCustomerShipment } from "@/api/hooks";
+import { useCustomerShipment } from "@/api/hooks";
 import { apiRequest } from "@/api/http";
 import BookingDetail from "./BookingDetail";
 
@@ -43,10 +39,6 @@ function ConfirmedShipmentDetail() {
   const { data: shipment, isLoading: shipmentLoading } = useCustomerShipment(
     params?.id
   );
-  const { data: invoices = [] } = useCustomerInvoices();
-  const linkedInvoice = shipment
-    ? invoices.find(invoice => invoice.shipmentId === shipment.id)
-    : undefined;
   const [showReschedule, setShowReschedule] = useState(false);
   const [showDelivery, setShowDelivery] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -58,8 +50,6 @@ function ConfirmedShipmentDetail() {
   const [deliveryRevision, setDeliveryRevision] = useState<number | null>(null);
   const [deliverySaving, setDeliverySaving] = useState(false);
   const [deliveryError, setDeliveryError] = useState("");
-  const [paymentCompleted, setPaymentCompleted] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
     if (!shipment) return;
@@ -105,16 +95,6 @@ function ConfirmedShipmentDetail() {
       </div>
     );
   const canModify = canModifyShipment(shipment.status, cancelled);
-  const canPay =
-    Boolean(linkedInvoice?.id) &&
-    canPayShipment(linkedInvoice?.status, cancelled || paymentCompleted);
-  const completePayment = (payment: PaymentConfirmation) => {
-    setPaymentCompleted(true);
-    setShowPayment(false);
-    feedback.success(
-      `Payment received via ${payment.label}. Your receipt is ready in Invoices.`
-    );
-  };
   const saveDelivery = async () => {
     if (deliveryRevision === null) return;
     setDeliverySaving(true);
@@ -170,15 +150,6 @@ function ConfirmedShipmentDetail() {
           <ArrowLeft className="size-4 shrink-0" />
           Back to shipments
         </button>
-        {canPay && (
-          <button
-            onClick={() => setShowPayment(true)}
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-cargo-yellow px-4 py-2.5 text-xs font-extrabold text-ink transition hover:brightness-105 active:scale-[0.97]"
-            aria-label={`Pay ${linkedInvoice?.amount ?? shipment.price}`}
-          >
-            Pay
-          </button>
-        )}
       </div>
       <div className="grid gap-6 lg:grid-cols-[1fr_0.78fr] lg:items-start">
         <div>
@@ -314,20 +285,14 @@ function ConfirmedShipmentDetail() {
                 <span className="text-white/40">Transport</span>
                 <CargoModeLabel mode={shipment.transportMode} compact />
               </div>
-              <Detail label="Amount paid" value={shipment.price} />
             </div>
           </section>
+          <ShipmentPayments shipmentId={shipment.id} reference={shipment.trackingNumber} cancelled={cancelled} />
           <div className="grid grid-cols-2 gap-2">
             <Action
               onClick={() => navigate(`/shipments/${shipment.id}/proof`)}
               icon={<FileCheck2 className="size-4" />}
               label="Proof of delivery"
-              compact
-            />
-            <Action
-              onClick={() => feedback.success("Receipt download prepared.")}
-              icon={<Download className="size-4" />}
-              label="Receipt"
               compact
             />
           </div>
@@ -436,14 +401,6 @@ function ConfirmedShipmentDetail() {
           </div>
         </Overlay>
       )}
-      <PaymentModal
-        open={showPayment}
-        invoiceId={linkedInvoice?.id}
-        amount={linkedInvoice?.amount ?? shipment.price}
-        reference={linkedInvoice?.invoiceNumber ?? shipment.trackingNumber}
-        onClose={() => setShowPayment(false)}
-        onSuccess={completePayment}
-      />
       {showReschedule && (
         <Overlay>
           <ModalTitle
