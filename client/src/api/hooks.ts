@@ -110,7 +110,7 @@ export function useShipmentDraftMutations() {
   const invalidateShipments = () => queryClient.invalidateQueries({ queryKey: queryKeys.shipments.all(scope.customerId) });
   return {
     create: useMutation({ mutationFn: (input: { payload: Record<string, unknown>; expiresAt?: string | null }) => customerPortalRepository.createShipmentDraft(requireCustomerScope(scope), input), onSuccess: invalidate }),
-    submit: useMutation({ mutationFn: ({ id, revision }: { id: string; revision: number }) => customerPortalRepository.submitShipmentDraft(requireCustomerScope(scope), id, revision), onSuccess: () => { invalidate(); invalidateShipments(); } }),
+    submit: useMutation({ mutationFn: ({ id, revision }: { id: string; revision: number }) => customerPortalRepository.submitShipmentDraft(requireCustomerScope(scope), id, revision), onSuccess: () => { invalidate(); invalidateShipments(); void queryClient.invalidateQueries({ queryKey: ["customer", scope.customerId, "bookings"] }); } }),
     remove: useMutation({ mutationFn: ({ id, revision }: { id: string; revision: number }) => customerPortalRepository.deleteShipmentDraft(requireCustomerScope(scope), id, revision), onSuccess: invalidate }),
   };
 }

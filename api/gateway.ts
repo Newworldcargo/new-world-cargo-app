@@ -48,6 +48,8 @@ const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: new RegExp(`^/v1/shipment-drafts/${ID_SEGMENT}$`), methods: ["DELETE"], access: "session", routeClass: "shipment-drafts" },
   { pattern: new RegExp(`^/v1/shipment-drafts/${ID_SEGMENT}/submit$`), methods: ["POST"], access: "session", routeClass: "shipment-drafts" },
   { pattern: /^\/v1\/bookings\/quote$/, methods: ["POST"], access: "session", routeClass: "booking-quote" },
+  { pattern: /^\/v1\/bookings$/, methods: ["GET"], access: "session", routeClass: "bookings" },
+  { pattern: /^\/v1\/bookings\/[0-9]+$/, methods: ["GET"], access: "session", routeClass: "bookings" },
 ];
 
 const gatewayBodyLimitBytes = 1_000_000;

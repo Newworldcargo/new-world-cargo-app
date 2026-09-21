@@ -46,6 +46,18 @@ function response() {
 }
 
 describe("server-side BFF to Laravel integration", () => {
+  it.each(["bookings", "bookings/5"])("forwards authenticated GET %s to the booking API", async path => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = response();
+    await nodeHandler(request({
+      query: { path: `v1/${path}` },
+      headers: { cookie: "newworldcargo_session=test-session", host: "app.newworldcargo.com" },
+    }), result as never);
+    expect(result.statusCode).toBe(200);
+    expect(fetchMock.mock.calls[0][0].toString()).toBe(`https://admin.newworldcargo.com/api/v1/${path}`);
+    expect(fetchMock.mock.calls[0][1].headers.get("cookie")).toBe("newworldcargo_session=test-session");
+  });
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();

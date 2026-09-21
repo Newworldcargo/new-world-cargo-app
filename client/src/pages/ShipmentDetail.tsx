@@ -29,8 +29,15 @@ import { canModifyShipment, canPayShipment } from "@/lib/workflow-completion";
 import { cargoAssets } from "@/lib/cargo-assets";
 import { useCustomerInvoices, useCustomerShipment } from "@/api/hooks";
 import { apiRequest } from "@/api/http";
+import BookingDetail from "./BookingDetail";
 
 export default function ShipmentDetail() {
+  const [, params] = useRoute("/shipments/:id");
+  const bookingId = /^booking-(\d+)$/.exec(params?.id ?? "")?.[1];
+  return bookingId ? <BookingDetail id={bookingId} /> : <ConfirmedShipmentDetail />;
+}
+
+function ConfirmedShipmentDetail() {
   const [, params] = useRoute("/shipments/:id");
   const [, navigate] = useLocation();
   const { data: shipment, isLoading: shipmentLoading } = useCustomerShipment(
