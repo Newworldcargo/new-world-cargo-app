@@ -192,10 +192,10 @@ function vitePluginCustomerApiGateway(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginCustomerApiGateway()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusDebugCollector(), vitePluginCustomerApiGateway()];
 
-export default defineConfig({
-  plugins,
+export default defineConfig(({ command }) => ({
+  plugins: [...plugins, ...(command === "serve" ? [vitePluginManusRuntime()] : [])],
   envPrefix: ["VITE_", "EXPO_PUBLIC_"],
   resolve: {
     alias: {
@@ -241,4 +241,4 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
-});
+}));

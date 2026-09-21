@@ -1,10 +1,12 @@
 import { chromium, expect } from '@playwright/test';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 // Controlled API fixtures exercise the real UI without creating customer orders.
-const output = process.env.UAT_LIVE_MAP ? '/tmp/nwc-booking-live-map-audit' : '/tmp/nwc-booking-browser-audit';
+const output = process.env.UAT_PRODUCTION_HEADERS ? '/tmp/nwc-booking-production-policy-audit' : process.env.UAT_LIVE_MAP ? '/tmp/nwc-booking-live-map-audit' : '/tmp/nwc-booking-browser-audit';
+const deployment = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+const productionHeaders = Object.fromEntries(deployment.headers.find(item => item.source === '/(.*)').headers.map(item => [item.key.toLowerCase(), item.value]));
 await mkdir(output, { recursive: true });
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, args: process.env.UAT_PUBLIC_DNS_IP ? [`--host-resolver-rules=MAP app.newworldcargo.com ${process.env.UAT_PUBLIC_DNS_IP}`] : [] });
 const results = [];
 const offices = [
   { id: '1', name: 'Guangzhou', address: 'Guangzhou, China', country: 'China', latitude: 23.1291, longitude: 113.2644 },
@@ -12,11 +14,20 @@ const offices = [
   { id: '3', name: 'Kitwe', address: 'Kitwe, Zambia', country: 'Zambia', latitude: -12.8024, longitude: 28.2132 },
 ];
 try {
-  for (const width of [1440, 390]) {
-    for (const service of ['import', 'intercity', 'local', 'custom']) {
-      const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: true });
+  for (const width of process.env.UAT_ONE_FLOW ? [1440] : [1440, 390]) {
+    for (const service of process.env.UAT_ONE_FLOW ? ['import'] : ['import', 'intercity', 'local', 'custom']) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, ignoreHTTPSErrors: !process.env.UAT_PUBLIC_DNS_IP });
       const page = await context.newPage();
       page.setDefaultTimeout(8000);
+      if (process.env.UAT_PRODUCTION_HEADERS) {
+        await page.route('**/send/**', async route => {
+          if (route.request().resourceType() !== 'document') return route.continue();
+          const response = await route.fetch();
+          const headers = { ...response.headers(), ...productionHeaders };
+          if (process.env.UAT_OLD_CSP) headers['content-security-policy'] = headers['content-security-policy'].replace("script-src 'self' https://maps.googleapis.com https://maps.gstatic.com", "script-src 'self'");
+          await route.fulfill({ response, headers });
+        });
+      }
       const errors = [];
       const mapErrors = [];
       const requests = [];
@@ -43,7 +54,7 @@ try {
       }
       const visible = selector => page.locator(`${selector}:visible`);
       try {
-        await page.goto(`http://localhost:5193/send/${service}/route`);
+        await page.goto(`${process.env.UAT_BASE_URL || 'http://localhost:5193'}/send/${service}/route`);
         const inputs = visible('input[role="combobox"]');
         await expect(inputs).toHaveCount(2);
         if (process.env.UAT_LIVE_MAP && service === 'local') {
@@ -79,6 +90,8 @@ try {
           await page.waitForTimeout(5000);
           const tileImages = await page.locator('.gm-style img').evaluateAll(images => images.filter(image => image.complete && image.naturalWidth > 100).length);
           console.log(JSON.stringify({ service, tileImages, mapErrors }));
+          expect(tileImages).toBeGreaterThan(0);
+          expect(mapErrors.filter(message => /content security policy|Refused to|Google Maps JavaScript API error/i.test(message))).toEqual([]);
         }
         await page.screenshot({ path: `${output}/${service}-${width}-route.png`, fullPage: true });
         await visible('button').filter({ hasText: /^Continue to/ }).click();

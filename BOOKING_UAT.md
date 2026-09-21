@@ -9,7 +9,7 @@ This is an evidence log, not a full production sign-off.
 - `node scripts/booking-browser-audit.mjs` runs with controlled customer/API fixtures and deliberately failed Google loading.
 - `UAT_LIVE_MAP=1 node scripts/booking-browser-audit.mjs` uses real Google Maps and Places network requests. Customer identity, offices, prices and booking responses remain fixtures.
 - Screenshots and machine-readable results: `/tmp/nwc-booking-browser-audit` and `/tmp/nwc-booking-live-map-audit`.
-- Public `https://app.newworldcargo.com/send` failed with a certificate-date error. A diagnostic run allowing that certificate returned a Page Not Found screen. This observation is specific to this environment and must be checked against production routing and certificate state.
+- Correction: this server's `/etc/hosts` overrides `app.newworldcargo.com` to the wrong machine. That caused the certificate/404 observations. Public DNS resolves to Vercel, which returns HTTPS 200. Use a browser resolver override or curl `--resolve` for production checks here. Production headers revealed a CSP blocking Google Maps scripts; the policy is being verified separately against the production build.
 - No live customer order or payment was created.
 
 ## Executed interaction coverage
@@ -51,6 +51,12 @@ Separate live Google checks exercise enabled zoom controls, rendered tile images
 - Correct unreadable map status/control colours affected by global light-theme CSS.
 
 ## Still required before release acceptance
+
+### Production Maps policy regression
+
+The production CSP originally had `script-src 'self'`, blocking the Google Maps loader. A built-app Playwright run with the old header reproduced disabled map controls. The corrected header allows `maps.googleapis.com` and `maps.gstatic.com`, plus Maps frames and blob workers. It does not add inline script or eval permission. A development runtime previously injected into built HTML is now limited to development commands. The audit runner can apply the actual `vercel.json` headers using `UAT_PRODUCTION_HEADERS=1 UAT_BASE_URL=http://localhost:5194 UAT_LIVE_MAP=1` against a production preview. It rejects CSP/Maps errors and checks loaded map images.
+
+Use `UAT_PUBLIC_DNS_IP=<current-public-DNS-address> UAT_BASE_URL=https://app.newworldcargo.com UAT_LIVE_MAP=1` to test the deployed site while bypassing this machine's stale hosts entry. Do not use `UAT_PRODUCTION_HEADERS` for that run: the deployed headers must be tested unchanged. API fixtures still apply, so these runs do not establish live booking persistence.
 
 | Area | Remaining evidence or implementation |
 | --- | --- |
