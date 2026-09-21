@@ -582,16 +582,18 @@ export default function BookingWizard() {
   );
 
   const footerActions = (showBack = true, showSaveDraft = true) => (
-    <div className="mt-8 flex flex-col-reverse gap-3 border-t border-ink/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-8 flex items-center gap-3 border-t border-ink/10 pt-6">
       {(showBack || (showSaveDraft && activeStage.id !== "review")) && (
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           {showBack && (
             <button
               type="button"
               onClick={goBack}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-ink/10 px-4 py-3 text-sm font-bold text-foreground"
+              aria-label="Go back"
+              title="Back"
+              className="grid size-12 shrink-0 place-items-center rounded-xl border border-ink/10 text-foreground transition hover:border-cargo-yellow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cargo-yellow"
             >
-              <ArrowLeft className="size-4" /> Back
+              <ArrowLeft className="size-4" />
             </button>
           )}
           {showSaveDraft && activeStage.id !== "review" && (
@@ -610,7 +612,7 @@ export default function BookingWizard() {
         type="button"
         onClick={activeStage.id === "review" ? submit : next}
         disabled={busy || mutations.submit.isPending}
-        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-cargo-yellow px-6 text-sm font-bold text-ink disabled:opacity-50"
+        className="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-cargo-yellow px-4 text-sm font-bold text-ink disabled:opacity-50 sm:px-6"
       >
         {busy
           ? "Please wait..."
@@ -684,17 +686,6 @@ export default function BookingWizard() {
               mapClassName="h-full min-h-full rounded-none border-0"
             />
           </div>
-          <div className="absolute inset-x-4 top-4 z-20 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={goBack}
-              aria-label="Go back"
-              className="grid size-11 place-items-center rounded-2xl border border-ink/10 bg-white text-ink shadow-lg"
-            >
-              <ArrowLeft className="size-4" />
-            </button>
-            <span className="size-11" aria-hidden="true" />
-          </div>
           <section className="absolute inset-x-0 bottom-0 z-20 max-h-[72dvh] overflow-hidden rounded-t-[30px] border border-ink/10 bg-background shadow-[0_-18px_45px_rgba(1,38,66,0.18)]">
             <div className="flex min-h-8 items-center justify-center">
               <span className="h-1.5 w-12 rounded-full bg-ink/20" />
@@ -703,7 +694,7 @@ export default function BookingWizard() {
               {header}
               <main className="mt-5 rounded-[24px] border border-ink/10 bg-white p-5">
                 {stageContent}
-                {footerActions(false, false)}
+                {footerActions(true, false)}
               </main>
             </div>
           </section>
@@ -716,19 +707,11 @@ export default function BookingWizard() {
             {header}
             <main className="mt-7 rounded-[28px] border border-ink/10 bg-white p-6 sm:p-8">
               {stageContent}
-              {footerActions(false, false)}
+              {footerActions(true, false)}
             </main>
           </div>
         </section>
         <section className="relative min-h-[calc(100dvh-4.5rem)]">
-          <button
-            type="button"
-            onClick={goBack}
-            aria-label="Go back"
-            className="absolute left-4 top-4 z-30 grid size-11 place-items-center rounded-2xl border border-ink/10 bg-white text-ink shadow-lg"
-          >
-            <ArrowLeft className="size-4" />
-          </button>
           <RouteStage
             service={service}
             draft={draft}
