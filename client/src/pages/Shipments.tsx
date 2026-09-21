@@ -3,20 +3,25 @@
 import { FilePenLine, Filter, Search, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { CompactShipmentRow, ShipmentCard } from "@/components/shipment-ui";
+import { ShipmentCard } from "@/components/shipment-ui";
 import { useCustomerDrafts, useCustomerShipments } from "@/api/hooks";
-import { BookingList } from "@/components/booking-list";
+import { useCustomerBookings } from "@/api/bookings";
+import { shipmentPipeline } from "@/lib/shipment-pipeline";
 
 export default function Shipments() {
   const [, navigate] = useLocation();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "delivered">("all");
   const {
-    data: filtered = [],
+    data: shipments = [],
     isLoading,
     isError,
     refetch,
-  } = useCustomerShipments({ query, status: filter });
+  } = useCustomerShipments({ query, status: filter }, { refetchInterval: 30_000 });
+  const bookingsQuery = useCustomerBookings();
+  const filtered = shipmentPipeline(shipments, bookingsQuery.data ?? [], query, filter);
+  const loading = isLoading || bookingsQuery.isLoading;
+  const hasError = isError || bookingsQuery.isError;
   const draftsQuery = useCustomerDrafts();
   const drafts = draftsQuery.data ?? [];
   return (
@@ -83,13 +88,10 @@ export default function Shipments() {
             </span>
             <div>
               <p className="text-sm font-bold text-white">
-                {drafts.length} saved{" "}
-                {drafts.length === 1 ? "request" : "requests"} waiting for a
-                quote
+                {drafts.length} unfinished {drafts.length === 1 ? "draft" : "drafts"}
               </p>
               <p className="mt-1 text-xs text-white/55">
-                These are not booked shipments yet. Operations will quote and
-                confirm them before they appear as cargo.
+                These drafts have not been submitted.
               </p>
             </div>
           </div>
@@ -97,54 +99,43 @@ export default function Shipments() {
             onClick={() => navigate("/shipments/drafts")}
             className="mt-4 w-full rounded-xl bg-cargo-yellow px-4 py-2.5 text-sm font-bold text-ink sm:mt-0 sm:w-auto"
           >
-            View saved requests
+            View drafts
           </button>
         </section>
       )}
-      <BookingList query={query} filter={filter} />
       <div className="mt-8">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-heading text-lg font-extrabold">
-            Confirmed shipments
+            Your shipments
           </h2>
           <span className="text-xs text-white/40">{filtered.length} shown</span>
         </div>
+        {hasError && <div role="alert" className="mb-4 text-sm">
+          <p>Some shipments could not be loaded.</p>
+          <button onClick={() => { void refetch(); void bookingsQuery.refetch(); }} className="mt-2 font-bold underline">Try again</button>
+        </div>}
         <div className="grid gap-5 lg:grid-cols-2">
-          {isLoading ? (
+          {loading && !filtered.length ? (
             <div className="col-span-full rounded-[28px] border border-dashed border-white/15 p-10 text-center text-sm text-white/45">
               Loading shipments linked to your account…
             </div>
-          ) : isError ? (
-            <div className="col-span-full rounded-[28px] border border-dashed border-white/15 p-10 text-center">
-              <Filter className="mx-auto size-6 text-white/30" />
-              <p className="mt-3 font-heading font-bold">
-                We could not load your shipments
-              </p>
-              <button
-                onClick={() => refetch()}
-                className="mt-4 text-sm font-bold text-cargo-yellow"
-              >
-                Try again
-              </button>
-            </div>
           ) : filtered.length ? (
-            filtered.map(shipment => (
-              <div key={shipment.id}>
+            filtered.map(item => (
+              <div key={item.key}>
                 <ShipmentCard
-                  shipment={shipment}
-                  onOpen={() => navigate(`/shipments/${shipment.id}`)}
+                  shipment={item.card}
+                  onOpen={() => navigate(`/shipments/${item.id}`)}
                 />
               </div>
             ))
-          ) : (
+          ) : !hasError ? (
             <div className="col-span-full rounded-[28px] border border-dashed border-white/15 p-10 text-center">
               <Filter className="mx-auto size-6 text-white/30" />
               <p className="mt-3 font-heading font-bold">
-                No confirmed shipments yet
+                {query || filter !== "all" ? "No shipments match your filters" : "No shipments yet"}
               </p>
               <p className="mt-1 text-sm text-white/40">
-                A saved request appears here only after operations confirms it
-                and assigns a shipment number.
+                {query || filter !== "all" ? "Try another search or select All." : "Submitted bookings appear here while awaiting approval."}
               </p>
               {drafts.length > 0 && (
                 <button
@@ -155,7 +146,7 @@ export default function Shipments() {
                 </button>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
       <div className="mt-8 flex items-center gap-2 text-xs text-white/30">

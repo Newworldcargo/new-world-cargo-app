@@ -16,11 +16,12 @@ function requireCustomerScope(scope: ReturnType<typeof useCustomerScope>) {
   return { customerId: scope.customerId };
 }
 
-export function useCustomerShipments(filters: ShipmentListFilters = {}) {
+export function useCustomerShipments(filters: ShipmentListFilters = {}, options: { refetchInterval?: number } = {}) {
   const scope = useCustomerScope();
   return useQuery({
     queryKey: queryKeys.shipments.list(scope.customerId, filters),
     queryFn: () => customerPortalRepository.listShipments({ customerId: scope.customerId }, filters).then((records) => records.map(shipmentToViewModel)),
+    refetchInterval: options.refetchInterval,
     enabled: scope.enabled,
   });
 }

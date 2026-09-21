@@ -9,6 +9,7 @@ import {
   Copy,
   MapPin,
   PackageCheck,
+  Package,
   Plane,
   RefreshCw,
   Share2,
@@ -18,6 +19,8 @@ import {
 } from "lucide-react";
 import { feedback } from "@/lib/feedback";
 import type { Shipment, ShipmentStatus } from "@/lib/domain";
+import type { ShipmentCardData } from "@/lib/shipment-pipeline";
+import { bookingServiceLabels } from "@/api/bookings";
 
 const statusStyles: Record<ShipmentStatus, string> = {
   pending: "bg-ink/10 text-ink",
@@ -41,7 +44,7 @@ export function StatusBadge({
   small?: boolean;
 }) {
   const Icon =
-    status === "delayed" || status === "failed"
+    status === "pending" || status === "delayed" || status === "failed"
       ? Clock3
       : status === "delivered"
         ? Check
@@ -81,10 +84,11 @@ export function ShipmentCard({
   shipment,
   onOpen,
 }: {
-  shipment: Shipment;
+  shipment: ShipmentCardData;
   onOpen?: () => void;
 }) {
-  const isAir = shipment.transportMode === "air";
+  const isAir = shipment.transportMode !== "sea";
+  const ServiceIcon = shipment.service === "custom" ? Package : Truck;
   const tone = isAir ? "bg-cargo-yellow text-ink" : "sea-cargo-surface";
   const muted = isAir ? "text-ink/45" : "sea-cargo-muted";
   const rule = isAir ? "border-ink/15" : "border-white/20";
@@ -104,9 +108,13 @@ export function ShipmentCard({
         <div
           className={`absolute -bottom-8 -right-8 size-32 rounded-full border-[18px] ${isAir ? "border-ink/15" : "border-cargo-yellow/35"}`}
         />
-        <div className="relative flex min-w-0 items-start justify-between gap-3">
+        <div className="relative flex min-w-0 flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <CargoModeLabel mode={shipment.transportMode} compact />
+            {shipment.transportMode ? <CargoModeLabel mode={shipment.transportMode} compact /> : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-white/55 px-2 py-1 text-[10px] font-bold text-ink">
+                <ServiceIcon className="size-3" />{shipment.service ? bookingServiceLabels[shipment.service] : "Cargo"}
+              </span>
+            )}
             <p className="mt-2 truncate font-heading text-lg font-extrabold tracking-tight">
               {shipment.trackingNumber}
             </p>
@@ -126,7 +134,7 @@ export function ShipmentCard({
             >
               From
             </p>
-            <p className="mt-1 text-sm font-bold">
+            <p className="mt-1 break-words text-sm font-bold">
               {shipment.origin.split(",")[0]}
             </p>
           </div>
@@ -143,7 +151,7 @@ export function ShipmentCard({
             >
               To
             </p>
-            <p className="mt-1 text-sm font-bold">
+            <p className="mt-1 break-words text-sm font-bold">
               {shipment.destination.split(",")[0]}
             </p>
           </div>
