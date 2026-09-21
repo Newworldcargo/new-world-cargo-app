@@ -25,20 +25,38 @@ import { canModifyShipment } from "@/lib/workflow-completion";
 import { cargoAssets } from "@/lib/cargo-assets";
 import { useCustomerShipment } from "@/api/hooks";
 import { apiRequest } from "@/api/http";
-import BookingDetail from "./BookingDetail";
+import { bookingServiceLabels, useCustomerBooking, type OnlineBooking } from "@/api/bookings";
+import { bookingDetailModel } from "@/lib/booking-detail";
+import type { Shipment } from "@/lib/domain";
 
 export default function ShipmentDetail() {
   const [, params] = useRoute("/shipments/:id");
   const bookingId = /^booking-(\d+)$/.exec(params?.id ?? "")?.[1];
-  return bookingId ? <BookingDetail id={bookingId} /> : <ConfirmedShipmentDetail />;
+  return bookingId ? <BookingRecordDetail key={bookingId} id={bookingId} /> : <ConfirmedShipmentDetail key={params?.id} id={params?.id} />;
 }
 
-function ConfirmedShipmentDetail() {
-  const [, params] = useRoute("/shipments/:id");
+export function BookingRecordDetail({ id }: { id: string }) {
+  const { data: booking, isLoading, error, refetch } = useCustomerBooking(id);
+  if (isLoading) return <p role="status">Loading your shipment...</p>;
+  if (error || !booking) return <DetailLoadError retry={() => void refetch()} />;
+  if (booking.shipmentId) return <ConfirmedShipmentDetail key={booking.shipmentId} id={booking.shipmentId} booking={booking} />;
+  return <ShipmentDetailView key={booking.id} shipment={bookingDetailModel(booking)} booking={booking} />;
+}
+
+function DetailLoadError({ retry }: { retry: () => void }) {
+  return <div className="mx-auto max-w-xl py-12 text-center" role="alert"><h1 className="text-2xl font-bold">We couldn't load these shipment details</h1><p className="mt-2 text-sm text-ink/65">Please try again or return to your shipments.</p><button onClick={retry} className="mt-4 rounded-lg bg-cargo-yellow px-5 py-3 font-bold text-ink">Try again</button><a href="/shipments" className="ml-4 underline">View shipments</a></div>;
+}
+
+function ConfirmedShipmentDetail({ id, booking }: { id: string | undefined; booking?: OnlineBooking }) {
+  const { data: shipment, isLoading, error, refetch } = useCustomerShipment(id);
+  if (isLoading) return <p role="status">Loading your shipment...</p>;
+  if (error || !shipment) return <DetailLoadError retry={() => void refetch()} />;
+  return <ShipmentDetailView key={shipment.id} shipment={shipment} booking={booking} />;
+}
+
+function ShipmentDetailView({ shipment, booking }: { shipment: Shipment; booking?: OnlineBooking }) {
   const [, navigate] = useLocation();
-  const { data: shipment, isLoading: shipmentLoading } = useCustomerShipment(
-    params?.id
-  );
+  const requestOnly = Boolean(booking && !booking.shipmentId);
   const [showReschedule, setShowReschedule] = useState(false);
   const [showDelivery, setShowDelivery] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -52,7 +70,7 @@ function ConfirmedShipmentDetail() {
   const [deliveryError, setDeliveryError] = useState("");
 
   useEffect(() => {
-    if (!shipment) return;
+    if (requestOnly) return;
     void apiRequest<{
       recipientName: string | null;
       recipientPhone: string | null;
@@ -67,34 +85,9 @@ function ConfirmedShipmentDetail() {
         setDeliveryError("");
       })
       .catch(() => setDeliveryError("We could not load delivery details."));
-  }, [shipment]);
+  }, [shipment.id, requestOnly]);
 
-  if (shipmentLoading)
-    return (
-      <div className="mx-auto max-w-xl py-12 text-center text-sm text-white/50">
-        Loading your shipment…
-      </div>
-    );
-  if (!shipment)
-    return (
-      <div className="mx-auto max-w-xl py-12 text-center">
-        <PackageOpen className="mx-auto size-10 text-cargo-yellow" />
-        <h1 className="mt-4 font-heading text-2xl font-extrabold">
-          Shipment not found
-        </h1>
-        <p className="mt-2 text-sm text-white/50">
-          This shipment may not be linked to your account, may have been
-          removed, or the link is incomplete.
-        </p>
-        <button
-          onClick={() => navigate("/shipments")}
-          className="mt-6 rounded-xl bg-cargo-yellow px-5 py-3 text-sm font-bold text-ink"
-        >
-          View shipments
-        </button>
-      </div>
-    );
-  const canModify = canModifyShipment(shipment.status, cancelled);
+  const canModify = !requestOnly && canModifyShipment(shipment.status, cancelled);
   const saveDelivery = async () => {
     if (deliveryRevision === null) return;
     setDeliverySaving(true);
@@ -129,6 +122,10 @@ function ConfirmedShipmentDetail() {
     }
   };
   const sendAgain = () => {
+    if (booking) {
+      navigate(`/send/${booking.service}/route`);
+      return;
+    }
     localStorage.setItem(
       "new-world-cargo-duplicate",
       JSON.stringify({
@@ -165,15 +162,15 @@ function ConfirmedShipmentDetail() {
             />
             <div className="relative">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CargoModeLabel mode={shipment.transportMode} />
-                  <h1 className="mt-3 font-heading text-3xl font-extrabold tracking-tight">
+                <div className="min-w-0 flex-1">
+                  {booking ? <p className="text-sm font-bold">{bookingServiceLabels[booking.service]}{booking.transportMode ? ` · ${booking.transportMode === "air" ? "Air freight" : "Sea freight"}` : ""}</p> : <CargoModeLabel mode={shipment.transportMode} />}
+                  <h1 className="mt-3 break-all font-heading text-3xl font-extrabold">
                     {shipment.trackingNumber}
                   </h1>
                 </div>
                 <button
                   onClick={() => setShowActions(true)}
-                  className="grid size-10 place-items-center rounded-full bg-ink/10"
+                  className="grid size-10 shrink-0 place-items-center rounded-full bg-ink/10"
                   aria-label="Shipment actions"
                 >
                   <MoreHorizontal className="size-5" />
@@ -216,7 +213,7 @@ function ConfirmedShipmentDetail() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/30">
-                  Where it is now
+                  {requestOnly ? "Booking progress" : "Where it is now"}
                 </p>
                 <h2 className="mt-2 font-heading text-xl font-bold">
                   {cancelled
@@ -229,12 +226,12 @@ function ConfirmedShipmentDetail() {
               </span>
             </div>
             <Timeline shipment={shipment} />
-            <button
+            {!requestOnly && <button
               onClick={() => setShowJourney(!showJourney)}
               className="mt-6 flex w-full items-center justify-center rounded-2xl border border-white/10 py-3 text-xs font-bold text-white/70"
             >
               {showJourney ? "Hide detailed journey" : "View detailed journey"}
-            </button>
+            </button>}
             {showJourney && (
               <p className="mt-4 rounded-2xl bg-white/[0.04] p-4 text-xs leading-6 text-white/45">
                 Hub scans and operational handoffs will appear here as New World
@@ -249,16 +246,16 @@ function ConfirmedShipmentDetail() {
               Helpful next steps
             </p>
             <div className="mt-4 space-y-2">
-              <Action
+              {!requestOnly && <Action
                 onClick={() => setShowDelivery(true)}
                 icon={<CheckCircle2 className="size-5 text-cargo-yellow" />}
                 label="Manage delivery"
-              />
-              <Action
+              />}
+              {!requestOnly && <Action
                 onClick={() => navigate("/pickups")}
                 icon={<CalendarDays className="size-5 text-cargo-yellow" />}
                 label="Manage pickup"
-              />
+              />}
               <Action
                 onClick={() =>
                   navigate(`/support?shipment=${shipment.trackingNumber}`)
@@ -281,21 +278,23 @@ function ConfirmedShipmentDetail() {
             </p>
             <div className="mt-4 space-y-3 text-sm">
               <Detail label="Package" value={shipment.packageName} />
+              {shipment.parcelOwner && <Detail label="Recipient" value={shipment.parcelOwner} />}
+              {booking && <Detail label="Booking reference" value={booking.reference} />}
               <div className="flex items-center justify-between gap-4">
-                <span className="text-white/40">Transport</span>
-                <CargoModeLabel mode={shipment.transportMode} compact />
+                <span className="text-white/40">{booking ? "Service" : "Transport"}</span>
+                {booking ? <span className="text-right font-semibold">{bookingServiceLabels[booking.service]}</span> : <CargoModeLabel mode={shipment.transportMode} compact />}
               </div>
             </div>
           </section>
-          <ShipmentPayments shipmentId={shipment.id} reference={shipment.trackingNumber} cancelled={cancelled} />
-          <div className="grid grid-cols-2 gap-2">
+          <ShipmentPayments shipmentId={shipment.id} reference={shipment.trackingNumber} cancelled={cancelled} booking={requestOnly ? booking : undefined} />
+          {!requestOnly && <div className="grid grid-cols-2 gap-2">
             <Action
               onClick={() => navigate(`/shipments/${shipment.id}/proof`)}
               icon={<FileCheck2 className="size-4" />}
               label="Proof of delivery"
               compact
             />
-          </div>
+          </div>}
         </aside>
       </div>
       {showDelivery && (
@@ -435,13 +434,14 @@ function ConfirmedShipmentDetail() {
 }
 
 function RouteEnd({ label, align }: { label: string; align?: "right" }) {
-  const [city, country] = label.split(",");
+  const [city, ...location] = label.split(",");
+  const country = location.join(",").trim();
   return (
-    <div className={align === "right" ? "text-right" : ""}>
+    <div className={`min-w-0 flex-1 break-words ${align === "right" ? "text-right" : ""}`}>
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink/45">
         {city}
       </p>
-      <p className="mt-1 text-lg font-bold">{country?.trim() ?? "Location"}</p>
+      <p className="mt-1 text-lg font-bold">{country || city}</p>
     </div>
   );
 }
@@ -449,7 +449,7 @@ function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
       <span className="text-white/40">{label}</span>
-      <span className="font-semibold">{value}</span>
+      <span className="min-w-0 break-words text-right font-semibold">{value}</span>
     </div>
   );
 }
