@@ -53,9 +53,9 @@ describe("service-specific booking wizards", () => {
     expect(wizardSource).toMatch(/id: "details",\s*label: "Details"/);
   });
 
-  it("requires signed quotes only for services with live pricing", () => {
+  it("checks the configured pricing mode for every standard booking service", () => {
     expect(wizardSource).toContain(
-      'return service === "local" || service === "import"'
+      'return service === "local" || service === "import" || service === "intercity"'
     );
     expect(wizardSource).toContain(
       'apiRequest<BookingQuote>("/bookings/quote"'
@@ -64,6 +64,8 @@ describe("service-specific booking wizards", () => {
     expect(wizardSource).toContain("quoteSignature: quote.quoteSignature");
     expect(wizardSource).toContain("quoteSource: quote.source");
     expect(wizardSource).toContain('"Submit booking request"');
+    expect(wizardSource).toContain('"pending_operations_pricing"');
+    expect(wizardSource).toContain('Our team will confirm the price before payment.');
   });
 
   it("keeps route maps wired into booking requests", () => {

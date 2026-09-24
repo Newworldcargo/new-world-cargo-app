@@ -58,7 +58,7 @@ type CargoRow = {
 type BookingQuote = { source: "server"; quotePayload: Record<string, unknown>; quoteSignature: string; formattedTotal: string };
 
 function requiresServerQuote(service: BookingService): boolean {
-  return service === "local" || service === "import";
+  return service === "local" || service === "import" || service === "intercity";
 }
 
 export default function SendShipment() {

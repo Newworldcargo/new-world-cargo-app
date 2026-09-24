@@ -56,6 +56,7 @@ type BookingQuote = {
   quotePayload: Record<string, unknown>;
   quoteSignature: string;
   formattedTotal: string;
+  breakdown?: { pricingStatus: string };
 };
 type WizardDraft = {
   pickup: string;
@@ -262,7 +263,7 @@ function isService(value?: string): value is BookingService {
 }
 
 function requiresServerQuote(service: BookingService): boolean {
-  return service === "local" || service === "import";
+  return service === "local" || service === "import" || service === "intercity";
 }
 
 export default function BookingWizard() {
@@ -1555,9 +1556,9 @@ function ReviewStage({
             : "Pricing to be confirmed by operations"}
         </p>
         <p className="mt-1 text-xs text-ink/55">
-          {requiresServerQuote(service)
+          {requiresServerQuote(service) && draft.quote?.breakdown?.pricingStatus !== "pending_operations_pricing"
             ? "Your total will be confirmed when you submit this booking."
-            : "Submit the booking now. No price or payment is required until operations reviews the request."}
+            : "Submit your booking now. Our team will confirm the price before payment."}
         </p>
       </div>
     </div>
