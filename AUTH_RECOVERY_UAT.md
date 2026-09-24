@@ -8,7 +8,7 @@ Date: 2026-09-24
 - A reachable email is required, including for customers whose historical accounts have no usable email.
 - Email code confirmation creates an encrypted, pending ownership-review request. It does not create a customer, merge accounts, change credentials, or reveal shipment history.
 - Existing shipment references are optional evidence, never authorization.
-- Recovery review: admin `/customer-account-recovery`, permission `manage-clients`, linked from the customer list.
+- Recovery review: admin `/customer-account-recovery`, permission `manage-customers`, linked from the customer list.
 - Changing review status records an audit event but does not grant account access. Staff must independently establish ownership before any existing account-management action.
 - Phone login matches normalized primary/secondary account and customer-profile contacts. Shared numbers, including stale staff records, do not select the first account.
 - Legacy direct account claiming redirects to the new recovery workflow.
