@@ -7,10 +7,12 @@ import {
   CreditCard,
   FileText,
   MapPin,
+  LogOut,
   UsersRound,
   WalletCards,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { useSignOut } from "@/lib/use-sign-out";
 
 type SettingsLink = {
   title: string;
@@ -90,6 +92,7 @@ const groups: { label: string; links: SettingsLink[] }[] = [
 
 export default function Settings() {
   const [, navigate] = useLocation();
+  const { signOut, signingOut } = useSignOut();
   return (
     <div className="mx-auto max-w-3xl text-ink">
       <div>
@@ -136,6 +139,9 @@ export default function Settings() {
             </div>
           </section>
         ))}
+        <button type="button" disabled={signingOut} onClick={() => { void signOut(); }} className="flex min-h-12 w-full items-center gap-3 rounded-lg border border-ink/15 bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-50">
+          <LogOut className="size-5" /> {signingOut ? "Signing out..." : "Log out"}
+        </button>
       </div>
     </div>
   );

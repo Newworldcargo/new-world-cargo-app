@@ -36,7 +36,7 @@ describe("customer feedback conventions", () => {
 
   it("uses the shared feedback API in representative customer workflow pages and components", () => {
     const paths = [
-      "client/src/components/app-shell.tsx",
+      "client/src/lib/use-sign-out.ts",
       "client/src/components/payment-modal.tsx",
       "client/src/components/shipment-ui.tsx",
       "client/src/pages/Home.tsx",

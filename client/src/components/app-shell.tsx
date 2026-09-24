@@ -4,7 +4,8 @@ import type { LucideIcon } from "lucide-react";
 import { Bell, ChevronDown, CircleHelp, House, LogOut, Package, PanelLeftClose, PanelLeftOpen, Plus, ReceiptText, Settings2, UserRound, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { feedback } from "@/lib/feedback";
+import { useSignOut } from "@/lib/use-sign-out";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "./ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { isPrimaryMobileTabRoute } from "@/lib/primary-mobile-navigation";
 import { BrandMark } from "./BrandMark";
@@ -39,16 +40,15 @@ function NavLink({ item, active, pageActive, collapsed, onNavigate }: { item: Na
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const [supportOpen, setSupportOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [scrollActiveHref, setScrollActiveHref] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLElement | null>(null);
   const sidebarScrollPositions = useRef<Record<string, number>>({});
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { signOut: handleLogout, signingOut } = useSignOut();
   const routeActiveHref = location === "/" ? "/" : `/${location.split("/")[1]}`;
   const activeHref = scrollActiveHref ?? routeActiveHref;
   const showMobileNavigation = isPrimaryMobileTabRoute(location);
-  const handleLogout = () => { logout(); feedback.success("Signed out successfully."); navigate("/login"); };
   const navigateWithSidebarState = (href: string) => { navigate(href); };
 
   useLayoutEffect(() => {
@@ -137,29 +137,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <button onClick={() => navigate("/notifications")} className="relative grid size-10 place-items-center rounded-full border border-white/10 text-white/70 transition hover:border-white/25 hover:text-white" aria-label="Open notifications">
                 <Bell className="size-[18px]" strokeWidth={1.8} /><span className="absolute right-2.5 top-2 size-1.5 rounded-full bg-cargo-yellow" />
               </button>
-              <div className="relative hidden sm:block">
-                <button onClick={() => setProfileOpen((open) => !open)} className="flex items-center gap-2.5 rounded-full border border-white/10 py-1.5 pl-1.5 pr-2.5 transition hover:border-white/25" aria-haspopup="menu" aria-expanded={profileOpen}>
-                  <div className="grid size-7 overflow-hidden rounded-full bg-cargo-yellow text-xs font-bold text-ink">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                <button type="button" aria-label="Open account menu" title="Account" className="flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-ink/15 bg-white p-1.5 text-ink transition hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:pr-3">
+                  <div className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full bg-cargo-yellow text-xs font-bold text-ink">
                     {user?.avatar ? <img src={user.avatar} alt="" className="size-full object-cover" /> : `${user?.firstName?.[0] || "C"}${user?.lastName?.[0] || ""}`}
                   </div>
-                  <span className="text-xs font-semibold text-white/75">{user?.firstName || "Customer"}</span>
-                  <ChevronDown className={`size-3.5 text-white/45 transition ${profileOpen ? "rotate-180" : ""}`} />
+                  <span className="hidden max-w-32 truncate text-xs font-semibold sm:block">{user?.firstName || "Customer"}</span>
+                  <ChevronDown className="hidden size-3.5 sm:block" />
                 </button>
-                {profileOpen && (
-                  <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-52 rounded-2xl border border-ink/10 bg-white p-2 shadow-xl" role="menu">
-                    <button onClick={() => { setProfileOpen(false); navigate("/settings/account"); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
+                </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" sideOffset={8} className="w-52 max-w-[calc(100vw-24px)] rounded-lg border-ink/10 bg-white p-2 text-ink shadow-xl">
+                    <DropdownMenuItem onSelect={() => navigate("/settings/account")} className="min-h-11 gap-3 px-3 font-semibold focus:bg-gray-100 focus:text-ink">
                       <UserRound className="size-4 text-ink/55" /> Profile
-                    </button>
-                    <button onClick={() => { setProfileOpen(false); navigate("/settings"); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-ink/5" role="menuitem">
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate("/settings")} className="min-h-11 gap-3 px-3 font-semibold focus:bg-gray-100 focus:text-ink">
                       <Settings2 className="size-4 text-ink/55" /> Settings
-                    </button>
-                    <div className="my-1 h-px bg-ink/8" />
-                    <button onClick={() => { setProfileOpen(false); handleLogout(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-ink transition hover:bg-cargo-yellow/15" role="menuitem">
-                      <LogOut className="size-4" /> Log out
-                    </button>
-                  </div>
-                )}
-              </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-ink/10" />
+                    <DropdownMenuItem disabled={signingOut} onSelect={() => { void handleLogout(); }} className="min-h-11 gap-3 px-3 font-semibold focus:bg-gray-100 focus:text-ink">
+                      <LogOut className="size-4" /> {signingOut ? "Signing out..." : "Log out"}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+              </DropdownMenu>
               <button onClick={() => setSupportOpen(true)} className="grid size-10 place-items-center rounded-full border border-white/10 text-white/70 transition hover:border-white/25 hover:text-white lg:hidden" aria-label="Open support"><CircleHelp className="size-[18px]" strokeWidth={1.8} /></button>
             </div>
           </header>

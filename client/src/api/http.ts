@@ -166,5 +166,5 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   const envelope = payload as ApiSuccess<T> | T;
-  return "data" in (envelope as object) ? (envelope as ApiSuccess<T>).data : (envelope as T);
+  return envelope !== null && typeof envelope === "object" && "data" in envelope ? (envelope as ApiSuccess<T>).data : (envelope as T);
 }

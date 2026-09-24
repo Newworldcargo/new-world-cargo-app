@@ -20,7 +20,7 @@ type AuthContextValue = {
   resetPassword: (input: { identifier: string; code: string; password: string; passwordConfirmation: string }) => ReturnType<typeof authGateway.resetPassword>;
   verifyCurrentPassword: (password: string) => ReturnType<typeof authGateway.verifyCurrentPassword>;
   changePassword: (currentPassword: string, nextPassword: string) => ReturnType<typeof authGateway.changePassword>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (input: Partial<Pick<AuthUser, "firstName" | "lastName" | "email" | "phone" | "avatar">>) => void;
   deleteAccount: () => ReturnType<typeof authGateway.deleteAccount>;
 };
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async register(input) { const result = await authGateway.register(input); if (result.ok && result.user) setUser(result.user); return result; },
     async googleLogin() { const result = await authGateway.googleLogin(); if (result.ok && result.user) setUser(result.user); return result; },
     async verify(code) { const result = await authGateway.verify(code); if (result.ok) setUser((current) => current ? { ...current, verified: true } : current); return result; }, resendVerification: () => authGateway.resendVerification(), requestPasswordReset: (identifier) => authGateway.requestPasswordReset(identifier), resetPassword: (input) => authGateway.resetPassword(input), verifyCurrentPassword: (password) => authGateway.verifyCurrentPassword(password), changePassword: (currentPassword, nextPassword) => authGateway.changePassword(currentPassword, nextPassword),
-    logout() { void authGateway.logout().finally(() => { setUser(null); customerQueryClient.clear(); useCustomerWorkflowStore.getState().clearCustomerWorkflowState(); }); },
+    async logout() { await authGateway.logout(); setUser(null); customerQueryClient.clear(); useCustomerWorkflowStore.getState().clearCustomerWorkflowState(); },
     updateUser(input) { const previous = user; if (previous) setUser({ ...previous, ...input }); void authGateway.updateProfile(input).then(setUser).catch(() => setUser(previous)); },
     async deleteAccount() { const result = await authGateway.deleteAccount(); if (result.ok) { setUser(null); customerQueryClient.clear(); useCustomerWorkflowStore.getState().clearCustomerWorkflowState(); } return result; },
   }), [loading, sessionError, user]);
