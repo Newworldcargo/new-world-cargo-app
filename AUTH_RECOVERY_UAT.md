@@ -14,6 +14,8 @@ Date: 2026-09-24
 - Legacy direct account claiming redirects to the new recovery workflow.
 - Password recovery codes are separate from registration/verification codes, hashed, time-limited, attempt-limited and consumed on success. Password recovery uses saved email, not unverified historical phone contacts.
 - Unverified customers can establish a verification session but cannot read shipments.
+- Missing, malformed, or reserved `.invalid` account emails produce `EMAIL_REQUIRED` after successful password validation and on protected session/API requests. The browser automatically opens `/recover-account?reason=email-required` and asks for an accessible email. Logout remains available. Wrong credentials and shared phone identities do not disclose email status. Valid `mail.com` addresses are not assumed to be placeholders.
+- Email recovery remains an ownership-review request, not automatic email replacement. Customers who cannot prove their password use the public recovery entry point.
 
 ## Automated verification
 

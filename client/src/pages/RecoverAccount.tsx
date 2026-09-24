@@ -13,6 +13,7 @@ function pendingReference() {
 }
 
 export default function RecoverAccount() {
+  const emailRequired = new URLSearchParams(window.location.search).get("reason") === "email-required";
   const [form, setForm] = useState({ name: "", email: "", phone: "", shipmentReference: "", detail: "" });
   const [reference, setReference] = useState(pendingReference);
   const [code, setCode] = useState("");
@@ -53,10 +54,11 @@ export default function RecoverAccount() {
     <p className="text-sm text-ink/70">Reference <span className="mt-1 block break-all font-mono text-xs text-ink">{reference}</span></p>
     <Link href="/login" className="inline-flex min-h-11 items-center gap-2 font-semibold text-ink"><ArrowLeft className="size-4" />Return to sign in</Link>
   </div></AuthLayout>;
-  return <AuthLayout title={reference ? "Confirm your email" : "Find your existing account"}>
+  return <AuthLayout title={reference ? "Confirm your email" : emailRequired ? "Add your email" : "Find your existing account"}>
     <form onSubmit={submit} className="grid gap-4">
       <p className="text-sm leading-6 text-ink/70">{reference
         ? "Enter the six-digit code from your email. It expires after 10 minutes. This confirms your contact email, not ownership of a shipment."
+        : emailRequired ? "Your account needs a usable email address. Enter an email you can access so our team can help restore your customer account."
         : "Already shipped with us, but never signed in or no longer have access to your email? Request help with your existing account."}</p>
       {error && <AuthError>{error}</AuthError>}
       {reference ? <div className="grid justify-items-center gap-3"><OtpInput value={code} onChange={setCode} /><button type="button" disabled={busy} onClick={restart} className="min-h-11 text-sm font-semibold text-ink underline">Change details or request a new code</button></div> : <>

@@ -1,5 +1,6 @@
 import { apiProblemSchema, type ApiSuccess } from "./contracts";
 import { CustomerApiError } from "./errors";
+import { emailRecoveryRedirect } from "@/lib/auth-recovery-guard";
 
 const apiBaseUrl = "/api/gateway";
 export const apiRequestTimeoutMs = 15_000;
@@ -152,6 +153,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const parsedProblem = apiProblemSchema.safeParse(payload);
+    if (parsedProblem.success && typeof window !== "undefined") {
+      const recoveryPath = emailRecoveryRedirect(parsedProblem.data.error.code, window.location.pathname);
+      if (recoveryPath) window.location.replace(recoveryPath);
+    }
     throw new CustomerApiError(
       response.status,
       parsedProblem.success
