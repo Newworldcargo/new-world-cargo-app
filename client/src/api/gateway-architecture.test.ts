@@ -17,6 +17,9 @@ describe("customer API architecture", () => {
     expect(matchGatewayRoute("GET", "/v1/public/tracking/NWC-102")).toMatchObject({ access: "public" });
     expect(matchGatewayRoute("GET", "/v1/auth/csrf")).toMatchObject({ access: "bootstrap" });
     expect(matchGatewayRoute("POST", "/v1/auth/password/forgot")).toMatchObject({ access: "bootstrap" });
+    expect(matchGatewayRoute("POST", "/v1/auth/account-recovery")).toMatchObject({ access: "bootstrap" });
+    expect(matchGatewayRoute("POST", "/v1/auth/account-recovery/confirm")).toMatchObject({ access: "bootstrap" });
+    expect(matchGatewayRoute("GET", "/v1/auth/account-recovery")).toBeUndefined();
     expect(matchGatewayRoute("POST", "/v1/shipments")).toBeUndefined();
     expect(matchGatewayRoute("GET", "/v1/admin/customers")).toBeUndefined();
     expect(gatewayAllowedRoutes.length).toBeGreaterThan(20);
@@ -47,6 +50,7 @@ describe("customer API architecture", () => {
   it("uses fixed backend routing, header filtering, and a route allow-list instead of frontend env or an open proxy", () => {
     const gatewaySource = readFileSync(new URL("../../../api/gateway.ts", import.meta.url), "utf8");
     expect(gatewaySource).toContain('"https://admin.newworldcargo.com"');
+    expect(gatewaySource).toContain('account-recovery(\\/confirm)?');
     expect(gatewaySource).toContain("matchGatewayRoute");
     expect(gatewaySource).toContain("safeResponseHeaders");
     expect(gatewaySource).not.toContain("process.env");

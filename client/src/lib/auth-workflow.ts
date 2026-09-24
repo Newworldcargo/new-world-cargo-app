@@ -1,4 +1,4 @@
-export const AUTH_PUBLIC_PATHS = ["/login", "/register", "/verify", "/forgot-password", "/reset-password", "/auth/complete-profile", "/session-expired"] as const;
+export const AUTH_PUBLIC_PATHS = ["/recover-account", "/login", "/register", "/verify", "/forgot-password", "/reset-password", "/auth/complete-profile", "/session-expired"] as const;
 export const ADMIN_AUTH_ORIGIN = "https://admin.newworldcargo.com";
 const VERIFY_PENDING_KEY = "nwc_auth_verify_pending";
 const RESET_TOKEN_KEYS = ["token", "reset_token"] as const;

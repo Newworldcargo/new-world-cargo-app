@@ -17,6 +17,7 @@ export const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: /^\/v1\/session$/, methods: ["GET"], access: "session", routeClass: "session" },
   { pattern: /^\/v1\/auth\/csrf$/, methods: ["GET"], access: "bootstrap", routeClass: "authentication" },
   { pattern: /^\/v1\/auth\/(login|register)$/, methods: ["POST"], access: "bootstrap", routeClass: "authentication" },
+  { pattern: /^\/v1\/auth\/account-recovery(\/confirm)?$/, methods: ["POST"], access: "bootstrap", routeClass: "authentication" },
   { pattern: /^\/v1\/auth\/password\/(forgot|reset)$/, methods: ["POST"], access: "bootstrap", routeClass: "authentication" },
   { pattern: /^\/v1\/auth\/(verify|verify\/resend|password\/verify|password\/change|logout)$/, methods: ["POST"], access: "session", routeClass: "authentication" },
   { pattern: /^\/v1\/profile$/, methods: ["PATCH", "DELETE"], access: "session", routeClass: "profile" },
