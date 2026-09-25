@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/loading-skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Download, CreditCard } from "lucide-react";
@@ -43,7 +44,7 @@ export function ShipmentPayments({ shipmentId, reference, cancelled, booking }: 
       <p className="font-semibold">{booking.status === "cancelled" ? "Booking closed" : "Awaiting final bill"}</p>
       {booking.price.amountMinor > 0 && <dl><div className="flex flex-wrap justify-between gap-2"><dt>Booking estimate</dt><dd className="font-semibold">{money(booking.price)}</dd></div></dl>}
       <p>{booking.status === "cancelled" ? "This booking is not proceeding. Contact us if you have a payment query." : "Payment details will appear here once your shipment and bill are confirmed."}</p>
-    </div> : isLoading ? <p className="mt-3 text-sm" role="status">Loading payments...</p> : isError || !data ? <div className="mt-3" role="alert"><p>We couldn't load payment details.</p><button className="mt-2 font-semibold underline" onClick={() => refetch()}>Try again</button></div> : <>
+    </div> : isLoading ? <ContentSkeleton rows={2} label="Loading payments" /> : isError || !data ? <div className="mt-3" role="alert"><p>We couldn't load payment details.</p><button className="mt-2 font-semibold underline" onClick={() => refetch()}>Try again</button></div> : <>
       <p className="mt-3 font-semibold">{data.status}</p>
       <dl className="mt-3 space-y-2 text-sm">
         {[["Total bill", data.total], ["Recorded payments", data.paid], ["Remaining balance", data.remaining]].map(([label, value]) => <div className="flex flex-wrap justify-between gap-2" key={label as string}><dt>{label as string}</dt><dd className="font-semibold">{money(value as Money)}</dd></div>)}

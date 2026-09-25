@@ -1,3 +1,4 @@
+import { ContentSkeleton, PageSkeleton } from "@/components/loading-skeleton";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -43,9 +44,7 @@ export default function ProofOfDelivery() {
 
   if (shipmentQuery.isLoading)
     return (
-      <div className="mx-auto max-w-xl py-14 text-center text-sm text-ink/55">
-        Loading proof of delivery…
-      </div>
+      <PageSkeleton variant="detail" label="Loading proof of delivery" />
     );
   if (shipmentQuery.isError || !shipment)
     return (
@@ -97,7 +96,7 @@ export default function ProofOfDelivery() {
             </p>
           </div>
         ) : proofQuery.isLoading ? (
-          <p className="mt-6 text-sm text-ink/55">Loading delivery record…</p>
+          <ContentSkeleton variant="detail" label="Loading delivery record" />
         ) : proofQuery.isError ? (
           <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
             We could not load the delivery record. Please try again.

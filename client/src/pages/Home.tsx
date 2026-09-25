@@ -1,3 +1,5 @@
+import { ContentSkeleton } from "@/components/loading-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 // Design reminder: This customer-first home screen leads with bookings, delivery management, payment, and support on a true-white minimalist canvas.
 import {
   ArrowRight,
@@ -35,7 +37,7 @@ export default function Home() {
   const { data: shipments = [], isLoading: shipmentsLoading } =
     useCustomerShipments();
   const { data: invoices = [] } = useCustomerInvoices();
-  const { data: wallet } = useCustomerWallet();
+  const { data: wallet, isLoading: walletLoading } = useCustomerWallet();
   const arriving =
     shipments.find(shipment => shipment.status === "out_for_delivery") ??
     shipments.find(shipment => shipment.status !== "delivered") ??
@@ -137,7 +139,7 @@ export default function Home() {
 
       <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
         <main className="min-w-0 lg:border-r lg:border-ink/10 lg:pr-8">
-          {arriving ? (
+          {shipmentsLoading ? <ContentSkeleton variant="detail" rows={2} label="Loading your next delivery" /> : arriving ? (
             <section className="min-w-0">
               <button
                 onClick={() => navigate(`/shipments/${arriving.id}`)}
@@ -242,7 +244,7 @@ export default function Home() {
                   View all <ChevronRight className="size-4" />
                 </button>
               </div>
-              {inTransit ? (
+              {shipmentsLoading ? <ContentSkeleton variant="cards" rows={2} label="Loading recent shipments" /> : inTransit ? (
                 <ShipmentCard
                   shipment={inTransit}
                   onOpen={() => navigate(`/shipments/${inTransit.id}`)}
@@ -317,10 +319,10 @@ export default function Home() {
                   Wallet & payments
                 </p>
                 <h2 className="mt-2 text-xl font-heading font-bold tracking-tight text-foreground sm:text-2xl">
-                  {walletBalance ??
+                  {walletLoading ? <Skeleton className="h-7 w-36" /> : walletBalance ??
                     (outstandingInvoice
                       ? `${outstandingInvoice.amount} due`
-                      : "Wallet loading…")}
+                      : "Wallet unavailable")}
                 </h2>
                 <p className="mt-2 break-words text-sm leading-6 text-white/55">
                   {outstandingInvoice

@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/loading-skeleton";
 // New World Cargo style reminder: Poppins, dark command-center canvas, Cargo Yellow action color, navy route accents, mobile-first.
 
 import { FilePenLine, Filter, Search, SlidersHorizontal } from "lucide-react";
@@ -108,7 +109,7 @@ export default function Shipments() {
           <h2 className="font-heading text-lg font-extrabold">
             Your shipments
           </h2>
-          <span className="text-xs text-white/40">{filtered.length} shown</span>
+          <span className="text-xs text-white/40">{loading ? "" : `${filtered.length} shown`}</span>
         </div>
         {hasError && <div role="alert" className="mb-4 text-sm">
           <p>Some shipments could not be loaded.</p>
@@ -116,9 +117,7 @@ export default function Shipments() {
         </div>}
         <div className="grid gap-5 lg:grid-cols-2">
           {loading && !filtered.length ? (
-            <div className="col-span-full rounded-[28px] border border-dashed border-white/15 p-10 text-center text-sm text-white/45">
-              Loading shipments linked to your account…
-            </div>
+            <div className="col-span-full"><ContentSkeleton variant="cards" rows={4} label="Loading shipments" /></div>
           ) : filtered.length ? (
             filtered.map(item => (
               <div key={item.key}>

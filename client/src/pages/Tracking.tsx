@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/loading-skeleton";
 import { CheckCircle2, Copy, PackageSearch, Share2, UserRound, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
@@ -109,9 +110,7 @@ export default function Tracking() {
             )}
 
             {searched && isLoading && (
-              <section className="mt-6 rounded-[26px] border border-ink/10 bg-[#f7f8fb] p-6 text-center text-sm text-ink/55">
-                Looking up your shipment…
-              </section>
+              <div className="mt-6"><ContentSkeleton variant="detail" label="Looking up your shipment" /></div>
             )}
             {searched && isError && parcelNotFound && (
               <section className="mt-6 rounded-[26px] border border-ink/10 bg-[#f7f8fb] p-6 text-center">

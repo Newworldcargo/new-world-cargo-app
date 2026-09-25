@@ -1,6 +1,7 @@
 import { AlertTriangle, CloudOff, Inbox, RefreshCw } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { feedback } from "@/lib/feedback";
+import { PageSkeleton, type SkeletonVariant } from "./loading-skeleton";
 
 type StateAction = { label: string; onClick: () => void };
 
@@ -11,20 +12,10 @@ function StateFrame({ icon, title, detail, action }: { icon: ReactNode; title: s
 }
 
 export function AppPreloader({ label = APP_PRELOADER_LABEL }: { label?: string }) {
-  return <section className="fixed inset-0 z-[200] grid place-items-center bg-white" role="status" aria-live="polite" aria-label={label}>
-    <div className="flex flex-col items-center gap-4 text-ink">
-      <div className="relative size-12 animate-spin" aria-hidden="true">
-        <span className="absolute left-1/2 top-0 h-3 w-1 -translate-x-1/2 rounded-full bg-cargo-yellow" />
-        <span className="absolute right-0 top-1/2 h-1 w-3 -translate-y-1/2 rounded-full bg-cargo-yellow" />
-        <span className="absolute bottom-0 left-1/2 h-3 w-1 -translate-x-1/2 rounded-full bg-cargo-yellow" />
-        <span className="absolute left-0 top-1/2 h-1 w-3 -translate-y-1/2 rounded-full bg-cargo-yellow" />
-      </div>
-      <span className="text-sm font-semibold text-ink/55">{label}</span>
-    </div>
-  </section>;
+  return <div className="min-h-screen bg-white p-4 pt-12 sm:p-8"><PageSkeleton label={label} /></div>;
 }
 
-export function LoadingState({ label = "Loading your details…" }: { label?: string }) { return <section className="grid min-h-52 place-items-center rounded-[28px] border border-ink/10 bg-white"><div className="flex items-center gap-3 text-sm font-semibold text-ink/60"><div className="size-4 animate-spin rounded-full border-2 border-cargo-yellow border-t-transparent" aria-hidden="true" />{label}</div></section>; }
+export function LoadingState({ label = "Loading your details…", variant }: { label?: string; variant?: SkeletonVariant }) { return <PageSkeleton label={label} variant={variant} />; }
 export function EmptyState({ title, detail, action }: { title: string; detail: string; action?: StateAction }) { return <StateFrame icon={<Inbox className="size-5" />} title={title} detail={detail} action={action} />; }
 export function ErrorState({ title = "We could not load this yet", detail = "Please check your connection and try again.", action }: { title?: string; detail?: string; action?: StateAction }) {
   useEffect(() => { feedback.error(title, { description: detail }); }, [detail, title]);

@@ -1,3 +1,4 @@
+import { PageSkeleton } from "@/components/loading-skeleton";
 import {
   ArrowLeft,
   CalendarDays,
@@ -37,7 +38,7 @@ export default function ShipmentDetail() {
 
 export function BookingRecordDetail({ id }: { id: string }) {
   const { data: booking, isLoading, error, refetch } = useCustomerBooking(id);
-  if (isLoading) return <p role="status">Loading your shipment...</p>;
+  if (isLoading) return <PageSkeleton variant="detail" label="Loading your shipment" />;
   if (error || !booking) return <DetailLoadError retry={() => void refetch()} />;
   if (booking.shipmentId) return <ConfirmedShipmentDetail key={booking.shipmentId} id={booking.shipmentId} booking={booking} />;
   return <ShipmentDetailView key={booking.id} shipment={bookingDetailModel(booking)} booking={booking} />;
@@ -49,7 +50,7 @@ function DetailLoadError({ retry }: { retry: () => void }) {
 
 function ConfirmedShipmentDetail({ id, booking }: { id: string | undefined; booking?: OnlineBooking }) {
   const { data: shipment, isLoading, error, refetch } = useCustomerShipment(id);
-  if (isLoading) return <p role="status">Loading your shipment...</p>;
+  if (isLoading) return <PageSkeleton variant="detail" label="Loading your shipment" />;
   if (error || !shipment) return <DetailLoadError retry={() => void refetch()} />;
   return <ShipmentDetailView key={shipment.id} shipment={shipment} booking={booking} />;
 }

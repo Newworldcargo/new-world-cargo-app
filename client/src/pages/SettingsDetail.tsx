@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/loading-skeleton";
 // New World Cargo style reminder: one customer task per page, clear back route, soft white surfaces, and Cargo Yellow only for primary action.
 
 import {
@@ -474,9 +475,7 @@ export default function SettingsDetail() {
           </button>
           <Panel>
             {addressesQuery.isLoading ? (
-              <div className="p-6 text-center text-sm text-ink/55">
-                Loading saved addresses…
-              </div>
+              <ContentSkeleton label="Loading saved addresses" />
             ) : addressesQuery.isError ? (
               <div className="p-6 text-center text-sm text-ink/55">
                 Saved addresses could not be loaded. Please try again.
@@ -553,9 +552,7 @@ export default function SettingsDetail() {
           </button>
           <Panel>
             {recipientsQuery.isLoading ? (
-              <div className="p-6 text-center text-sm text-ink/55">
-                Loading saved recipients…
-              </div>
+              <ContentSkeleton label="Loading saved recipients" />
             ) : recipientsQuery.isError ? (
               <div className="p-6 text-center text-sm text-ink/55">
                 Saved recipients could not be loaded. Please try again.

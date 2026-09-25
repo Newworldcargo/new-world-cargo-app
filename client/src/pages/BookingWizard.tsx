@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/loading-skeleton";
 import {
   ArrowLeft,
   ArrowRight,
@@ -277,7 +278,7 @@ export default function BookingWizard() {
   const stageIndex =
     journey?.stages.findIndex(item => item.id === params?.stage) ?? -1;
   const stage = stageIndex >= 0 ? journey?.stages[stageIndex] : undefined;
-  const { data: referenceData } = useCustomerReferenceData();
+  const { data: referenceData, isLoading: referenceLoading } = useCustomerReferenceData();
   const { data: recipients = [] } = useCustomerRecipients();
   const { data: savedDrafts = [] } = useCustomerDrafts();
   const mutations = useShipmentDraftMutations();
@@ -714,8 +715,7 @@ export default function BookingWizard() {
           <div className={`mx-auto max-w-xl px-5 pb-6 xl:block xl:px-0 ${drawerExpanded ? "block" : "hidden"}`}>
             {header}
             <main className="mt-5 xl:mt-7">
-              {stageContent}
-              {footerActions(true, false)}
+              {referenceLoading && stage?.id === "route" ? <ContentSkeleton variant="form" label="Loading booking options" /> : <>{stageContent}{footerActions(true, false)}</>}
             </main>
           </div>
         </section>
