@@ -181,14 +181,20 @@ export const recipientInputSchema = z.object({
 export const paymentIntentInputSchema = z.object({
   invoiceId: z.string().min(1),
   method: z.enum(["mobile-money", "card"]),
+  phone: z.string().optional(),
+  billing: z.object({ firstName: z.string(), lastName: z.string(), email: z.string(), city: z.string(), country: z.string(), address: z.string(), zip: z.string() }).optional(),
   idempotencyKey: z.string().uuid(),
 });
 
 export const paymentIntentDtoSchema = z.object({
   id: z.string(),
-  status: z.enum(["requires_action", "processing", "succeeded", "failed"]),
-  providerReference: z.string().optional(),
-  clientToken: z.string().optional(),
+  status: z.enum(["requires_action", "processing", "pending", "review", "succeeded", "failed"]),
+  providerReference: z.string().nullish(),
+  clientToken: z.string().nullish(),
+  provider: z.string().nullish(),
+  method: z.enum(["mobile-money", "card"]).optional(),
+  checkoutUrl: z.string().url().nullish(),
+  amount: z.object({ currency: z.string(), amountMinor: z.number().int() }).optional(),
   revision: z.number().int().nonnegative(),
 });
 

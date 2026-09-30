@@ -37,6 +37,7 @@ export const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: new RegExp(`^/v1/recipients/${ID_SEGMENT}$`), methods: ["PUT", "DELETE"], access: "session", routeClass: "recipients" },
   { pattern: /^\/v1\/reference-data$/, methods: ["GET"], access: "session", routeClass: "reference-data" },
   { pattern: /^\/v1\/payments\/intents$/, methods: ["POST"], access: "session", routeClass: "payments" },
+  { pattern: /^\/v1\/payments\/invoices\/[0-9]+\/intent$/, methods: ["GET"], access: "session", routeClass: "payments" },
   { pattern: /^\/v1\/files\/upload-intents$/, methods: ["POST"], access: "session", routeClass: "files" },
   { pattern: new RegExp(`^/v1/files/${ID_SEGMENT}/complete$`), methods: ["POST"], access: "session", routeClass: "files" },
   { pattern: /^\/v1\/notifications$/, methods: ["GET"], access: "session", routeClass: "notifications" },

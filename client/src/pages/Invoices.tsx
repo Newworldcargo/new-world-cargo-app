@@ -64,7 +64,7 @@ export default function Invoices() {
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paidMethods, setPaidMethods] = useState<Record<string, string>>({});
   const { data: invoices = [], isLoading, isError, refetch } = useCustomerInvoices({ query, status: filter });
-  const ledger = useMemo(() => invoices.map((invoice) => paidMethods[invoice.id] ? { ...invoice, status: "paid" as const, paidAt: "Just now", paymentMethod: paidMethods[invoice.id] } : invoice), [paidMethods]);
+  const ledger = useMemo(() => invoices.map((invoice) => paidMethods[invoice.id] ? { ...invoice, status: "paid" as const, paidAt: "Just now", paymentMethod: paidMethods[invoice.id] } : invoice), [invoices, paidMethods]);
   const matching = useMemo(() => ledger.filter((invoice) => filter === "all" || invoice.status === filter), [filter, ledger]);
   const recent = matching.slice(0, 3);
   const older = matching.slice(3);

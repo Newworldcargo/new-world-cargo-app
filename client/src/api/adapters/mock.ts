@@ -512,6 +512,7 @@ export const mockCustomerPortalPort: CustomerPortalPort = {
       revision: 1,
     };
   },
+  async getLatestPaymentIntent() { return null; },
   async createFileUploadIntent(
     scope,
     input: FileUploadIntentInput

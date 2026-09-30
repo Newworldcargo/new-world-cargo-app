@@ -258,6 +258,17 @@ export function usePaymentIntentMutation() {
   });
 }
 
+export function useLatestPaymentIntent(invoiceId: string | undefined, enabled: boolean) {
+  const scope = useCustomerScope();
+  return useQuery({
+    queryKey: ["payment-intent", scope.customerId, invoiceId],
+    queryFn: () => customerPortalRepository.getLatestPaymentIntent(requireCustomerScope(scope), invoiceId!),
+    enabled: enabled && Boolean(invoiceId && scope.customerId),
+    refetchInterval: query => ["succeeded", "failed", "review"].includes(query.state.data?.status ?? "") ? false : 6000,
+    retry: 1,
+  });
+}
+
 export function useFileUploadIntentMutation() {
   const scope = useCustomerScope();
   return useMutation({

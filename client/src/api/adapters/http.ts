@@ -152,6 +152,9 @@ export const httpCustomerPortalPort: CustomerPortalPort = {
   async createPaymentIntent(_scope, input) {
     return apiRequest<PaymentIntentDto>("/payments/intents", { method: "POST", headers: { "Idempotency-Key": input.idempotencyKey }, body: input });
   },
+  async getLatestPaymentIntent(_scope, invoiceId) {
+    return apiRequest<PaymentIntentDto | null>(`/payments/invoices/${encodeURIComponent(invoiceId)}/intent`);
+  },
   async createFileUploadIntent(_scope, input) {
     const { filename, ...payload } = input;
     return apiRequest<FileUploadIntentDto>("/files/upload-intents", {

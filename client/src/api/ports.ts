@@ -32,6 +32,7 @@ export interface CustomerPortalPort {
   deleteRecipient(scope: CustomerScope, recipientId: string, revision: number): Promise<void>;
   performShipmentAction(scope: CustomerScope, shipmentId: string, revision: number, action: ShipmentAction, idempotencyKey: string): Promise<ShipmentDto>;
   createPaymentIntent(scope: CustomerScope, input: PaymentIntentInput): Promise<PaymentIntentDto>;
+  getLatestPaymentIntent(scope: CustomerScope, invoiceId: string): Promise<PaymentIntentDto | null>;
   createFileUploadIntent(scope: CustomerScope, input: FileUploadIntentInput): Promise<FileUploadIntentDto>;
   completeFileUpload(scope: CustomerScope, fileId: string): Promise<UploadedFileDto>;
   listNotifications(scope: CustomerScope): Promise<NotificationDto[]>;

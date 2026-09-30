@@ -1,109 +1,91 @@
-// New World Cargo payment style: operational white modal, navy ink, Cargo Yellow confirmation, practical mobile-first fields.
-
-import { Check, ChevronLeft, CircleAlert, CreditCard, Landmark, LockKeyhole, Smartphone, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { CreditCard, Loader2, LockKeyhole, Smartphone } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLatestPaymentIntent, usePaymentIntentMutation } from "@/api/hooks";
+import type { PaymentIntentDto } from "@/api/contracts";
 import { feedback } from "@/lib/feedback";
-import { usePaymentIntentMutation } from "@/api/hooks";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 export type PaymentMethodKind = "mobile_money" | "card";
-
-export type PaymentConfirmation = {
-  kind: PaymentMethodKind;
-  label: string;
-};
-
+export type PaymentConfirmation = { kind: PaymentMethodKind; label: string };
 type PaymentModalProps = {
-  open: boolean;
-  amount: string;
-  reference: string;
-  invoiceId?: string;
-  unavailableMessage?: string;
-  onClose: () => void;
-  onSuccess: (payment: PaymentConfirmation) => void;
+  open: boolean; amount: string; reference: string; invoiceId?: string; unavailableMessage?: string;
+  onClose: () => void; onSuccess: (payment: PaymentConfirmation) => void;
 };
 
-const LAST_PAYMENT_KEY = "nwc-last-payment-method";
-
-function getInitialMethod(): PaymentMethodKind {
-  if (typeof window === "undefined") return "mobile_money";
-  const stored = window.localStorage.getItem(LAST_PAYMENT_KEY);
-  return stored === "card" ? "card" : "mobile_money";
-}
+const inputClass = "mt-1 h-11 w-full rounded-lg border border-ink/25 bg-white px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-cargo-yellow";
+const actionClass = "flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-cargo-yellow px-4 py-3 text-sm font-bold text-ink hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 export function PaymentModal({ open, amount, reference, invoiceId, unavailableMessage, onClose, onSuccess }: PaymentModalProps) {
-  const [method, setMethod] = useState<PaymentMethodKind>(getInitialMethod);
-  const [mobileProvider, setMobileProvider] = useState("Airtel Money");
-  const [phone, setPhone] = useState("+260 977 123 456");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [paymentState, setPaymentState] = useState<"ready" | "failed">("ready");
-  const [errorMessage, setErrorMessage] = useState("");
-  const paymentIntent = usePaymentIntentMutation();
+  const [method, setMethod] = useState<PaymentMethodKind>("mobile_money");
+  const [phone, setPhone] = useState("");
+  const [billing, setBilling] = useState({ firstName: "", lastName: "", email: "", city: "", country: "ZM", address: "", zip: "" });
+  const [submitted, setSubmitted] = useState<PaymentIntentDto | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const reported = useRef("");
+  const mutation = usePaymentIntentMutation();
+  const latest = useLatestPaymentIntent(invoiceId, open && !unavailableMessage);
+  const queryClient = useQueryClient();
+  const intent = latest.data && (!submitted || latest.data.id === submitted.id) ? latest.data : submitted;
+  const pending = intent && !["failed", "succeeded"].includes(intent.status);
 
   useEffect(() => {
-    if (!open) return;
-    setMethod(getInitialMethod());
-    setSubmitting(false);
-    setPaymentState("ready");
-    setErrorMessage("");
-    paymentIntent.reset();
-  }, [open]);
+    setSubmitted(null); setError(""); reported.current = "";
+  }, [invoiceId]);
 
-  const methodLabel = useMemo(() => method === "mobile_money" ? `${mobileProvider} · ${phone || "new number"}` : cardNumber ? `Card ending ${cardNumber.replace(/\D/g, "").slice(-4)}` : "New debit or ATM card", [cardNumber, method, mobileProvider, phone]);
+  useEffect(() => {
+    if (!open || intent?.status !== "succeeded" || reported.current === intent.id) return;
+    reported.current = intent.id;
+    void queryClient.invalidateQueries();
+    onSuccess({ kind: intent.method === "card" ? "card" : "mobile_money", label: intent.method === "card" ? "Lipila card" : "Lipila mobile money" });
+  }, [open, intent, onSuccess, queryClient]);
 
-  if (!open) return null;
-  if (unavailableMessage) return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/40 p-4" role="dialog" aria-modal="true" aria-label="Make a payment">
-    <div className="w-full max-w-lg rounded-lg bg-white p-6 text-ink">
-      <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-bold">Online payment</h2><button onClick={onClose} aria-label="Close payment" className="grid size-11 place-items-center"><X className="size-5" /></button></div>
-      <p className="mt-3 font-semibold">{reference} · {amount}</p><p className="mt-4 text-sm" role="status">{unavailableMessage}</p>
-      <button onClick={onClose} className="mt-5 rounded-lg bg-cargo-yellow px-5 py-3 font-bold text-ink">Close</button>
-    </div>
-  </div>;
-
-  const submitPayment = async () => {
-    if (method === "mobile_money" && phone.replace(/\D/g, "").length < 9) return;
-    if (method === "card" && (cardNumber.replace(/\D/g, "").length < 12 || !cardName.trim() || cardExpiry.length < 4 || cardCvv.length < 3)) return;
-    if (!invoiceId) {
-      setPaymentState("failed");
-      setErrorMessage("Your bill is not ready for online payment yet. Please contact your branch.");
-      return;
-    }
-
-    setSubmitting(true);
-    setErrorMessage("");
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (busyRef.current || pending || !invoiceId) return;
+    busyRef.current = true; setBusy(true); setError("");
     try {
-      const intent = await paymentIntent.mutateAsync({ invoiceId, method: method === "mobile_money" ? "mobile-money" : "card" });
-      if (intent.status !== "succeeded") {
-        setPaymentState("failed");
-        setErrorMessage(intent.status === "requires_action" ? "Your payment needs confirmation from the payment provider. No invoice was marked paid." : "Your payment is still being processed. The invoice will update after the provider confirms it.");
-        return;
-      }
-      window.localStorage.setItem(LAST_PAYMENT_KEY, method);
-      onSuccess({ kind: method, label: methodLabel });
-    } catch {
-      setPaymentState("failed");
-      setErrorMessage("The payment service is not available or could not start this payment. No money was collected.");
-      feedback.error("Payment could not be started", { description: "No money was collected. Please try again later." });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+      const result = await mutation.mutateAsync({ invoiceId, method: method === "card" ? "card" : "mobile-money", phone, ...(method === "card" ? { billing } : {}) });
+      setSubmitted(result);
+      await latest.refetch();
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "We could not confirm this payment. Check its status before trying again.");
+      feedback.error("Payment could not be confirmed", { description: "Check its status before trying again." });
+      await latest.refetch();
+    } finally { busyRef.current = false; setBusy(false); }
+  }
 
-  const invalid = method === "mobile_money"
-    ? phone.replace(/\D/g, "").length < 9
-    : cardNumber.replace(/\D/g, "").length < 12 || !cardName.trim() || cardExpiry.length < 4 || cardCvv.length < 3;
+  const displayedAmount = intent?.amount
+    ? `${intent.amount.currency} ${(intent.amount.amountMinor / 100).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : amount;
+  const checkoutUrl = intent?.checkoutUrl && /^https:\/\/checkout\.primenetpay\.com\//.test(intent.checkoutUrl) ? intent.checkoutUrl : null;
 
-  return <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/40 p-3 backdrop-blur-sm sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Make a payment">
-    <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-[30px] border border-ink/10 bg-white shadow-2xl sm:max-h-[min(720px,calc(100dvh-3rem))]">
-      <div className="flex shrink-0 items-center justify-between border-b border-ink/8 px-5 py-4 sm:px-7"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-ink/45">Secure payment</p><p className="mt-1 text-sm font-semibold text-ink">{reference}</p></div><button onClick={onClose} className="grid size-9 place-items-center rounded-full border border-ink/10 text-ink/50 transition hover:bg-ink/5 hover:text-ink" aria-label="Close payment"><X className="size-4" /></button></div>
-      <div className="min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-7"><div className="flex items-center justify-between rounded-2xl bg-[#f7f8fa] p-4"><div><p className="text-xs font-semibold text-ink/45">Amount to pay</p><p className="mt-1 font-heading text-2xl font-extrabold text-ink">{amount}</p></div><LockKeyhole className="size-5 text-ink/35" /></div>
-        {paymentState === "failed" ? <div className="mt-6 rounded-2xl border border-ink/10 bg-[#f7f8fa] p-5"><span className="grid size-10 place-items-center rounded-xl bg-cargo-yellow text-ink"><CircleAlert className="size-5" /></span><p className="mt-4 text-base font-bold text-ink">Payment could not be completed</p><p className="mt-1 text-sm leading-5 text-ink/55">{errorMessage || "No money was collected. Check your details, retry, or choose another payment method."}</p><div className="mt-5 grid gap-2 sm:grid-cols-2"><button onClick={() => setPaymentState("ready")} className="rounded-xl bg-cargo-yellow px-4 py-3 text-sm font-bold text-ink">Retry payment</button><button onClick={() => { setPaymentState("ready"); setMethod(method === "card" ? "mobile_money" : "card"); }} className="rounded-xl border border-ink/12 px-4 py-3 text-sm font-bold text-ink">Change method</button></div></div> : <><div className="mt-6"><p className="text-sm font-bold text-ink">Choose payment method</p><p className="mt-1 text-xs leading-5 text-ink/50">Your last successful method is selected automatically.</p><div className="mt-4 grid grid-cols-2 gap-3"><button onClick={() => setMethod("mobile_money")} className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${method === "mobile_money" ? "border-cargo-yellow bg-cargo-yellow/15" : "border-ink/10 hover:bg-ink/[0.03]"}`}><span className={`grid size-9 place-items-center rounded-xl ${method === "mobile_money" ? "bg-cargo-yellow text-ink" : "bg-ink/5 text-ink/55"}`}><Smartphone className="size-4" /></span><span><span className="block text-sm font-bold text-ink">Mobile money</span><span className="mt-0.5 block text-[11px] text-ink/45">Airtel, MTN or Zamtel</span></span>{method === "mobile_money" && <Check className="ml-auto size-4 text-ink" />}</button><button onClick={() => setMethod("card")} className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${method === "card" ? "border-cargo-yellow bg-cargo-yellow/15" : "border-ink/10 hover:bg-ink/[0.03]"}`}><span className={`grid size-9 place-items-center rounded-xl ${method === "card" ? "bg-cargo-yellow text-ink" : "bg-ink/5 text-ink/55"}`}><CreditCard className="size-4" /></span><span><span className="block text-sm font-bold text-ink">ATM / debit card</span><span className="mt-0.5 block text-[11px] text-ink/45">Add a card securely</span></span>{method === "card" && <Check className="ml-auto size-4 text-ink" />}</button></div></div>
-        {method === "mobile_money" ? <div className="mt-6 space-y-4"><div><p className="mb-2 text-xs font-bold text-ink/50">Mobile money provider</p><div className="grid grid-cols-3 gap-2">{["Airtel Money", "MTN MoMo", "Zamtel Kwacha"].map((provider) => <button key={provider} onClick={() => setMobileProvider(provider)} className={`rounded-xl border px-2 py-3 text-xs font-bold transition ${mobileProvider === provider ? "border-cargo-yellow bg-cargo-yellow/15 text-ink" : "border-ink/10 text-ink/55 hover:bg-ink/[0.03]"}`}>{provider.replace(" Money", "").replace(" Kwacha", "")}</button>)}</div></div><label className="block"><span className="mb-2 block text-xs font-bold text-ink/50">Mobile money number</span><div className="flex items-center gap-3 rounded-2xl border border-ink/10 px-4"><Smartphone className="size-4 text-ink/35" /><input value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="tel" className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink outline-none" /></div></label><div className="flex items-start gap-2 rounded-xl bg-cargo-yellow/15 p-3 text-xs leading-5 text-ink"><Landmark className="mt-0.5 size-4 shrink-0" />You will approve this payment on your phone after continuing.</div></div> : <div className="mt-6 space-y-4"><label className="block"><span className="mb-2 block text-xs font-bold text-ink/50">Cardholder name</span><input value={cardName} onChange={(event) => setCardName(event.target.value)} placeholder="Name on card" autoComplete="cc-name" className="h-12 w-full rounded-2xl border border-ink/10 px-4 text-sm font-semibold text-ink outline-none focus:border-cargo-yellow" /></label><label className="block"><span className="mb-2 block text-xs font-bold text-ink/50">Card number</span><div className="flex items-center gap-3 rounded-2xl border border-ink/10 px-4"><CreditCard className="size-4 text-ink/35" /><input value={cardNumber} onChange={(event) => setCardNumber(event.target.value.replace(/[^\d ]/g, "").slice(0, 19))} placeholder="0000 0000 0000 0000" inputMode="numeric" autoComplete="cc-number" className="h-12 min-w-0 flex-1 bg-transparent text-sm font-semibold text-ink outline-none" /></div></label><div className="grid grid-cols-2 gap-3"><label><span className="mb-2 block text-xs font-bold text-ink/50">Expiry</span><input value={cardExpiry} onChange={(event) => setCardExpiry(event.target.value.slice(0, 5))} placeholder="MM/YY" inputMode="numeric" autoComplete="cc-exp" className="h-12 w-full rounded-2xl border border-ink/10 px-4 text-sm font-semibold text-ink outline-none focus:border-cargo-yellow" /></label><label><span className="mb-2 block text-xs font-bold text-ink/50">CVV</span><input value={cardCvv} onChange={(event) => setCardCvv(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="•••" inputMode="numeric" autoComplete="cc-csc" className="h-12 w-full rounded-2xl border border-ink/10 px-4 text-sm font-semibold text-ink outline-none focus:border-cargo-yellow" /></label></div></div>}
-        <button disabled={invalid || submitting} onClick={submitPayment} className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-cargo-yellow px-5 py-3.5 text-sm font-bold text-ink transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45">{submitting ? "Payment pending…" : `Pay ${amount}`}<ChevronLeft className="size-4 rotate-180" /></button><p className="mt-3 text-center text-[11px] leading-5 text-ink/42">Your payment details are handled securely. New World Cargo does not store your full card number.</p></>}
-      </div>
-    </div>
-  </div>;
+  return <Dialog open={open} onOpenChange={value => { if (!value) onClose(); }}>
+    <DialogContent className="max-h-[90dvh] overflow-y-auto bg-white text-ink">
+      <DialogTitle className="pr-7">Make a payment</DialogTitle>
+      <DialogDescription className="text-ink/75">{reference}</DialogDescription>
+      <div className="flex items-center justify-between border-y border-ink/10 py-4"><div><p className="text-sm text-ink/75">Amount to pay</p><p className="mt-1 text-2xl font-bold">{displayedAmount}</p></div><LockKeyhole className="size-5" aria-hidden="true" /></div>
+      {unavailableMessage ? <p role="status">{unavailableMessage}</p> : latest.isLoading ? <p className="flex items-center gap-2" role="status"><Loader2 className="size-4 animate-spin" />Checking payment status...</p> : latest.isError && !submitted ? <div role="alert"><p>We could not check your payment status.</p><button className={`${actionClass} mt-3`} onClick={() => void latest.refetch()}>Check again</button></div> : pending ? <div className="space-y-4" aria-live="polite">
+        <h3 className="font-bold">{intent.status === "review" ? "Payment needs review" : checkoutUrl ? "Continue to card payment" : "Waiting for payment confirmation"}</h3>
+        <p className="text-sm leading-6 text-ink/80">{intent.status === "review" ? "Please contact your branch about this payment. Do not pay again while we check it." : checkoutUrl ? "Complete your payment on Lipila's secure checkout page. Your bill will update once payment is confirmed." : "Approve the request on your mobile-money phone. You can close this window; your bill will update when payment is confirmed. Do not start another payment while this one is pending."}</p>
+        {checkoutUrl && intent.status !== "review" && <a href={checkoutUrl} className={actionClass}>Continue to secure checkout<CreditCard className="size-4" /></a>}
+        {intent.status !== "review" && <button className={actionClass} disabled={latest.isFetching} onClick={() => void latest.refetch()}>{latest.isFetching ? "Checking..." : "Check payment status"}</button>}
+        {latest.isError && <p role="alert" className="text-sm text-red-700">We could not refresh the status. Your payment is still being checked.</p>}
+      </div> : intent?.status === "succeeded" ? <p role="status">Payment confirmed.</p> : <form onSubmit={submit} className="space-y-4">
+        {intent?.status === "failed" && <p role="alert" className="text-sm text-red-700">Payment was not completed. Check your details before trying again.</p>}
+        <fieldset disabled={busy} className="space-y-4">
+          <legend className="mb-3 font-semibold">Payment method</legend>
+          <div className="grid grid-cols-2 gap-3">{(["mobile_money", "card"] as const).map(value => <label key={value} className={`flex min-h-16 cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-semibold ${method === value ? "border-ink bg-cargo-yellow/15" : "border-ink/20 hover:bg-ink/5"}`}><input type="radio" name="payment-method" value={value} checked={method === value} onChange={() => setMethod(value)} />{value === "card" ? <CreditCard className="size-4 shrink-0" /> : <Smartphone className="size-4 shrink-0" />}{value === "card" ? "Card" : "Mobile money"}</label>)}</div>
+          <label className="block text-sm font-semibold">{method === "card" ? "Contact number" : "Mobile money number"}<input required type="tel" autoComplete="tel" inputMode="tel" value={phone} onChange={event => setPhone(event.target.value)} placeholder="0972 123 456" pattern="[+0-9 ()-]{10,20}" className={inputClass} /></label>
+          {method === "mobile_money" ? <p className="text-sm leading-6 text-ink/80">MTN, Airtel or Zamtel in Zambia. Approve the payment on your phone when prompted.</p> : <>
+            <p className="text-sm leading-6 text-ink/80">Enter your billing details, then continue to secure card checkout.</p>
+            <div className="grid gap-3 sm:grid-cols-2">{([['firstName', 'First name'], ['lastName', 'Last name'], ['email', 'Email'], ['address', 'Billing address'], ['city', 'City'], ['country', 'Country code'], ['zip', 'Postal code']] as const).map(([key, label]) => <label key={key} className="block text-sm font-semibold">{label}<input required type={key === "email" ? "email" : "text"} maxLength={key === "country" ? 2 : 150} pattern={key === "country" ? "[A-Z]{2}" : undefined} value={billing[key]} onChange={event => setBilling(current => ({ ...current, [key]: key === "country" ? event.target.value.toUpperCase() : event.target.value }))} className={inputClass} /></label>)}</div>
+          </>}
+        </fieldset>
+        {error && <p role="alert" className="text-sm leading-6 text-red-700">{error}</p>}
+        <button className={actionClass} type="submit" disabled={busy || !invoiceId || latest.isFetching}>{busy && <Loader2 className="size-4 animate-spin" />}{busy ? "Starting payment..." : method === "card" ? "Continue to card payment" : `Pay ${amount}`}</button>
+      </form>}
+    </DialogContent>
+  </Dialog>;
 }
