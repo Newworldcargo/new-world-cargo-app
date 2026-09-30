@@ -1,7 +1,8 @@
 import { CreditCard, Loader2, LockKeyhole, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLatestPaymentIntent, usePaymentIntentMutation } from "@/api/hooks";
+import { useLatestPaymentIntent, usePaymentIntentMutation, usePaymentCheckout } from "@/api/hooks";
+import { isCustomerApiError } from "@/api/errors";
 import type { PaymentIntentDto } from "@/api/contracts";
 import { feedback } from "@/lib/feedback";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -23,42 +24,55 @@ export function PaymentModal({ open, amount, reference, invoiceId, unavailableMe
   const [submitted, setSubmitted] = useState<PaymentIntentDto | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uncertain, setUncertain] = useState(false);
   const busyRef = useRef(false);
   const reported = useRef("");
   const mutation = usePaymentIntentMutation();
   const latest = useLatestPaymentIntent(invoiceId, open && !unavailableMessage);
+  const checkout = usePaymentCheckout(invoiceId, open && !unavailableMessage);
   const queryClient = useQueryClient();
   const intent = latest.data && (!submitted || latest.data.id === submitted.id) ? latest.data : submitted;
   const pending = intent && !["failed", "succeeded"].includes(intent.status);
 
   useEffect(() => {
-    setSubmitted(null); setError(""); reported.current = "";
+    setSubmitted(null); setError(""); setUncertain(false); setPhone(""); reported.current = "";
   }, [invoiceId]);
+
+  useEffect(() => {
+    if (checkout.data?.methods.length && !checkout.data.methods.includes(method === "card" ? "card" : "mobile-money")) {
+      setMethod(checkout.data.methods[0] === "card" ? "card" : "mobile_money");
+    }
+  }, [checkout.data, method]);
+
+  useEffect(() => { if (intent) setUncertain(false); }, [intent]);
 
   useEffect(() => {
     if (!open || intent?.status !== "succeeded" || reported.current === intent.id) return;
     reported.current = intent.id;
     void queryClient.invalidateQueries();
-    onSuccess({ kind: intent.method === "card" ? "card" : "mobile_money", label: intent.method === "card" ? "Lipila card" : "Lipila mobile money" });
+    onSuccess({ kind: intent.method === "card" ? "card" : "mobile_money", label: intent.method === "card" ? "Card" : "Mobile money" });
   }, [open, intent, onSuccess, queryClient]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (busyRef.current || pending || !invoiceId) return;
+    if (busyRef.current || pending || uncertain || !invoiceId || !checkout.data?.methods.includes(method === "card" ? "card" : "mobile-money")) return;
     busyRef.current = true; setBusy(true); setError("");
     try {
       const result = await mutation.mutateAsync({ invoiceId, method: method === "card" ? "card" : "mobile-money", phone, ...(method === "card" ? { billing } : {}) });
       setSubmitted(result);
       await latest.refetch();
     } catch (e) {
-      setError(e instanceof Error && e.message ? e.message : "We could not confirm this payment. Check its status before trying again.");
+      const unknown = !isCustomerApiError(e) || e.status >= 500 || e.status === 408;
+      setUncertain(unknown);
+      setError(!unknown && e instanceof Error ? e.message : "We could not confirm whether your payment started. Check its status before trying again.");
       feedback.error("Payment could not be confirmed", { description: "Check its status before trying again." });
       await latest.refetch();
     } finally { busyRef.current = false; setBusy(false); }
   }
 
-  const displayedAmount = intent?.amount
-    ? `${intent.amount.currency} ${(intent.amount.amountMinor / 100).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : amount;
+  const confirmedAmount = intent?.amount ?? checkout.data?.amount;
+  const displayedAmount = confirmedAmount
+    ? `${confirmedAmount.currency} ${(confirmedAmount.amountMinor / 100).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : amount;
   const checkoutUrl = intent?.checkoutUrl && /^https:\/\/checkout\.primenetpay\.com\//.test(intent.checkoutUrl) ? intent.checkoutUrl : null;
 
   return <Dialog open={open} onOpenChange={value => { if (!value) onClose(); }}>
@@ -66,25 +80,25 @@ export function PaymentModal({ open, amount, reference, invoiceId, unavailableMe
       <DialogTitle className="pr-7">Make a payment</DialogTitle>
       <DialogDescription className="text-ink/75">{reference}</DialogDescription>
       <div className="flex items-center justify-between border-y border-ink/10 py-4"><div><p className="text-sm text-ink/75">Amount to pay</p><p className="mt-1 text-2xl font-bold">{displayedAmount}</p></div><LockKeyhole className="size-5" aria-hidden="true" /></div>
-      {unavailableMessage ? <p role="status">{unavailableMessage}</p> : latest.isLoading ? <p className="flex items-center gap-2" role="status"><Loader2 className="size-4 animate-spin" />Checking payment status...</p> : latest.isError && !submitted ? <div role="alert"><p>We could not check your payment status.</p><button className={`${actionClass} mt-3`} onClick={() => void latest.refetch()}>Check again</button></div> : pending ? <div className="space-y-4" aria-live="polite">
+      {unavailableMessage || !invoiceId ? <p role="status">{unavailableMessage || "Please contact your branch to confirm your bill."}</p> : latest.isLoading || checkout.isLoading ? <p className="flex items-center gap-2" role="status"><Loader2 className="size-4 animate-spin" />Checking payment status...</p> : (latest.isError && !submitted) || checkout.isError ? <div role="alert"><p>We could not check your payment details.</p><button className={`${actionClass} mt-3`} onClick={() => { void latest.refetch(); void checkout.refetch(); }}>Check again</button></div> : uncertain && (!intent || intent.status === "failed") ? <div role="status" className="space-y-3"><p>We are checking whether your payment started. Do not pay again yet.</p><button className={actionClass} disabled={latest.isFetching} onClick={() => void latest.refetch()}>Check payment status</button></div> : pending ? <div className="space-y-4" aria-live="polite">
         <h3 className="font-bold">{intent.status === "review" ? "Payment needs review" : checkoutUrl ? "Continue to card payment" : "Waiting for payment confirmation"}</h3>
-        <p className="text-sm leading-6 text-ink/80">{intent.message || (intent.status === "review" ? "Please contact your branch about this payment. Do not pay again while we check it." : checkoutUrl ? "Complete your payment on Lipila's secure checkout page. Your bill will update once payment is confirmed." : "Your payment is being checked. Do not pay again while confirmation is pending.")}</p>
+        <p className="text-sm leading-6 text-ink/80">{intent.message || (intent.status === "review" ? "Please contact your branch about this payment. Do not pay again while we check it." : checkoutUrl ? "Complete your payment on the secure checkout page. Your bill will update once payment is confirmed." : "Your payment is being checked. Do not pay again while confirmation is pending.")}</p>
         {checkoutUrl && intent.status !== "review" && <a href={checkoutUrl} className={actionClass}>Continue to secure checkout<CreditCard className="size-4" /></a>}
         {intent.status !== "review" && <button className={actionClass} disabled={latest.isFetching} onClick={() => void latest.refetch()}>{latest.isFetching ? "Checking..." : "Check payment status"}</button>}
         {latest.isError && <p role="alert" className="text-sm text-red-700">We could not refresh the status. Your payment is still being checked.</p>}
-      </div> : intent?.status === "succeeded" ? <p role="status">Payment confirmed.</p> : <form onSubmit={submit} className="space-y-4">
+      </div> : intent?.status === "succeeded" ? <p role="status">Payment confirmed.</p> : !checkout.data?.methods.length ? <p role="status">{checkout.data?.message || "Please contact your branch to arrange payment."}</p> : <form onSubmit={submit} className="space-y-4">
         {intent?.status === "failed" && <p role="alert" className="text-sm text-red-700">Payment was not completed. Check your details before trying again.</p>}
         <fieldset disabled={busy} className="space-y-4">
           <legend className="mb-3 font-semibold">Payment method</legend>
-          <div className="grid grid-cols-2 gap-3">{(["mobile_money", "card"] as const).map(value => <label key={value} className={`flex min-h-16 cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-semibold ${method === value ? "border-ink bg-cargo-yellow/15" : "border-ink/20 hover:bg-ink/5"}`}><input type="radio" name="payment-method" value={value} checked={method === value} onChange={() => setMethod(value)} />{value === "card" ? <CreditCard className="size-4 shrink-0" /> : <Smartphone className="size-4 shrink-0" />}{value === "card" ? "Card" : "Mobile money"}</label>)}</div>
-          <label className="block text-sm font-semibold">{method === "card" ? "Contact number" : "Mobile money number"}<input required type="tel" autoComplete="tel" inputMode="tel" value={phone} onChange={event => setPhone(event.target.value)} placeholder="0972 123 456" maxLength={30} className={inputClass} /></label>
+          <div className="grid grid-cols-2 gap-3">{(["mobile_money", "card"] as const).filter(value => checkout.data.methods.includes(value === "card" ? "card" : "mobile-money")).map(value => <label key={value} className={`flex min-h-16 cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-semibold ${method === value ? "border-ink bg-cargo-yellow/15" : "border-ink/20 hover:bg-ink/5"}`}><input type="radio" name="payment-method" value={value} checked={method === value} onChange={() => { setMethod(value); setPhone(""); }} />{value === "card" ? <CreditCard className="size-4 shrink-0" /> : <Smartphone className="size-4 shrink-0" />}{value === "card" ? "Card" : "Mobile money"}</label>)}</div>
+          <label className="block text-sm font-semibold">{method === "card" ? "Contact number" : "Mobile money number"}<input required type="tel" autoComplete="tel" inputMode="tel" value={phone} onChange={event => setPhone(method === "card" ? event.target.value : event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder={method === "card" ? "+260972123456" : "0972123456"} maxLength={method === "card" ? 30 : 10} pattern={method === "card" ? undefined : "0[79][0-9]{8}"} title={method === "card" ? undefined : "10 digits starting with 07 or 09"} className={inputClass} /></label>
           {method === "mobile_money" ? <p className="text-sm leading-6 text-ink/80">MTN, Airtel or Zamtel in Zambia. Approve the payment on your phone when prompted.</p> : <>
             <p className="text-sm leading-6 text-ink/80">Enter your billing details, then continue to secure card checkout.</p>
             <div className="grid gap-3 sm:grid-cols-2">{([['firstName', 'First name'], ['lastName', 'Last name'], ['email', 'Email'], ['address', 'Billing address'], ['city', 'City'], ['country', 'Country code'], ['zip', 'Postal code']] as const).map(([key, label]) => <label key={key} className="block text-sm font-semibold">{label}<input required type={key === "email" ? "email" : "text"} maxLength={key === "country" ? 2 : 150} pattern={key === "country" ? "[A-Z]{2}" : undefined} value={billing[key]} onChange={event => setBilling(current => ({ ...current, [key]: key === "country" ? event.target.value.toUpperCase() : event.target.value }))} className={inputClass} /></label>)}</div>
           </>}
         </fieldset>
         {error && <p role="alert" className="text-sm leading-6 text-red-700">{error}</p>}
-        <button className={actionClass} type="submit" disabled={busy || !invoiceId || latest.isFetching}>{busy && <Loader2 className="size-4 animate-spin" />}{busy ? "Starting payment..." : method === "card" ? "Continue to card payment" : `Pay ${amount}`}</button>
+        <button className={actionClass} type="submit" disabled={busy || !invoiceId || latest.isFetching || checkout.isFetching}>{busy && <Loader2 className="size-4 animate-spin" />}{busy ? "Starting payment..." : method === "card" ? "Continue to card payment" : `Pay ${displayedAmount}`}</button>
       </form>}
     </DialogContent>
   </Dialog>;

@@ -186,6 +186,14 @@ export const paymentIntentInputSchema = z.object({
   idempotencyKey: z.string().uuid(),
 });
 
+export const paymentCheckoutSchema = z.object({
+  invoiceId: z.string(),
+  amount: z.object({ currency: z.string(), amountMinor: z.number().int().nonnegative() }),
+  methods: z.array(z.enum(["mobile-money", "card"])),
+  message: z.string().nullable(),
+});
+export type PaymentCheckoutDto = z.infer<typeof paymentCheckoutSchema>;
+
 export const paymentIntentDtoSchema = z.object({
   id: z.string(),
   status: z.enum(["requires_action", "processing", "pending", "review", "succeeded", "failed"]),

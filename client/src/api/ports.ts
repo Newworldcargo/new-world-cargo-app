@@ -10,6 +10,7 @@ export type InvoiceListFilters = { query?: string; status?: "all" | "paid" | "un
 export type CustomerScope = { customerId: string };
 
 export interface CustomerPortalPort {
+  getPaymentCheckout(scope: CustomerScope, invoiceId: string): Promise<import("./contracts").PaymentCheckoutDto>;
   listShipments(scope: CustomerScope, filters?: ShipmentListFilters): Promise<ShipmentDto[]>;
   getShipment(scope: CustomerScope, shipmentId: string): Promise<ShipmentDto | null>;
   getPublicTracking(trackingNumber: string): Promise<ShipmentDto | null>;

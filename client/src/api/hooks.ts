@@ -258,6 +258,17 @@ export function usePaymentIntentMutation() {
   });
 }
 
+export function usePaymentCheckout(invoiceId: string | undefined, enabled: boolean) {
+  const scope = useCustomerScope();
+  return useQuery({
+    queryKey: ["payment-checkout", scope.customerId, invoiceId],
+    queryFn: () => customerPortalRepository.getPaymentCheckout(requireCustomerScope(scope), invoiceId!),
+    enabled: enabled && scope.enabled && Boolean(invoiceId),
+    staleTime: 0,
+    retry: 1,
+  });
+}
+
 export function useLatestPaymentIntent(invoiceId: string | undefined, enabled: boolean) {
   const scope = useCustomerScope();
   return useQuery({

@@ -1,5 +1,6 @@
 import { apiProblemSchema, shipmentDtoSchema, type AddressDto, type AddressInput, type CustomerReferenceData, type FileUploadIntentDto, type FileUploadIntentInput, type InvoiceDto, type NotificationDto, type PaymentIntentDto, type PaymentIntentInput, type PickupDto, type PickupInput, type RecipientDto, type RecipientInput, type ReturnRequestDto, type ReturnRequestInput, type SessionActivityDto, type ShipmentAction, type ShipmentDto, type ShipmentDraftDto, type SupportCaseDto, type SupportCaseInput, type UploadedFileDto, type WalletDto } from "../contracts";
 import { CustomerApiError } from "../errors";
+import { paymentCheckoutSchema } from "../contracts";
 import { apiRequest, apiRequestTimeoutMs } from "../http";
 import type { CustomerPortalPort, CustomerScope, InvoiceListFilters, ShipmentListFilters } from "../ports";
 
@@ -154,6 +155,9 @@ export const httpCustomerPortalPort: CustomerPortalPort = {
   },
   async getLatestPaymentIntent(_scope, invoiceId) {
     return apiRequest<PaymentIntentDto | null>(`/payments/invoices/${encodeURIComponent(invoiceId)}/intent`);
+  },
+  async getPaymentCheckout(_scope, invoiceId) {
+    return paymentCheckoutSchema.parse(await apiRequest(`/payments/invoices/${encodeURIComponent(invoiceId)}/checkout`));
   },
   async createFileUploadIntent(_scope, input) {
     const { filename, ...payload } = input;

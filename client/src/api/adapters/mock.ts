@@ -513,6 +513,11 @@ export const mockCustomerPortalPort: CustomerPortalPort = {
     };
   },
   async getLatestPaymentIntent() { return null; },
+  async getPaymentCheckout(scope, invoiceId) {
+    const invoice = await this.getInvoice(scope, invoiceId);
+    if (!invoice) throw new Error("Invoice not found.");
+    return { invoiceId, amount: invoice.total, methods: [], message: "Payments are unavailable in demo mode." };
+  },
   async createFileUploadIntent(
     scope,
     input: FileUploadIntentInput
