@@ -194,6 +194,8 @@ export const paymentIntentDtoSchema = z.object({
   provider: z.string().nullish(),
   method: z.enum(["mobile-money", "card"]).optional(),
   checkoutUrl: z.string().url().nullish(),
+  message: z.string().optional(),
+  canRetry: z.boolean().optional(),
   amount: z.object({ currency: z.string(), amountMinor: z.number().int() }).optional(),
   revision: z.number().int().nonnegative(),
 });

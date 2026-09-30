@@ -62,18 +62,17 @@ export default function Invoices() {
   const [query, setQuery] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
-  const [paidMethods, setPaidMethods] = useState<Record<string, string>>({});
   const { data: invoices = [], isLoading, isError, refetch } = useCustomerInvoices({ query, status: filter });
-  const ledger = useMemo(() => invoices.map((invoice) => paidMethods[invoice.id] ? { ...invoice, status: "paid" as const, paidAt: "Just now", paymentMethod: paidMethods[invoice.id] } : invoice), [invoices, paidMethods]);
+  const ledger = invoices;
   const matching = useMemo(() => ledger.filter((invoice) => filter === "all" || invoice.status === filter), [filter, ledger]);
   const recent = matching.slice(0, 3);
   const older = matching.slice(3);
   const unpaidTotal = ledger.filter((invoice) => invoice.status === "unpaid").reduce((total, invoice) => total + invoice.amountValue, 0);
-  const completePayment = (payment: PaymentConfirmation) => {
+  const completePayment = (_payment: PaymentConfirmation) => {
     if (!paymentInvoice) return;
-    setPaidMethods((current) => ({ ...current, [paymentInvoice.id]: payment.label }));
-    setSelectedInvoice((current) => current?.id === paymentInvoice.id ? { ...current, status: "paid", paidAt: "Just now", paymentMethod: payment.label } : current);
+    setSelectedInvoice(null);
     setPaymentInvoice(null);
+    void refetch();
     feedback.success("Payment received. Your receipt is ready to download.");
   };
 
