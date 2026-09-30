@@ -643,12 +643,9 @@ export default function SettingsDetail() {
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
                   <span className="text-sm font-bold">Mobile money</span>
-                  <span className="rounded-full bg-cargo-yellow/30 px-2 py-0.5 text-[9px] font-bold text-ink">
-                    Preferred
-                  </span>
                 </span>
                 <span className="mt-1 block text-xs text-ink/50">
-                  Airtel Money · +260 977 123 456
+                  MTN, Airtel or Zamtel in Zambia
                 </span>
               </span>
               <ChevronRight className="size-4 text-ink/35" />
@@ -669,8 +666,7 @@ export default function SettingsDetail() {
             </Row>
           </Panel>
           <div className="rounded-2xl border border-ink/10 bg-[#f7f8fb] p-4 text-xs leading-5 text-ink/55">
-            When you pay an invoice or booking deposit, the payment screen
-            remembers your last successful method.
+            Available payment methods appear at checkout for your confirmed bill.
           </div>
         </div>
       );

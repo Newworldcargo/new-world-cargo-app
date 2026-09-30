@@ -1,6 +1,7 @@
 import { ContentSkeleton } from "@/components/loading-skeleton";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/api/query-keys";
+import { useRef, useState } from "react";
 import { Download, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/api/http";
@@ -11,13 +12,19 @@ import { PaymentModal } from "./payment-modal";
 type PaymentSummary = {
   total: Money; paid: Money; remaining: Money; status: string; invoiceId: string | null;
   checkoutMessage: string | null;
+  canPrepareCheckout?: boolean;
   receipts: { id: string; number: string; amount: Money; dateLabel: string; method: string; refunded: boolean }[];
 };
 const money = (value: Money) => `${value.currency} ${(value.amountMinor / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export function ShipmentPayments({ shipmentId, reference, cancelled, booking }: { shipmentId: string; reference: string; cancelled: boolean; booking?: OnlineBooking }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [showPayment, setShowPayment] = useState(false);
+  const [prepared, setPrepared] = useState<PaymentSummary | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const preparingRef = useRef(false);
+  const [checkoutError, setCheckoutError] = useState("");
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState("");
   const { data, isLoading, isError, refetch } = useQuery({
@@ -25,6 +32,19 @@ export function ShipmentPayments({ shipmentId, reference, cancelled, booking }: 
     queryFn: () => apiRequest<PaymentSummary>(`/shipments/${encodeURIComponent(shipmentId)}/payments`),
     enabled: Boolean(user) && !booking, refetchInterval: 30_000,
   });
+  async function openCheckout() {
+    if (preparingRef.current || !data) return;
+    setCheckoutError("");
+    if (data.invoiceId || !data.canPrepareCheckout) { setPrepared(null); setShowPayment(true); return; }
+    preparingRef.current = true; setPreparing(true);
+    try {
+      const result = await apiRequest<PaymentSummary>(`/shipments/${encodeURIComponent(shipmentId)}/payments/checkout`, { method: "POST", body: {} });
+      setPrepared(result); setShowPayment(true); void refetch();
+      if (user) void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all(user.id) });
+    } catch {
+      setCheckoutError("We couldn't open checkout. Please try again. No payment was requested.");
+    } finally { preparingRef.current = false; setPreparing(false); }
+  }
   async function download(id: string) {
     if (downloading) return;
     setDownloading(id); setDownloadError("");
@@ -49,15 +69,16 @@ export function ShipmentPayments({ shipmentId, reference, cancelled, booking }: 
       <dl className="mt-3 space-y-2 text-sm">
         {[["Total bill", data.total], ["Recorded payments", data.paid], ["Remaining balance", data.remaining]].map(([label, value]) => <div className="flex flex-wrap justify-between gap-2" key={label as string}><dt>{label as string}</dt><dd className="font-semibold">{money(value as Money)}</dd></div>)}
       </dl>
-      {data.remaining.amountMinor > 0 && !cancelled && <button onClick={() => setShowPayment(true)} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-cargo-yellow px-5 py-3 font-bold text-ink"><CreditCard className="size-4" />Pay now</button>}
+      {data.remaining.amountMinor > 0 && !cancelled && <button onClick={() => void openCheckout()} disabled={preparing} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-cargo-yellow px-5 py-3 font-bold text-ink disabled:opacity-50"><CreditCard className="size-4" />{preparing ? "Opening checkout..." : "Pay now"}</button>}
+      {checkoutError && <p role="alert" className="mt-3 text-sm text-red-700">{checkoutError}</p>}
       {data.receipts.length ? <ul className="mt-5 divide-y divide-ink/10">{data.receipts.map(receipt => <li className="py-3" key={receipt.id}>
         <p className="break-words text-sm font-semibold">{receipt.number} · {money(receipt.amount)}</p>
         <p className="mt-1 text-xs text-ink/65">{receipt.dateLabel} · {receipt.method}{receipt.refunded ? " · Refunded" : ""}</p>
         <button onClick={() => download(receipt.id)} disabled={Boolean(downloading)} aria-label={`Download receipt ${receipt.number}`} className="mt-2 inline-flex items-center gap-2 rounded-lg border border-ink/20 px-3 py-2 text-sm font-semibold disabled:opacity-50"><Download className="size-4" />{downloading === receipt.id ? "Downloading..." : "Download receipt"}</button>
       </li>)}</ul> : <p className="mt-4 text-sm text-ink/65">No payment receipts yet.</p>}
       {downloadError && <p className="mt-3 text-sm text-red-700" role="alert">{downloadError}</p>}
-      <PaymentModal open={showPayment} invoiceId={data.invoiceId ?? undefined} amount={money(data.remaining)} reference={reference}
-        unavailableMessage={data.checkoutMessage ?? undefined} onClose={() => setShowPayment(false)} onSuccess={() => { setShowPayment(false); void refetch(); }} />
+      <PaymentModal open={showPayment} invoiceId={(prepared ?? data).invoiceId ?? undefined} amount={money((prepared ?? data).remaining)} reference={reference}
+        unavailableMessage={(prepared ?? data).checkoutMessage ?? undefined} onClose={() => setShowPayment(false)} onSuccess={() => { setShowPayment(false); setPrepared(null); void refetch(); }} />
     </>}
   </section>;
 }

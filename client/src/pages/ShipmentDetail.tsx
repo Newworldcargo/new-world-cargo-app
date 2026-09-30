@@ -287,7 +287,7 @@ function ShipmentDetailView({ shipment, booking }: { shipment: Shipment; booking
               </div>
             </div>
           </section>
-          <ShipmentPayments shipmentId={shipment.id} reference={shipment.trackingNumber} cancelled={cancelled} booking={requestOnly ? booking : undefined} />
+          <ShipmentPayments key={shipment.id} shipmentId={shipment.id} reference={shipment.trackingNumber} cancelled={cancelled} booking={requestOnly ? booking : undefined} />
           {!requestOnly && <div className="grid grid-cols-2 gap-2">
             <Action
               onClick={() => navigate(`/shipments/${shipment.id}/proof`)}
