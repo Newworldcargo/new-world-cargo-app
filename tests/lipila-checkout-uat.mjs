@@ -60,6 +60,7 @@ try {
    intent={...intent,status:'succeeded',revision:2};
    await dialog.getByRole('button',{name:'Check payment status'}).click();
    await expect(dialog).toBeHidden();
+   await expect(page).toHaveURL(/\/shipments\/1#payments$/);
   }
   console.log(JSON.stringify({width,scenario,passed:true,collectionRequests:posts}));
   await page.close();

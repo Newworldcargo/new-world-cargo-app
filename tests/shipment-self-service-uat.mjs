@@ -8,7 +8,7 @@ try { for (const width of [390,1440]) {
   page.on('pageerror', error => console.error(error.message));
   let invoiceId = null, preparations = 0, collections = 0, failPreparation = true, intent = null;
   const money = {currency:'ZMW',amountMinor:3964};
-  const summary = () => ({total:money,paid:{currency:'ZMW',amountMinor:0},remaining:money,status:'Unpaid',invoiceId,canPrepareCheckout:!invoiceId,checkoutMessage:null,receipts:[]});
+  const summary = () => ({total:money,paid:intent?.status==='succeeded'?money:{currency:'ZMW',amountMinor:0},remaining:intent?.status==='succeeded'?{currency:'ZMW',amountMinor:0}:money,status:intent?.status==='succeeded'?'Paid':'Unpaid',invoiceId,canPrepareCheckout:!invoiceId,checkoutMessage:null,receipts:intent?.status==='succeeded'?[{id:'payment-1',number:'REC-ONLINE-1',amount:money,dateLabel:'4 Oct 2026',method:'Mobile money',refunded:false}]:[]});
   await page.route('**/api/gateway/**', async route => {
     const path = new URL(route.request().url()).pathname.split('/v1')[1];
     let data = [];
@@ -16,6 +16,7 @@ try { for (const width of [390,1440]) {
     if(path==='/shipments/38748')data={id:'38748',customerId:'uat',trackingNumber:'TEST38748',carrier:'New World Cargo',transportMode:'air',packageName:'Parcel',origin:'Lusaka',destination:'Kitwe',etaAt:null,etaLabel:'To be confirmed',status:'pending',statusLabel:'Approved',price:money,progress:0,events:[],allowedActions:[],revision:1};
     if(path==='/shipments/38748/delivery')data={revision:1};
     if(path==='/shipments/38748/payments')data=summary();
+    if(path==='/shipments/38748/receipts/payment-1')data={filename:'REC-ONLINE-1.html',mimeType:'text/html;charset=utf-8',content:'<!doctype html><title>Receipt</title><h1>REC-ONLINE-1</h1><p>ZMW 39.64</p>'};
     if(path==='/shipments/38748/payments/checkout') {
       assert.equal(route.request().method(),'POST');preparations++;
       assert.deepEqual(route.request().postDataJSON(),{});
@@ -25,10 +26,11 @@ try { for (const width of [390,1440]) {
     if(path==='/payments/invoices/123/checkout')data={invoiceId,amount:money,methods:['mobile-money','card'],message:null};
     if(path==='/payments/invoices/123/intent')data=intent;
     if(path==='/payments/intents') {
-      collections++;assert.equal(route.request().postDataJSON().invoiceId,'123');
-      intent={id:'intent-123',status:'processing',method:'mobile-money',revision:1,amount:money};data=intent;
+      collections++;const body=route.request().postDataJSON();assert.equal(body.invoiceId,'123');
+      if(collections===2){assert.equal(body.restartIntentId,'00000000-0000-4000-8000-000000000001');assert.equal(body.restartAcknowledged,true);}
+      intent={id:collections===1?'00000000-0000-4000-8000-000000000001':'00000000-0000-4000-8000-000000000002',status:'processing',method:'mobile-money',revision:1,amount:money,canRestart:false,retryAvailableAt:new Date(Date.now()+300000).toISOString()};data=intent;
     }
-    if(path==='/invoices')data=invoiceId?[{id:invoiceId,customerId:'uat',invoiceNumber:'REC-ONLINE',shipmentId:'38748',shipmentLabel:'TEST38748',route:'Lusaka to Kitwe',issuedAt:'2026-09-30T10:00:00Z',issuedAtLabel:'30 Sep 2026',dueAt:null,dueAtLabel:'Today',status:'unpaid',total:money,lineItems:[],paidAt:null,revision:1}]:[];
+    if(path==='/invoices')data=invoiceId?[{id:invoiceId,customerId:'uat',invoiceNumber:'REC-ONLINE',shipmentId:'38748',shipmentLabel:'TEST38748',route:'Lusaka to Kitwe',issuedAt:'2026-09-30T10:00:00Z',issuedAtLabel:'30 Sep 2026',dueAt:null,dueAtLabel:'Today',status:intent?.status==='succeeded'?'paid':'unpaid',total:money,lineItems:[],paidAt:null,revision:1}]:[];
     return route.fulfill({json:{data}});
   });
   await page.goto(base+'/shipments/38748');
@@ -57,6 +59,35 @@ try { for (const width of [390,1440]) {
   await expect(dialog.getByText('Waiting for payment confirmation',{exact:true})).toBeVisible();
   assert.equal(collections,1);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  console.log(JSON.stringify({width,prepareRetry:true,reusesInvoice:true,shipmentAndInvoiceResume:true,collections}));
+  intent={...intent,canRestart:true,retryAvailableAt:new Date(Date.now()-60000).toISOString()};
+  await page.goto(base+'/shipments/38748');
+  await section.getByRole('button',{name:'Pay now',exact:true}).click();
+  await dialog.getByRole('button',{name:'Cancel and try again',exact:true}).click();
+  await expect(dialog.getByText('The previous request is still being checked.',{exact:false})).toBeVisible();
+  const retry=dialog.getByRole('button',{name:'Send new prompt for ZMW 39.64'});
+  await expect(retry).toBeDisabled();
+  await dialog.getByLabel('I have not paid and want a new payment prompt.').check();
+  await dialog.getByLabel('Mobile money number').fill('0972827372');
+  await page.screenshot({path:`/tmp/nwc-retry-${width}.png`,fullPage:true});
+  await retry.click();
+  await expect(dialog.getByText('Waiting for payment confirmation',{exact:true})).toBeVisible();
+  await expect(dialog.getByText(/Retry available in/)).toBeVisible();
+  assert.equal(collections,2);
+  intent={...intent,status:'succeeded',revision:2,canRestart:false};
+  await dialog.getByRole('button',{name:'Check payment status'}).click();
+  await expect(dialog).toBeHidden();
+  await expect(section.getByRole('status')).toContainText('Payment confirmed');
+  const downloadPromise=page.waitForEvent('download');
+  await section.getByRole('button',{name:'Download receipt REC-ONLINE-1'}).click();
+  const download=await downloadPromise;
+  assert.equal(download.suggestedFilename(),'REC-ONLINE-1.html');
+  assert.equal(await section.getByRole('button',{name:'Pay now',exact:true}).count(),0);
+  await page.screenshot({path:`/tmp/nwc-receipt-${width}.png`,fullPage:true});
+  await page.goto(base+'/invoices');
+  await page.getByRole('button').filter({hasText:'TEST38748'}).click();
+  await expect(page.getByRole('link',{name:'View receipts',exact:true})).toHaveAttribute('href','/shipments/38748#payments');
+  await page.getByRole('link',{name:'View receipts',exact:true}).click();
+  await expect(section.getByRole('button',{name:'Download receipt REC-ONLINE-1'})).toBeVisible();
+  console.log(JSON.stringify({width,prepareRetry:true,reusesInvoice:true,shipmentAndInvoiceResume:true,timedOutRetry:true,receiptDownload:true,collections}));
   await page.close();
 }} finally {await browser.close();}

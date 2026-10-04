@@ -10,8 +10,8 @@ import { feedback } from "@/lib/feedback";
 import { useCustomerInvoices } from "@/api/hooks";
 import { useAuth } from "@/contexts/AuthContext";
 
-function downloadDocument(invoice: Invoice, kind: "invoice" | "receipt", customerName: string) {
-  const title = kind === "receipt" ? "Payment receipt" : "Invoice";
+function downloadDocument(invoice: Invoice, customerName: string) {
+  const title = "Invoice";
   const paymentLine = invoice.status === "paid" ? `Paid on: ${invoice.paidAt}\nPayment method: ${invoice.paymentMethod}` : `Due on: ${invoice.dueAt}\nPayment status: Payment required`;
   const lines = invoice.lineItems.map((item) => `${item.label}${item.detail ? ` — ${item.detail}` : ""}: ${item.amount}`).join("\n");
   const body = `${title}\nNew World Cargo\n\nDocument number: ${invoice.invoiceNumber}\nIssued: ${invoice.issuedAt}\nCustomer: ${customerName}\nShipment: ${invoice.shipmentLabel}\nRoute: ${invoice.route}\n\n${lines}\n\nTotal: ${invoice.amount}\n${paymentLine}\n\nThank you for choosing New World Cargo.`;
@@ -19,7 +19,7 @@ function downloadDocument(invoice: Invoice, kind: "invoice" | "receipt", custome
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `${invoice.invoiceNumber.toLowerCase()}-${kind}.txt`;
+  anchor.download = `${invoice.invoiceNumber.toLowerCase()}-invoice.txt`;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
@@ -49,7 +49,7 @@ function InvoiceDetail({ invoice, customerName, onClose, onPay }: { invoice: Inv
       <div className="mt-6"><p className="text-xs font-bold uppercase tracking-[0.16em] text-ink/45">Charges</p><div className="mt-3 divide-y divide-ink/8">{invoice.lineItems.map((item) => <div key={item.label} className="flex items-start justify-between gap-4 py-3"><div><p className="text-sm font-semibold text-ink">{item.label}</p>{item.detail && <p className="mt-1 text-xs text-ink/45">{item.detail}</p>}</div><p className="text-sm font-bold text-ink">{item.amount}</p></div>)}</div><div className="mt-2 flex items-center justify-between border-t border-ink/15 pt-4"><p className="text-sm font-bold text-ink">Total</p><p className="font-heading text-xl font-extrabold text-ink">{invoice.amount}</p></div></div>
       {invoice.status === "paid" && <div className="mt-5 flex items-start gap-3 rounded-2xl bg-cargo-yellow/15 p-4 text-ink"><Check className="mt-0.5 size-4 shrink-0" /><div><p className="text-sm font-bold">Payment received</p><p className="mt-1 text-xs leading-5 text-ink/70">{invoice.paymentMethod}. Your receipt is ready to download.</p></div></div>}
       {invoice.status === "unpaid" && <div className="mt-5 flex items-start gap-3 rounded-2xl bg-cargo-yellow/15 p-4 text-ink"><CircleAlert className="mt-0.5 size-4 shrink-0" /><div><p className="text-sm font-bold">Payment still due</p><p className="mt-1 text-xs leading-5 text-ink/70">Review this invoice and choose an available payment method when you are ready.</p></div></div>}
-      <div className="mt-6 grid gap-3 sm:grid-cols-2"><button onClick={() => downloadDocument(invoice, "invoice", customerName)} className="flex items-center justify-center gap-2 rounded-2xl border border-ink/15 px-4 py-3 text-sm font-bold text-ink transition hover:bg-ink/5"><FileText className="size-4" /> Download invoice</button>{invoice.status === "paid" ? <button onClick={() => downloadDocument(invoice, "receipt", customerName)} className="flex items-center justify-center gap-2 rounded-2xl bg-cargo-yellow px-4 py-3 text-sm font-bold text-ink transition hover:brightness-105"><Download className="size-4" /> Download receipt</button> : <button onClick={onPay} className="flex items-center justify-center gap-2 rounded-2xl bg-cargo-yellow px-4 py-3 text-sm font-bold text-ink transition hover:brightness-105">Pay invoice <ArrowUpRight className="size-4" /></button>}</div>
+      <div className="mt-6 grid gap-3 sm:grid-cols-2"><button onClick={() => downloadDocument(invoice, customerName)} className="flex items-center justify-center gap-2 rounded-2xl border border-ink/15 px-4 py-3 text-sm font-bold text-ink transition hover:bg-ink/5"><FileText className="size-4" /> Download invoice</button>{invoice.status === "paid" ? invoice.shipmentId ? <a href={`/shipments/${encodeURIComponent(invoice.shipmentId)}#payments`} className="flex items-center justify-center gap-2 rounded-2xl bg-cargo-yellow px-4 py-3 text-sm font-bold text-ink transition hover:brightness-105"><Download className="size-4" /> View receipts</a> : <p className="text-sm">Contact your branch for this receipt.</p> : <button onClick={onPay} className="flex items-center justify-center gap-2 rounded-2xl bg-cargo-yellow px-4 py-3 text-sm font-bold text-ink transition hover:brightness-105">Pay invoice <ArrowUpRight className="size-4" /></button>}</div>
     </div>
   </div>;
 }
@@ -77,6 +77,7 @@ export default function Invoices() {
     setPaymentInvoice(null);
     void refetch();
     feedback.success("Payment received. Your receipt is ready to download.");
+    if (paymentInvoice.shipmentId) navigate(`/shipments/${encodeURIComponent(paymentInvoice.shipmentId)}#payments`);
   };
 
   return <div className="mx-auto max-w-5xl text-ink">

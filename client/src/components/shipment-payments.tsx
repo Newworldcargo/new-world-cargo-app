@@ -1,7 +1,7 @@
 import { ContentSkeleton } from "@/components/loading-skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/api/query-keys";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/api/http";
@@ -27,11 +27,20 @@ export function ShipmentPayments({ shipmentId, reference, cancelled, booking }: 
   const [checkoutError, setCheckoutError] = useState("");
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState("");
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const scrolledToReceipts = useRef(false);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["customer", user?.id, "shipment-payments", shipmentId],
     queryFn: () => apiRequest<PaymentSummary>(`/shipments/${encodeURIComponent(shipmentId)}/payments`),
     enabled: Boolean(user) && !booking, refetchInterval: 30_000,
   });
+  useEffect(() => {
+    if (data && window.location.hash === "#payments" && !scrolledToReceipts.current) {
+      sectionRef.current?.scrollIntoView({ block: "start" });
+      scrolledToReceipts.current = true;
+    }
+  }, [data]);
   async function openCheckout() {
     if (preparingRef.current || !data) return;
     setCheckoutError("");
@@ -58,8 +67,9 @@ export function ShipmentPayments({ shipmentId, reference, cancelled, booking }: 
     } catch { setDownloadError("We couldn't download this receipt. Please try again."); }
     finally { setDownloading(null); }
   }
-  return <section className="border-t border-ink/15 py-5 text-ink" aria-labelledby="shipment-payments-heading">
+  return <section ref={sectionRef} id="payments" className="scroll-mt-24 border-t border-ink/15 py-5 text-ink" aria-labelledby="shipment-payments-heading">
     <h2 id="shipment-payments-heading" className="text-lg font-bold">Payments & receipts</h2>
+    {paymentConfirmed && <p role="status" className="mt-3 rounded-lg border border-green-300 bg-green-50 p-3 text-sm font-semibold text-green-900">Payment confirmed. Your receipt is available below.</p>}
     {booking ? <div className="mt-3 space-y-3 text-sm">
       <p className="font-semibold">{booking.status === "cancelled" ? "Booking closed" : "Awaiting final bill"}</p>
       {booking.price.amountMinor > 0 && <dl><div className="flex flex-wrap justify-between gap-2"><dt>Booking estimate</dt><dd className="font-semibold">{money(booking.price)}</dd></div></dl>}
@@ -78,7 +88,7 @@ export function ShipmentPayments({ shipmentId, reference, cancelled, booking }: 
       </li>)}</ul> : <p className="mt-4 text-sm text-ink/65">No payment receipts yet.</p>}
       {downloadError && <p className="mt-3 text-sm text-red-700" role="alert">{downloadError}</p>}
       <PaymentModal open={showPayment} invoiceId={(prepared ?? data).invoiceId ?? undefined} amount={money((prepared ?? data).remaining)} reference={reference}
-        unavailableMessage={(prepared ?? data).checkoutMessage ?? undefined} onClose={() => setShowPayment(false)} onSuccess={() => { setShowPayment(false); setPrepared(null); void refetch(); }} />
+        unavailableMessage={(prepared ?? data).checkoutMessage ?? undefined} onClose={() => setShowPayment(false)} onSuccess={() => { setShowPayment(false); setPrepared(null); setPaymentConfirmed(true); void refetch(); }} />
     </>}
   </section>;
 }

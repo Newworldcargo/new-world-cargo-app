@@ -184,6 +184,8 @@ export const paymentIntentInputSchema = z.object({
   phone: z.string().optional(),
   billing: z.object({ firstName: z.string(), lastName: z.string(), email: z.string(), city: z.string(), country: z.string(), address: z.string(), zip: z.string() }).optional(),
   idempotencyKey: z.string().uuid(),
+  restartIntentId: z.string().uuid().optional(),
+  restartAcknowledged: z.literal(true).optional(),
 });
 
 export const paymentCheckoutSchema = z.object({
@@ -204,6 +206,8 @@ export const paymentIntentDtoSchema = z.object({
   checkoutUrl: z.string().url().nullish(),
   message: z.string().optional(),
   canRetry: z.boolean().optional(),
+  canRestart: z.boolean().optional(),
+  retryAvailableAt: z.string().nullish(),
   amount: z.object({ currency: z.string(), amountMinor: z.number().int() }).optional(),
   revision: z.number().int().nonnegative(),
 });

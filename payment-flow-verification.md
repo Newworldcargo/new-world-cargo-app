@@ -8,6 +8,10 @@ For eligible ZMW invoices, customers can use mobile money or card. USD invoices 
 
 The modal resumes pending attempts, polls Laravel for confirmation, and blocks another submission after an ambiguous timeout. Paid-state callbacks run only after Laravel reports success. Disabled payments, partial bills and unsupported invoices show the backend's explanatory message.
 
+Customer mobile-money attempts now offer a retry after five minutes. "Cancel and try again" opens a confirmation form, not a provider cancellation: the customer must confirm no money was deducted and must not approve the earlier prompt. Laravel verifies the previous provider status, ownership, age, invoice balance and acknowledgement before superseding the attempt. The old attempt remains monitored. A late success settles the bill only once; additional successful attempts enter reconciliation review. A timer alone never marks a payment failed. Unknown status, staff-originated attempts, card checkout and review states cannot use this override.
+
+Shipment receipts are actual authenticated Laravel documents (printable HTML). Confirmed payments return to Payments & receipts; payments completed from Invoices navigate to that shipment section. Invoice receipt links use those same records instead of generating a plain-text receipt in the browser. The invoice-copy download remains unchanged.
+
 `tests/lipila-checkout-uat.mjs` covers mobile money, card handoff, USD, unavailable checkout, timeout, resumed pending requests, failure, and review at mobile/desktop widths. Provider responses are intercepted for UAT: this does not certify a live card charge or live webhook delivery.
 
 ## Payment Entry Points
