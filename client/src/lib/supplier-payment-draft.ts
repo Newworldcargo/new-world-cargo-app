@@ -63,9 +63,13 @@ export function clearSupplierPaymentDraft() {
 
 export type SupplierPaymentMethod = "office_cash" | "atm_deposit" | "card" | "mobile_money";
 
+export type SupplierPaymentStep = "transfer" | "supplier" | "review";
+
 type SupplierFormSnapshot = {
   payment: { amount: string; currency: string; supplier_currency: string; route: string };
   supplier: { supplier_name: string; supplier_email: string; invoice_reference: string; notes: string };
+  step?: SupplierPaymentStep;
+  savedSupplierId?: string;
   paymentMethod?: SupplierPaymentMethod;
   submissionKey: string;
   locked: boolean;

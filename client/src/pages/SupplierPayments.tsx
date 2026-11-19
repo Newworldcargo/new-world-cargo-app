@@ -1,33 +1,42 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowDown, ArrowRight, ArrowUpRight, Banknote, Building2, CheckCircle2, ChevronDown, Clock3, CreditCard, FileText, History, Loader2, Smartphone } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Banknote, Building2, Check, CheckCircle2, ChevronLeft, Clock3, CreditCard, History, Loader2, Plus, ShieldCheck, Smartphone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/api/http";
 import { CustomerApiError } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SupplierPaymentMethod } from "@/lib/supplier-payment-draft";
+import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SupplierPaymentMethod, type SupplierPaymentStep } from "@/lib/supplier-payment-draft";
 
 type PaymentRequest = { reference: string; supplierName: string; route: string; currency: string; amount: string; receivingCurrency?: string; createdAt?: string; paymentMethod?: SupplierPaymentMethod | null; status: "under_review" | "pending_confirmation" | "paid" };
 
-const selectClass = "h-12 w-full rounded-xl border border-ink/15 bg-white px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
-const inputClass = "h-12 rounded-xl border-ink/15 text-base";
-const primaryClass = "h-12 rounded-xl bg-cargo-yellow px-6 font-bold text-ink hover:bg-cargo-yellow/90";
-const panel = "min-w-0 rounded-2xl border border-ink/10 bg-white p-5 shadow-sm sm:p-7";
+type SavedSupplier = { id: string; name: string; email: string | null };
+
+const inputClass = "h-12 rounded-xl border-ink/20 bg-white text-base md:text-base";
+const primaryClass = "h-12 gap-2 rounded-xl bg-[#012642] px-5 font-semibold text-[#fff]! hover:bg-[#143e57] disabled:opacity-45";
+const secondaryClass = "h-12 gap-2 rounded-xl border-ink/20 px-5 font-semibold";
+const panel = "min-w-0 rounded-[1.5rem] border border-ink/10 bg-white p-4 shadow-sm sm:p-8";
 const field = "grid min-w-0 gap-1.5 text-sm font-semibold";
 const money = new Intl.NumberFormat("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const date = new Intl.DateTimeFormat("en-ZM", { dateStyle: "medium", timeZone: "Africa/Lusaka" });
-const flags: Record<string, [string, string]> = {
-  ZMW: ["zm", "Zambia"], USD: ["us", "United States"], CNY: ["cn", "China"],
-  AED: ["ae", "United Arab Emirates"], EUR: ["eu", "European Union"],
-  GBP: ["gb", "United Kingdom"], ZAR: ["za", "South Africa"],
-};
+const currencies = {
+  ZMW: ["zm", "Zambian kwacha"], USD: ["us", "US dollar"], CNY: ["cn", "Chinese yuan"],
+  AED: ["ae", "UAE dirham"], EUR: ["eu", "Euro"],
+  GBP: ["gb", "British pound"], ZAR: ["za", "South African rand"],
+} satisfies Record<typeof supplierCurrencies[number], [string, string]>;
 const paymentMethods = {
-  office_cash: { label: "Cash deposit at an office", description: "Pay in person at a New World Cargo office.", icon: Building2 },
-  atm_deposit: { label: "ATM or bank deposit", description: "Deposit using the bank details on your confirmed quote.", icon: Banknote },
-  card: { label: "Debit or credit card", description: "We’ll send instructions for paying by card.", icon: CreditCard },
-  mobile_money: { label: "Mobile money", description: "We’ll send instructions for paying with your mobile wallet.", icon: Smartphone },
-} satisfies Record<SupplierPaymentMethod, { label: string; description: string; icon: typeof CreditCard }>;
+  office_cash: { label: "Cash deposit at an office", icon: Building2 },
+  atm_deposit: { label: "ATM or bank deposit", icon: Banknote },
+  card: { label: "Debit or credit card", icon: CreditCard },
+  mobile_money: { label: "Mobile money", icon: Smartphone },
+} satisfies Record<SupplierPaymentMethod, { label: string; icon: typeof CreditCard }>;
+const steps = [
+  { id: "transfer", label: "Transfer", title: "Transfer details" },
+  { id: "supplier", label: "Supplier", title: "Supplier details" },
+  { id: "review", label: "Review", title: "Review your request" },
+] as const;
 const statuses = {
   under_review: { label: "Under review", style: "bg-amber-50 text-amber-900" },
   pending_confirmation: { label: "Pending confirmation", style: "bg-sky-50 text-sky-900" },
@@ -60,15 +69,33 @@ function formatMinor(minor: bigint) {
   return money.format(minor / BigInt(100)).replace(/\.00$/, "." + (minor % BigInt(100)).toString().padStart(2, "0"));
 }
 
+function CurrencyFlag({ code }: { code: typeof supplierCurrencies[number] }) {
+  const [country] = currencies[code];
+  return <img src={`/flags/${country}.png`} alt="" width={24} height={24} className="size-6 shrink-0 rounded-full object-fill ring-1 ring-black/5" />;
+}
+
 function CurrencyPicker({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  const [country, name] = flags[value];
-  return <div className="relative flex shrink-0 items-center rounded-xl bg-[#012642] text-[#fff]">
-    <img src={`/flags/${country}.png`} alt="" title={name} width={24} height={24} className="pointer-events-none absolute left-2 size-6 rounded-full object-fill sm:left-2.5" />
-    <select aria-label={label} value={value} onChange={event => onChange(event.target.value)} className="h-11 cursor-pointer appearance-none rounded-xl bg-transparent pl-9 pr-7 text-sm font-bold text-[#fff]! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:pl-10 sm:pr-8">
-      {supplierCurrencies.map(code => <option className="bg-white text-ink" key={code}>{code}</option>)}
-    </select>
-    <ChevronDown className="pointer-events-none absolute right-2 size-3.5 sm:right-3" aria-hidden="true" />
-  </div>;
+  const code = value as typeof supplierCurrencies[number];
+  return <Select value={value} onValueChange={onChange}>
+    <SelectTrigger aria-label={label} className="w-auto shrink-0 gap-1.5 rounded-xl border-ink/15 bg-white px-2.5 font-bold data-[size=default]:h-11 sm:gap-2 sm:px-3">
+      <SelectValue><CurrencyFlag code={code} />{code}</SelectValue>
+    </SelectTrigger>
+    <SelectContent align="end" className="min-w-48 rounded-xl border-ink/10 bg-white text-ink">
+      {supplierCurrencies.map(item => <SelectItem key={item} value={item} textValue={item} className="min-h-11 cursor-pointer rounded-lg">
+        <CurrencyFlag code={item} />
+        <span className="font-bold">{item}</span><span className="text-xs text-ink/70">{currencies[item][1]}</span>
+      </SelectItem>)}
+    </SelectContent>
+  </Select>;
+}
+
+function StatusBadge({ status }: { status: PaymentRequest["status"] }) {
+  const display = statuses[status];
+  if (!display) return null;
+  const Icon = status === "paid" ? CheckCircle2 : Clock3;
+  return <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${display.style}`}>
+    <Icon className="size-3.5" aria-hidden="true" />{display.label}
+  </span>;
 }
 
 function SummaryRows({ rows }: { rows: string[][] }) {
@@ -89,7 +116,10 @@ export default function SupplierPayments() {
   });
   const [supplier, setSupplier] = useState(savedForm?.supplier ?? emptySupplier);
   const [paymentMethod, setPaymentMethod] = useState<SupplierPaymentMethod | undefined>(savedForm?.paymentMethod);
-  const [step, setStep] = useState<"details" | "method" | "review">(savedForm?.locked ? "review" : "details");
+  const [step, setStep] = useState<SupplierPaymentStep>(savedForm?.locked ? "review" : savedForm?.step ?? "transfer");
+  const [tab, setTab] = useState(window.location.hash === "#transfers" ? "transfers" : "quote");
+  const [savedSupplierId, setSavedSupplierId] = useState(savedForm?.savedSupplierId ?? "new");
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [result, setResult] = useState<PaymentRequest | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -97,60 +127,96 @@ export default function SupplierPayments() {
   const inFlight = useRef(false);
   const submission = useRef(savedForm?.submissionKey ?? "");
   const heading = useRef<HTMLHeadingElement>(null);
+  const transfersHeading = useRef<HTMLHeadingElement>(null);
   const requests = useQuery({
     queryKey: ["customer", user?.id, "supplier-payment-requests"],
     queryFn: () => apiRequest<PaymentRequest[]>("/supplier-payment-requests"),
     enabled: Boolean(user?.id),
+  });
+  const savedSuppliers = useQuery({
+    queryKey: ["customer", user?.id, "supplier-payment-suppliers"],
+    queryFn: () => apiRequest<SavedSupplier[]>("/supplier-payment-suppliers"),
+    enabled: Boolean(user?.id) && (step === "supplier" || Boolean(result)),
+    staleTime: 60_000,
+    retry: false,
   });
   const rates = useQuery({ queryKey: ["supplier-payment-rates"], queryFn: ({ signal }) => fetchRates(signal), staleTime: 60_000, retry: false });
   const candidate = rates.data?.rates[payment.currency]?.[payment.supplier_currency];
   const rate = !rates.isError && typeof candidate === "string" && /^\d{1,12}\.\d{12}$/.test(candidate) && Number(candidate) > 0 ? candidate : null;
   const feeBps = rates.isError ? undefined : rates.data?.feeBps;
   const { receives, fee, total } = estimateAmounts(payment.amount, rate, feeBps);
-  const sameEstimate = Object.entries(payment).every(([key, value]) => value === estimate[key as keyof typeof payment]);
-
-  const receivingAmount = receives !== null ? formatMinor(receives) : !rates.isSuccess && sameEstimate && estimate.receives ? estimate.receives : null;
+  const receivingAmount = receives === null ? null : formatMinor(receives);
   const feeLabel = feeBps === undefined ? "Handling fee" : `Handling fee (${feeBps / 100}%)`;
   const transfers = requests.data ?? [];
   const history = result && !transfers.some(transfer => transfer.reference === result.reference) ? [result, ...transfers] : transfers;
 
+  const amountValid = isSupplierAmount(payment.amount);
+  const emailValid = !supplier.supplier_email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supplier.supplier_email.trim());
+  const supplierValid = Boolean(supplier.supplier_name.trim() && supplier.invoice_reference.trim() && emailValid && paymentMethod);
+  const currentStep = steps.findIndex(item => item.id === step);
+  const estimatedFee = fee === null ? "Awaiting quote" : `${payment.currency} ${formatMinor(fee)}`;
+  const estimatedTotal = total === null ? "Awaiting quote" : `${payment.currency} ${formatMinor(total)}`;
+
   useEffect(clearSupplierPaymentReturn, []);
   useEffect(() => {
-    if (user?.id && !result) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, submissionKey: submission.current, locked });
-  }, [user?.id, result, payment, supplier, paymentMethod, locked]);
+    if (user?.id && !result) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, step, savedSupplierId, submissionKey: submission.current, locked });
+  }, [user?.id, result, payment, supplier, paymentMethod, step, savedSupplierId, locked]);
+  useEffect(() => {
+    const updateTab = () => setTab(window.location.hash === "#transfers" ? "transfers" : "quote");
+    window.addEventListener("hashchange", updateTab);
+    return () => window.removeEventListener("hashchange", updateTab);
+  }, []);
+
+  function selectTab(next: string) {
+    setTab(next);
+    const { pathname, search } = window.location;
+    window.history.replaceState(window.history.state, "", pathname + search + (next === "transfers" ? "#transfers" : ""));
+  }
 
   function selectRoute(route: string) {
     setPayment(current => ({ ...current, route, supplier_currency: supplierCurrencyForRoute(route) }));
   }
 
-  function goTo(next: typeof step) {
+  function goTo(next: SupplierPaymentStep) {
     setError("");
     setStep(next);
     requestAnimationFrame(() => heading.current?.focus());
   }
 
-  function chooseMethod(event: FormEvent) {
+  function selectSupplier(id: string) {
+    const contact = savedSuppliers.data?.find(item => item.id === id);
+    setSavedSupplierId(id);
+    setSupplier(current => ({ ...current, supplier_name: contact?.name ?? "", supplier_email: contact?.email ?? "" }));
+    setTouched(current => ({ ...current, supplier_name: false, supplier_email: false }));
+  }
+
+  function updateSupplier(field: keyof typeof emptySupplier, value: string) {
+    if (field === "supplier_name" || field === "supplier_email") setSavedSupplierId("new");
+    setSupplier(current => ({ ...current, [field]: value }));
+  }
+
+  function markTouched(key: string) {
+    setTouched(current => ({ ...current, [key]: true }));
+  }
+
+  function continueTransfer(event: FormEvent) {
     event.preventDefault();
-    if (!isSupplierAmount(payment.amount) || !supplier.supplier_name.trim() || !supplier.invoice_reference.trim()) {
-      setError("Enter a valid amount, supplier name and invoice reference.");
-      return;
-    }
-    goTo("method");
+    if (amountValid) goTo("supplier");
   }
 
   function review(event: FormEvent) {
     event.preventDefault();
-    if (paymentMethod) goTo("review");
+    if (supplierValid) goTo("review");
   }
 
   async function submit() {
-    if (inFlight.current) return;
+    if (inFlight.current || (!locked && (!amountValid || !supplierValid))) return;
     inFlight.current = true;
     setSubmitting(true);
     setError("");
     try {
       submission.current ||= crypto.randomUUID();
-      if (user?.id) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, submissionKey: submission.current, locked: true });
+      if (user?.id) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, step, savedSupplierId, submissionKey: submission.current, locked: true });
       const response = await apiRequest<PaymentRequest>("/supplier-payment-requests", {
         method: "POST",
         body: { ...payment, ...supplier, payment_method: paymentMethod, submission_key: submission.current },
@@ -159,6 +225,7 @@ export default function SupplierPayments() {
       clearSupplierForm();
       setResult(response);
       void requests.refetch();
+      void savedSuppliers.refetch();
       requestAnimationFrame(() => heading.current?.focus());
     } catch (caught) {
       // An uncertain network result is retried with the same key and details.
@@ -178,172 +245,211 @@ export default function SupplierPayments() {
     setPayment({ amount: "", currency: payment.currency, supplier_currency: payment.supplier_currency, route: payment.route });
     setSupplier(emptySupplier);
     setPaymentMethod(undefined);
+    setSavedSupplierId("new");
+    setTouched({});
     setResult(null);
     setLocked(false);
-    setError("");
-    setStep("details");
-    requestAnimationFrame(() => heading.current?.focus());
+    goTo("transfer");
   }
 
-  return <div className="mx-auto max-w-6xl px-4 py-6 text-ink sm:px-8 sm:py-9">
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-      <div>
-        <h1 ref={heading} tabIndex={-1} className="text-3xl font-bold tracking-tight sm:text-4xl">
-          {result ? "Request received" : step === "details" ? "Pay a supplier" : step === "method" ? "Choose how to pay" : "Review your request"}
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-ink/70 sm:text-base">
-          {result ? "We’ll contact you with your confirmed quote and payment instructions." : step === "details" ? "Estimate the cost and request a quote for your supplier invoice." : step === "method" ? "Choose how you’d like to pay once we confirm your quote." : "Check the amount, supplier details and payment method before submitting."}
-        </p>
-      </div>
-      <a href="#transfers" className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-bold hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-ink">View transfers <ArrowDown className="size-4" aria-hidden="true" /></a>
+  return <div className="mx-auto max-w-6xl px-4 pb-12 pt-6 text-ink sm:px-8 sm:pt-10">
+    <header>
+      <h1 className="text-[clamp(1.7rem,4vw,2.6rem)] font-bold">Supplier payments</h1>
     </header>
-    {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-    {result ? <section className={panel}>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <CheckCircle2 className="size-8 shrink-0 text-emerald-700" aria-hidden="true" />
-          <div><p className="font-bold">{result.reference}</p><p className="text-sm text-ink/70">Under review</p></div>
+    <Tabs value={tab} onValueChange={selectTab} className="mt-5 gap-0">
+      <TabsList aria-label="Supplier payment views" className="h-auto w-full justify-start gap-4 rounded-none border-b border-ink/10 bg-transparent p-0 sm:gap-7">
+        <TabsTrigger value="quote" className="relative min-h-11 flex-none rounded-none border-0 px-1 text-ink/65 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:font-bold data-[state=active]:text-ink data-[state=active]:shadow-none data-[state=active]:after:bg-[#012642]">
+          <ArrowUpRight className="size-4" aria-hidden="true" /> Request a quote
+        </TabsTrigger>
+        <TabsTrigger value="transfers" className="relative min-h-11 flex-none rounded-none border-0 px-1 text-ink/65 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:font-bold data-[state=active]:text-ink data-[state=active]:shadow-none data-[state=active]:after:bg-[#012642]">
+          <History className="size-4" aria-hidden="true" /> Transfers
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="quote" className="mt-6 sm:mt-9">
+        <div className="mx-auto max-w-2xl">
+          {!result && <ol aria-label="Request progress" className="mb-5 grid grid-cols-3 gap-2 sm:mb-7 sm:gap-4">
+            {steps.map((item, index) => <li key={item.id} aria-current={item.id === step ? "step" : undefined} className={`relative flex min-w-0 items-center gap-1.5 pt-3 text-xs before:absolute before:inset-x-0 before:top-0 before:h-0.5 sm:gap-2 sm:pt-4 sm:text-sm ${index <= currentStep ? "text-ink before:bg-[#012642]" : "text-ink/60 before:bg-ink/10"}`}>
+              <span className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-medium ${item.id === step ? "bg-[#012642] text-[#fff]" : "bg-[#f1f4f6]"}`} aria-hidden="true">{index < currentStep ? <Check className="size-3.5" /> : index + 1}</span>
+              <span className={item.id === step ? "font-bold" : "font-medium"}>{item.label}</span>
+            </li>)}
+          </ol>}
+          <section className={panel} aria-labelledby="quote-heading">
+            <header className="mb-5 sm:mb-6">
+              {result && <div className="mb-4 grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-800"><CheckCircle2 className="size-6" aria-hidden="true" /></div>}
+              <h2 ref={heading} id="quote-heading" tabIndex={-1} className="text-2xl font-bold focus:outline-none sm:text-[1.75rem]">
+                {result ? "Quote request received" : steps[currentStep].title}
+              </h2>
+              {result && <p className="mt-2 text-sm text-ink/70">We’ll review your request and contact you with the confirmed quote and payment instructions.</p>}
+            </header>
+            {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+            {result ? <>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#f4f7f9] p-4">
+                <div><p className="text-xs text-ink/70">Request reference</p><p className="mt-1 font-bold">{result.reference}</p></div>
+                <StatusBadge status={result.status} />
+              </div>
+              <div className="mt-6 grid gap-2.5 sm:flex sm:justify-end">
+                <Button type="button" variant="outline" className={secondaryClass} onClick={newRequest}><Plus className="size-4" /> New request</Button>
+                <Button type="button" className={primaryClass} onClick={() => {
+                  selectTab("transfers");
+                  requestAnimationFrame(() => transfersHeading.current?.focus());
+                }}>View transfers <ArrowRight className="size-4" /></Button>
+              </div>
+            </> : step === "transfer" ? <form onSubmit={continueTransfer} noValidate>
+              <div className="flex min-w-0 items-center gap-2 rounded-xl border border-transparent bg-[#f3f6f8] px-3 py-3 focus-within:border-ink/35 sm:gap-4 sm:px-4">
+                <label className="grid min-w-0 flex-1 gap-1 text-sm font-medium text-ink/75">Amount to send
+                  <input required inputMode="decimal" maxLength={13} aria-invalid={Boolean(touched.amount && !amountValid)} aria-describedby={touched.amount && !amountValid ? "quote-amount-error" : undefined} className="w-full min-w-0 rounded-sm bg-transparent py-0.5 text-2xl font-bold tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/75 sm:text-3xl" placeholder="0.00" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} onBlur={() => markTouched("amount")} />
+                </label>
+                <CurrencyPicker label="Sending currency" value={payment.currency} onChange={currency => setPayment({ ...payment, currency })} />
+              </div>
+              {touched.amount && !amountValid && <p id="quote-amount-error" className="mt-2 text-sm text-red-700">Enter an amount greater than zero, with up to two decimal places.</p>}
+              <div className="ml-5 flex min-h-11 items-center gap-2 border-l border-dashed border-ink/25 pl-3 text-xs font-medium text-ink/75 sm:ml-6" role="status">
+                <ArrowDown className="size-3.5 shrink-0" aria-hidden="true" />
+                {rate ? `Estimated rate: 1 ${payment.currency} = ${Number(rate).toLocaleString("en-ZM", { maximumFractionDigits: 12 })} ${payment.supplier_currency}` : rates.isPending ? "Checking exchange rate…" : "Exchange rate awaiting quote"}
+              </div>
+              <div className="flex min-w-0 items-center gap-2 rounded-xl border border-transparent bg-[#f3f6f8] px-3 py-3 sm:gap-4 sm:px-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-ink/75" id="receiving-amount-label">Supplier receives</p>
+                  <output aria-labelledby="receiving-amount-label" className="block break-words pt-1 text-2xl font-bold tabular-nums sm:text-3xl">{amountValid ? receivingAmount ?? "—" : "0.00"}</output>
+                </div>
+                <CurrencyPicker label="Receiving currency" value={payment.supplier_currency} onChange={supplier_currency => setPayment({ ...payment, supplier_currency })} />
+              </div>
+              <fieldset className="mt-5">
+                <legend className="mb-2 text-sm font-semibold">Payment route</legend>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {["China", "Dubai"].map(route => <label key={route} className={`flex min-h-12 cursor-pointer items-center justify-between gap-2 rounded-xl border px-3 text-sm font-semibold focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink sm:px-4 ${payment.route === route ? "border-[#012642] bg-[#eef4f7]" : "border-ink/15 hover:bg-ink/5"}`}>
+                    {route}<input className="size-4 shrink-0 accent-[#012642]" type="radio" name="payment-route" value={route} checked={payment.route === route} onChange={() => selectRoute(route)} />
+                  </label>)}
+                </div>
+              </fieldset>
+              <dl className="mt-5 border-t border-ink/10 pt-4 text-sm">
+                <div className="flex flex-wrap justify-between gap-2"><dt className="text-ink/75">Estimated {feeLabel.toLowerCase()}</dt><dd className="font-medium tabular-nums">{estimatedFee}</dd></div>
+                <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1"><dt className="font-semibold">Estimated total payable</dt><dd className="text-xl font-bold tabular-nums sm:text-2xl">{estimatedTotal}</dd></div>
+              </dl>
+              <Button className={primaryClass + " mt-5 w-full"} disabled={!amountValid}>Continue to supplier <ArrowRight className="size-4" /></Button>
+            </form> : step === "supplier" ? <form onSubmit={review} noValidate>
+              <div className="grid gap-4">
+                <div className="grid gap-1.5">
+                  <label htmlFor="saved-supplier" className="text-sm font-semibold">Supplier</label>
+                  <Select value={savedSupplierId} onValueChange={selectSupplier}>
+                    <SelectTrigger id="saved-supplier" className="w-full rounded-xl border-ink/20 bg-white text-left data-[size=default]:h-12"><SelectValue placeholder="Select or add a supplier" /></SelectTrigger>
+                    <SelectContent align="start" className="max-w-[calc(100vw-3rem)] rounded-xl bg-white text-ink">
+                      <SelectItem value="new" className="min-h-11 rounded-lg"><Plus className="size-4" /> Add new supplier</SelectItem>
+                      {savedSuppliers.data?.map(contact => <SelectItem key={contact.id} value={contact.id} textValue={contact.name} className="min-h-11 rounded-lg">
+                        <span className="block truncate">{contact.name}{contact.email && <span className="ml-2 text-xs text-ink/65">{contact.email}</span>}</span>
+                      </SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {savedSuppliers.isPending && <p className="text-xs text-ink/70" role="status">Loading saved suppliers…</p>}
+                  {savedSuppliers.isError && <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink/75" role="status">
+                    Saved suppliers are unavailable.
+                    <button type="button" className="min-h-9 font-semibold underline" onClick={() => void savedSuppliers.refetch()} disabled={savedSuppliers.isFetching}>Retry</button>
+                  </div>}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className={field}>Supplier or company name
+                    <Input required maxLength={160} autoComplete="off" aria-invalid={Boolean(touched.supplier_name && !supplier.supplier_name.trim())} className={inputClass} placeholder="Enter supplier name" value={supplier.supplier_name} onChange={e => updateSupplier("supplier_name", e.target.value)} onBlur={() => markTouched("supplier_name")} />
+                    {touched.supplier_name && !supplier.supplier_name.trim() && <span className="text-xs font-normal text-red-700">Enter the supplier’s name.</span>}
+                  </label>
+                  <label className={field}>Supplier invoice reference
+                    <Input required maxLength={100} aria-invalid={Boolean(touched.invoice_reference && !supplier.invoice_reference.trim())} className={inputClass} placeholder="e.g. INV-2048" value={supplier.invoice_reference} onChange={e => updateSupplier("invoice_reference", e.target.value)} onBlur={() => markTouched("invoice_reference")} />
+                    {touched.invoice_reference && !supplier.invoice_reference.trim() && <span className="text-xs font-normal text-red-700">Enter the invoice reference.</span>}
+                  </label>
+                  <label className={field}><span>Supplier email <span className="font-normal text-ink/65">(optional)</span></span>
+                    <Input type="email" maxLength={254} aria-invalid={Boolean(touched.supplier_email && !emailValid)} className={inputClass} placeholder="billing@example.com" value={supplier.supplier_email} onChange={e => updateSupplier("supplier_email", e.target.value)} onBlur={() => markTouched("supplier_email")} />
+                    {touched.supplier_email && !emailValid && <span className="text-xs font-normal text-red-700">Enter a valid email address.</span>}
+                  </label>
+                  <div className={field}>
+                    <label htmlFor="quote-method">How you’d like to pay</label>
+                    <Select value={paymentMethod} onValueChange={value => setPaymentMethod(value as SupplierPaymentMethod)} required>
+                      <SelectTrigger id="quote-method" className="w-full rounded-xl border-ink/20 bg-white text-left data-[size=default]:h-12"><SelectValue placeholder="Select payment method" /></SelectTrigger>
+                      <SelectContent className="max-w-[calc(100vw-3rem)] rounded-xl bg-white text-ink">
+                        {Object.entries(paymentMethods).map(([key, { label, icon: Icon }]) => <SelectItem key={key} value={key} className="min-h-11 rounded-lg"><Icon className="size-4" /> {label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <label className={field}><span>Notes <span className="font-normal text-ink/65">(optional)</span></span>
+                  <textarea maxLength={600} rows={2} className="min-h-16 rounded-xl border border-ink/20 px-3 py-2 text-base font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" placeholder="Add a note for our team" value={supplier.notes} onChange={e => updateSupplier("notes", e.target.value)} />
+                </label>
+              </div>
+              <div className="mt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 sm:flex sm:justify-between">
+                <Button type="button" variant="outline" className={secondaryClass} onClick={() => goTo("transfer")}><ChevronLeft className="size-4" /> Back</Button>
+                <Button className={primaryClass + " px-2 sm:px-5"} disabled={!supplierValid}>Continue to review <ArrowRight className="size-4" /></Button>
+              </div>
+            </form> : <>
+              <div className="flex flex-wrap items-baseline justify-between gap-2 rounded-xl bg-[#edf3f6] p-4">
+                <span className="text-sm font-semibold">Estimated total payable</span><span className="text-xl font-bold tabular-nums sm:text-2xl">{estimatedTotal}</span>
+              </div>
+              <div className="mt-3 grid gap-x-7 sm:grid-cols-2">
+                <div>
+                  <h3 className="mt-4 font-bold">Transfer</h3>
+                  <SummaryRows rows={[
+                    ["You send", `${payment.currency} ${money.format(Number(payment.amount))}`],
+                    ["Receive in", payment.supplier_currency],
+                    ["Est. to supplier", receivingAmount ? `${payment.supplier_currency} ${receivingAmount}` : "Awaiting quote"],
+                    ["Payment route", payment.route],
+                    [`Est. ${feeLabel.toLowerCase()}`, estimatedFee],
+                  ]} />
+                </div>
+                <div>
+                  <h3 className="mt-4 font-bold">Supplier</h3>
+                  <SummaryRows rows={[
+                    ["Supplier", supplier.supplier_name],
+                    ["Invoice reference", supplier.invoice_reference],
+                    ["Supplier email", supplier.supplier_email],
+                    ["Payment method", paymentMethod ? paymentMethods[paymentMethod].label : ""],
+                    ["Notes", supplier.notes],
+                  ]} />
+                </div>
+              </div>
+              <p className="mt-4 flex items-start gap-2 rounded-xl bg-[#f3f6f8] p-3 text-sm text-ink/75"><ShieldCheck className="size-4 shrink-0" aria-hidden="true" /> We’ll confirm your rate and fees before you pay.</p>
+              <div className="mt-5 grid gap-2.5 sm:flex sm:justify-between">
+                {!locked && <Button type="button" variant="outline" className={secondaryClass} disabled={submitting} onClick={() => goTo("supplier")}><ChevronLeft className="size-4" /> Back to supplier</Button>}
+                <Button type="button" className={primaryClass + " sm:ml-auto"} disabled={submitting} onClick={submit}>
+                  {submitting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                  {submitting ? "Requesting quote…" : locked ? "Retry request" : "Request Quote"}
+                  {!submitting && <ArrowRight className="size-4" aria-hidden="true" />}
+                </Button>
+              </div>
+            </>}
+          </section>
         </div>
-        <Button className={primaryClass} onClick={newRequest}>New request <ArrowUpRight className="size-4" /></Button>
-      </div>
-    </section> : step === "details" ? <form onSubmit={chooseMethod} className="grid gap-4 lg:grid-cols-2 lg:gap-6">
-      <section className={panel} aria-labelledby="amount-heading">
-        <h2 id="amount-heading" className="text-xl font-bold">Transfer amount</h2>
-        <div className="mt-4 flex min-w-0 items-center gap-2 rounded-xl border border-ink/15 bg-[#f6f8fa] p-3 focus-within:border-ink/45 sm:gap-3">
-          <label className="grid min-w-0 flex-1 gap-0.5 text-sm font-semibold text-ink/75">Amount to send
-            <input required inputMode="decimal" maxLength={13} pattern="[0-9]{1,10}([.][0-9]{1,2})?" className="w-full min-w-0 rounded-sm bg-transparent text-xl font-bold tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/75 md:text-2xl" placeholder="0.00" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} />
-          </label>
-          <CurrencyPicker label="Sending currency" value={payment.currency} onChange={currency => setPayment({ ...payment, currency })} />
-        </div>
-        <div className="ml-5 flex min-h-9 items-center gap-2 border-l border-dashed border-ink/25 pl-3 text-xs font-medium text-ink/75" role="status">
-          <span className="size-1.5 rounded-full bg-cargo-yellow" aria-hidden="true" />
-          {rate ? `1 ${payment.currency} = ${Number(rate).toLocaleString("en-ZM", { maximumFractionDigits: 12 })} ${payment.supplier_currency}` : rates.isPending ? "Checking exchange rate…" : "Rate confirmed with your quote"}
-        </div>
-        <div className="flex min-w-0 items-center gap-2 rounded-xl border border-ink/15 bg-[#f6f8fa] p-3 sm:gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-ink/75" id="receiving-amount-label">Supplier receives</p>
-            <output aria-labelledby="receiving-amount-label" className="block break-words text-xl font-bold tabular-nums sm:text-2xl">{receivingAmount ?? "—"}</output>
-          </div>
-          <CurrencyPicker label="Receiving currency" value={payment.supplier_currency} onChange={supplier_currency => setPayment({ ...payment, supplier_currency })} />
-        </div>
-        <label className={field + " mt-4"}>Payment route
-          <select className={selectClass} value={payment.route} onChange={e => selectRoute(e.target.value)}><option>China</option><option>Dubai</option></select>
-        </label>
-        <dl className="mt-4 grid gap-2.5 text-sm">
-          <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><dt className="text-ink/75">{feeLabel}</dt><dd className="font-semibold tabular-nums">{fee === null ? "Confirmed with quote" : `${payment.currency} ${formatMinor(fee)}`}</dd></div>
-          <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 rounded-xl bg-cargo-yellow/20 px-3 py-3 font-bold"><dt>Estimated total</dt><dd className="tabular-nums">{total === null ? "—" : `${payment.currency} ${formatMinor(total)}`}</dd></div>
-        </dl>
-        <p className="mt-3 text-xs leading-relaxed text-ink/70">We’ll confirm the exchange rate and fee before you pay.</p>
-      </section>
-      <section className={panel + " flex flex-col"} aria-labelledby="supplier-heading">
-        <h2 id="supplier-heading" className="flex items-center gap-2 text-xl font-bold"><FileText className="size-5" aria-hidden="true" /> Supplier details</h2>
-        <div className="mt-4 grid flex-1 content-start gap-4">
-          <label className={field}>Supplier or company name
-            <Input required maxLength={160} autoComplete="off" className={inputClass} placeholder="e.g. Qingdao Industrial Supply" value={supplier.supplier_name} onChange={e => setSupplier({ ...supplier, supplier_name: e.target.value })} />
-          </label>
-          <label className={field}>Supplier invoice reference
-            <Input required maxLength={100} className={inputClass} placeholder="e.g. INV-2048" value={supplier.invoice_reference} onChange={e => setSupplier({ ...supplier, invoice_reference: e.target.value })} />
-          </label>
-          <label className={field}><span>Supplier email <span className="font-normal text-ink/65">(optional)</span></span>
-            <Input type="email" maxLength={254} className={inputClass} placeholder="billing@example.com" value={supplier.supplier_email} onChange={e => setSupplier({ ...supplier, supplier_email: e.target.value })} />
-          </label>
-          <label className={field}><span>Notes <span className="font-normal text-ink/65">(optional)</span></span>
-            <textarea maxLength={600} rows={2} className="min-h-16 rounded-xl border border-ink/15 px-3 py-2 text-base font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" placeholder="Anything we should know about this invoice?" value={supplier.notes} onChange={e => setSupplier({ ...supplier, notes: e.target.value })} />
-          </label>
-        </div>
-        <Button className={primaryClass + " mt-5 w-full"}>Continue to payment method <ArrowRight className="size-4" /></Button>
-      </section>
-    </form> : step === "method" ? <form onSubmit={review} className={panel}>
-      <fieldset>
-        <legend className="text-lg font-bold">Preferred payment method</legend>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {Object.entries(paymentMethods).map(([key, { label, description, icon: Icon }]) => {
-            const method = key as SupplierPaymentMethod;
-            return <label key={method} className={`flex min-h-20 cursor-pointer items-center gap-3 rounded-xl border p-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink ${paymentMethod === method ? "border-ink bg-cargo-yellow/15" : "border-ink/15 hover:bg-ink/5"}`}>
-              <Icon className="size-5 shrink-0" aria-hidden="true" />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold">{label}</span>
-                <span className="mt-1 block text-xs text-ink/75 sm:text-sm">{description}</span>
-              </span>
-              <input required type="radio" name="supplier-payment-method" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="size-4 shrink-0 accent-[#012642]" />
-            </label>;
-          })}
-        </div>
-      </fieldset>
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-ink/10 pt-4">
-        <p className="text-sm text-ink/70">You’ll get payment instructions with your confirmed quote.</p>
-        <div className="grid w-full gap-2 sm:flex sm:w-auto">
-          <Button type="button" variant="outline" className="h-12 rounded-xl" onClick={() => goTo("details")}>Back to details</Button>
-          <Button className={primaryClass}>Review request <ArrowRight className="size-4" /></Button>
-        </div>
-      </div>
-    </form> : <section className={panel}>
-      <div className="grid gap-5 lg:grid-cols-2 lg:gap-8">
-        <div>
-          <h2 className="text-lg font-bold">Transfer amount</h2>
-          <SummaryRows rows={[
-            ["You send", `${payment.currency} ${money.format(Number(payment.amount))}`],
-            ["Supplier receives", receivingAmount ? `${payment.supplier_currency} ${receivingAmount}` : payment.supplier_currency],
-            ["Route", payment.route],
-            ["Preferred payment method", paymentMethod ? paymentMethods[paymentMethod].label : ""],
-            [feeLabel, fee === null ? "Confirmed with quote" : `${payment.currency} ${formatMinor(fee)}`],
-          ]} />
-          <div className="flex flex-wrap justify-between gap-2 rounded-xl bg-cargo-yellow/20 px-3 py-3 text-sm font-bold"><span>Estimated total</span><span>{total === null ? "—" : `${payment.currency} ${formatMinor(total)}`}</span></div>
-        </div>
-        <div>
-          <h2 className="text-lg font-bold">Supplier details</h2>
-          <SummaryRows rows={[
-            ["Supplier", supplier.supplier_name],
-            ["Invoice reference", supplier.invoice_reference],
-            ["Supplier email", supplier.supplier_email],
-            ["Notes", supplier.notes],
-          ]} />
-        </div>
-      </div>
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-ink/10 pt-4">
-        <p className="text-sm text-ink/70">We’ll confirm the quote before you pay.</p>
-        <div className="grid w-full gap-2 sm:flex sm:w-auto">
-          {!locked && <>
-            <Button variant="outline" className="h-12 rounded-xl" disabled={submitting} onClick={() => goTo("details")}>Edit details</Button>
-            <Button variant="outline" className="h-12 rounded-xl" disabled={submitting} onClick={() => goTo("method")}>Change payment method</Button>
-          </>}
-          <Button className={primaryClass} disabled={submitting} onClick={submit}>{submitting && <Loader2 className="size-4 animate-spin" />}{locked ? "Retry submission" : "Submit payment request"}</Button>
-        </div>
-      </div>
-    </section>}
-    <section id="transfers" aria-labelledby="transfers-heading" className={panel + " mt-5 scroll-mt-24 lg:mt-6"}>
-      <header className="flex items-center gap-3">
-        <History className="size-5 shrink-0" aria-hidden="true" />
-        <h2 id="transfers-heading" className="text-xl font-bold">Recent transfers</h2>
-      </header>
-      {requests.isError && <div className="mt-4 flex flex-wrap items-center gap-2" role="status">
-        <p className="text-sm text-ink/75">Couldn’t load your transfers.</p>
-        <Button variant="outline" onClick={() => void requests.refetch()} disabled={requests.isFetching}>{requests.isFetching ? "Retrying…" : "Retry"}</Button>
-      </div>}
-      {history.length ? <ul className="mt-3 divide-y divide-ink/10">
-        {history.map(transfer => {
-          const status = statuses[transfer.status];
-          const displayDate = transfer.createdAt && !Number.isNaN(Date.parse(transfer.createdAt)) ? date.format(new Date(transfer.createdAt)) : null;
-          return <li key={transfer.reference} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 py-4 first:border-t first:border-ink/10 last:pb-0 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,.85fr)_minmax(0,1fr)_auto] sm:items-center">
-            <div className="min-w-0">
-              <p className="break-words font-bold">{transfer.supplierName}</p>
-              <p className="break-words text-xs text-ink/70">{transfer.reference}</p>
-            </div>
-            <div className="col-start-1 row-start-2 text-xs leading-relaxed text-ink/75 sm:col-start-auto sm:row-start-auto sm:text-sm">
-              <p>{transfer.route}{transfer.receivingCurrency ? ` · ${transfer.receivingCurrency}` : ""}</p>
-              {displayDate && <time dateTime={transfer.createdAt}>{displayDate}</time>}
-              {transfer.paymentMethod && paymentMethods[transfer.paymentMethod] && <p>{paymentMethods[transfer.paymentMethod].label}</p>}
-            </div>
-            <div className="col-start-2 row-start-1 min-w-0 self-center text-right sm:col-start-auto sm:row-start-auto">
-              <p className="break-words text-sm font-bold tabular-nums sm:text-base">{transfer.currency} {money.format(Number(transfer.amount))}</p>
-              <p className="text-xs text-ink/70">{transfer.status === "under_review" ? "Requested amount" : "Total funds"}</p>
-            </div>
-            {status && <span className={`col-start-2 row-start-2 inline-flex items-center gap-1.5 justify-self-end rounded-full px-2.5 py-1 text-xs font-semibold sm:col-start-auto sm:row-start-auto ${status.style}`}>
-              {transfer.status === "paid" ? <CheckCircle2 className="size-3.5" aria-hidden="true" /> : <Clock3 className="size-3.5" aria-hidden="true" />}{status.label}
-            </span>}
-          </li>;
-        })}
-      </ul> : !requests.isError && <p role="status" className="mt-4 rounded-xl border border-dashed border-ink/15 bg-[#f6f8fa] px-4 py-5 text-sm text-ink/75">{requests.isPending ? "Loading your transfers…" : "Your payment requests and transfers will appear here."}</p>}
-    </section>
+      </TabsContent>
+      <TabsContent value="transfers" className="mt-6 sm:mt-9">
+        <section aria-labelledby="transfers-heading" className={panel}>
+          <header className="flex items-center gap-3">
+            <h2 ref={transfersHeading} id="transfers-heading" tabIndex={-1} className="text-xl font-bold focus:outline-none">Recent transfers</h2>
+          </header>
+          {requests.isError && <div className="mt-4 flex flex-wrap items-center gap-2" role="status">
+            <p className="text-sm text-ink/75">Couldn’t load your transfers.</p>
+            <Button variant="outline" onClick={() => void requests.refetch()} disabled={requests.isFetching}>{requests.isFetching ? "Retrying…" : "Retry"}</Button>
+          </div>}
+          {history.length > 0 && <div aria-hidden="true" className="mt-6 hidden grid-cols-[minmax(0,1.35fr)_minmax(0,.85fr)_minmax(0,1fr)_9rem] gap-3 px-1 text-xs font-medium text-ink/65 sm:grid">
+            <span>Supplier</span><span>Route and date</span><span className="text-right">Amount</span><span className="text-right">Status</span>
+          </div>}
+          {history.length ? <ul className="mt-3 divide-y divide-ink/10">
+            {history.map(transfer => {
+              const displayDate = transfer.createdAt && !Number.isNaN(Date.parse(transfer.createdAt)) ? date.format(new Date(transfer.createdAt)) : null;
+              return <li key={transfer.reference} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 py-4 first:border-t first:border-ink/10 last:pb-0 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,.85fr)_minmax(0,1fr)_9rem] sm:items-center">
+                <div className="min-w-0">
+                  <p className="break-words font-bold">{transfer.supplierName}</p>
+                  <p className="break-words text-xs text-ink/70">{transfer.reference}</p>
+                </div>
+                <div className="col-start-1 row-start-2 text-xs leading-relaxed text-ink/75 sm:col-start-auto sm:row-start-auto sm:text-sm">
+                  <p>{transfer.route}{transfer.receivingCurrency ? ` · ${transfer.receivingCurrency}` : ""}</p>
+                  {displayDate && <time dateTime={transfer.createdAt}>{displayDate}</time>}
+                  {transfer.paymentMethod && paymentMethods[transfer.paymentMethod] && <p>{paymentMethods[transfer.paymentMethod].label}</p>}
+                </div>
+                <div className="col-start-2 row-start-1 min-w-0 self-center text-right sm:col-start-auto sm:row-start-auto">
+                  <p className="break-words text-sm font-bold tabular-nums sm:text-base">{transfer.currency} {money.format(Number(transfer.amount))}</p>
+                  <p className="text-xs text-ink/70">{transfer.status === "under_review" ? "Requested amount" : "Total funds"}</p>
+                </div>
+                <div className="col-start-2 row-start-2 justify-self-end sm:col-start-auto sm:row-start-auto"><StatusBadge status={transfer.status} /></div>
+              </li>;
+            })}
+          </ul> : !requests.isError && <p role="status" className="mt-4 rounded-xl border border-dashed border-ink/15 bg-[#f6f8fa] px-4 py-5 text-sm text-ink/75">{requests.isPending ? "Loading your transfers…" : "Your payment requests and transfers will appear here."}</p>}
+        </section>
+      </TabsContent>
+    </Tabs>
   </div>;
 }
