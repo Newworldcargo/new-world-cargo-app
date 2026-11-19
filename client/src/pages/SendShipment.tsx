@@ -25,7 +25,8 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
+import { supplierPaymentPath } from "@/lib/supplier-payment-draft";
 import { feedback } from "@/lib/feedback";
 import { SubpageBackButton } from "@/components/subpage-back-button";
 import { BookingServiceGrid, bookingStartPath, type BookingService } from "@/components/booking-service-grid";
@@ -257,6 +258,7 @@ export default function SendShipment() {
         <SubpageBackButton className="mb-6" onClick={() => navigate("/")} label="Back home" />
         <div className="mb-7 flex flex-wrap items-end justify-between gap-3"><div><h1 className="font-heading text-3xl font-extrabold text-foreground sm:text-4xl">Choose a service</h1><p className="mt-2 text-sm text-ink/55">Start with the kind of cargo move you need.</p></div><button type="button" onClick={() => navigate("/shipments/drafts")} className="text-xs font-bold text-cargo-yellow">Saved drafts</button></div>
         <BookingServiceGrid heading={false} onSelect={selectService} />
+        <Link href={supplierPaymentPath} className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-ink underline underline-offset-4">Pay a supplier <ArrowRight className="size-4" /></Link>
       </div>
     );
   }
