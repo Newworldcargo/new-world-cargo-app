@@ -71,19 +71,14 @@ button:active { transform: scale(0.98); }
 
 /* The payment canvas fades into the workspace below the opening content. */
 .payments-content-canvas {
-  background-image:
-    radial-gradient(ellipse 57% 105% at 97% -8%, #fcf2d7 0%, transparent 76%),
-    radial-gradient(ellipse 68% 104% at 3% 1%, #e0edf8 0%, transparent 78%),
-    radial-gradient(ellipse 55% 75% at 55% -2%, #edf0fa 0%, transparent 82%);
+  background-image: radial-gradient(ellipse 57% 105% at 97% -8%, #fcf2d7 0%, transparent 76%);
   background-repeat: no-repeat;
   background-size: 100% min(100%, 36rem);
 }
 
 @media (max-width: 639px) {
   .payments-content-canvas {
-    background-image:
-      radial-gradient(ellipse 80% 82% at 105% 0%, #fcf2d7 0%, transparent 70%),
-      radial-gradient(ellipse 85% 85% at 0% 0%, #e0edf8 0%, transparent 75%);
+    background-image: radial-gradient(ellipse 65% 82% at 105% 0%, #fcf2d7 0%, transparent 70%);
     background-size: 100% min(100%, 26rem);
   }
 }

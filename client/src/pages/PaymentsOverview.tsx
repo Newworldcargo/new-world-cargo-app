@@ -10,7 +10,7 @@ const destinations = [
     action: "Open invoices",
     href: invoicesPath,
     icon: ReceiptText,
-    surface: "bg-[radial-gradient(ellipse_at_top_right,#e9f2f9,transparent_65%)]",
+    surface: "",
     iconStyle: "bg-[#e7f0f7]",
     actionStyle: secondaryPaymentAction + " group-hover:border-[#a9bfce] group-hover:bg-[#e5eef5]",
   },
