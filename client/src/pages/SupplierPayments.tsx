@@ -246,6 +246,17 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
     goTo("transfer");
   }
 
+  const routePicker = (
+    <fieldset className={dashboard ? "mt-3" : "mt-4 sm:mt-5"}>
+      <legend className="mb-2 text-sm font-semibold">Payment route</legend>
+      <div className={dashboard ? "grid max-w-sm grid-cols-2 gap-2.5" : "grid grid-cols-2 gap-2.5"}>
+        {["China", "Dubai"].map(route => <label key={route} className={`flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-xl border px-3 text-sm font-semibold focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink sm:px-4 ${payment.route === route ? "border-[#012642] bg-[#eef4f7]" : "border-ink/15 hover:bg-ink/5"}`}>
+          <span className="flex items-center gap-2"><CurrencyFlag code={supplierCurrencyForRoute(route) === "CNY" ? "CNY" : "AED"} />{route}</span><input className="size-4 shrink-0 accent-[#012642]" type="radio" name="payment-route" value={route} checked={payment.route === route} onChange={() => selectRoute(route)} />
+        </label>)}
+      </div>
+    </fieldset>
+  );
+
   return <div data-keyboard-open={keyboardOpen || undefined} className={dashboard ? "text-ink" : `supplier-payments mx-auto max-w-6xl text-ink sm:px-8 sm:pb-12 sm:pt-6 ${!result ? "supplier-payments--wizard" : ""}`}>
     {dashboard ? <>
       <PaymentBreadcrumb current="Supplier Payments" />
@@ -262,17 +273,16 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
         <Link href={suppliersPath + "#transfers"} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm text-ink/75"><History className="size-4" aria-hidden="true" />Transfers</Link>
       </nav>
     </>}
-    <div className="mt-5 sm:mt-7">
+    <div className={dashboard ? "mt-4 sm:mt-5" : "mt-5 sm:mt-7"}>
         <div className={dashboard ? "" : "mx-auto max-w-2xl"}>
-          <section className={panel + " supplier-wizard-card max-sm:rounded-[1.75rem]"} aria-labelledby="quote-heading">
-            <header className={`mb-4 sm:mb-6 ${dashboard ? "flex flex-wrap items-center justify-between gap-2" : !result && step === "transfer" ? "max-sm:sr-only" : ""}`}>
+          <section className={dashboard ? undefined : panel + " supplier-wizard-card max-sm:rounded-[1.75rem]"} aria-labelledby="quote-heading">
+            {!dashboard && <header className={`mb-4 sm:mb-6 ${!result && step === "transfer" ? "max-sm:sr-only" : ""}`}>
               {result && <div className="mb-4 grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-800"><CheckCircle2 className="size-6" aria-hidden="true" /></div>}
               <h2 ref={heading} id="quote-heading" tabIndex={-1} className="scroll-mt-24 text-xl font-bold focus:outline-none sm:text-[1.75rem]">
-                {dashboard ? "International transfer" : result ? "Quote request received" : stepTitles[step]}
+                {result ? "Quote request received" : stepTitles[step]}
               </h2>
-              {dashboard && <span className="rounded-full bg-[#edf3f8] px-3 py-1.5 text-xs font-semibold text-ink">Quote-based</span>}
               {result && <p className="mt-2 text-sm text-ink/70">We’ll review your request and contact you with the confirmed quote and payment instructions.</p>}
-            </header>
+            </header>}
             {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
             {result ? <>
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#f4f7f9] p-4">
@@ -283,47 +293,49 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                 <Button type="button" variant="outline" className={secondaryClass} onClick={newRequest}><Plus className="size-4" /> New request</Button>
                 <Button asChild className={primaryClass}><Link href={supplierDetailsPath(result.reference)}>View request <ArrowRight className="size-4" /></Link></Button>
               </div>
-            </> : step === "transfer" ? <form key="transfer" className={dashboard ? "grid gap-x-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]" : "supplier-wizard-stage"} onSubmit={continueTransfer} noValidate>
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-transparent bg-[#edf3f8] px-3 py-2.5 sm:rounded-xl sm:py-3 focus-within:border-ink/35 sm:gap-4 sm:px-4">
-                  <label className="grid min-w-0 flex-1 gap-1 text-sm font-medium text-ink/75">{dashboard ? "You send" : "Amount to send"}
-                    <input required inputMode="decimal" maxLength={13} aria-invalid={Boolean(touched.amount && !amountValid)} aria-describedby={touched.amount && !amountValid ? "quote-amount-error" : undefined} className="w-full min-w-0 rounded-sm bg-transparent py-0.5 text-[1.75rem] font-bold tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/75 sm:text-3xl" placeholder="0.00" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} onBlur={() => markTouched("amount")} />
-                  </label>
-                  <CurrencyPicker label="Sending currency" value={payment.currency} onChange={currency => setPayment({ ...payment, currency })} />
-                </div>
-                {touched.amount && !amountValid && <p id="quote-amount-error" className="mt-2 text-sm text-red-700">Enter an amount greater than zero, with up to two decimal places.</p>}
-                <div className="ml-5 flex min-h-9 items-center sm:min-h-11 gap-2 border-l border-dashed border-ink/25 pl-3 text-xs font-medium text-ink/75 sm:ml-6" role="status">
-                  <ArrowDown className="size-3.5 shrink-0" aria-hidden="true" />
-                  {rate ? `Estimated rate: 1 ${payment.currency} = ${Number(rate).toLocaleString("en-ZM", { maximumFractionDigits: 12 })} ${payment.supplier_currency}` : rates.isPending ? "Checking exchange rate…" : "Exchange rate awaiting quote"}
-                </div>
-                <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-transparent bg-[#edf3f8] px-3 py-2.5 sm:rounded-xl sm:py-3 sm:gap-4 sm:px-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-ink/75" id="receiving-amount-label">Supplier receives</p>
-                    <output aria-labelledby="receiving-amount-label" className={`block break-words pt-0.5 font-bold tabular-nums ${amountValid && !receivingAmount ? "text-base" : "text-[1.75rem] sm:text-3xl"}`}>{amountValid ? receivingAmount ?? "Awaiting quote" : "0.00"}</output>
+            </> : step === "transfer" ? <form key="transfer" className={dashboard ? "grid items-start gap-3.5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] lg:gap-4" : "supplier-wizard-stage"} onSubmit={continueTransfer} noValidate>
+              <div className={dashboard ? "min-w-0 rounded-3xl border border-ink/10 bg-white p-4 shadow-sm sm:p-5" : "min-w-0"}>
+                {dashboard && <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h2 id="quote-heading" className="text-lg font-bold sm:text-xl">International transfer</h2>
+                  <span className="rounded-full bg-[#edf3f8] px-2.5 py-1 text-xs font-semibold text-ink">Quote-based</span>
+                </header>}
+                <div className={dashboard ? "lg:grid lg:grid-cols-2 lg:gap-x-2.5 lg:gap-y-1.5" : undefined}>
+                  <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-transparent bg-[#edf3f8] px-3 py-2.5 sm:rounded-xl sm:py-3 focus-within:border-ink/35 sm:gap-4 sm:px-4">
+                    <label className="grid min-w-0 flex-1 gap-1 text-sm font-medium text-ink/75">{dashboard ? "You send" : "Amount to send"}
+                      <input required inputMode="decimal" maxLength={13} aria-invalid={Boolean(touched.amount && !amountValid)} aria-describedby={touched.amount && !amountValid ? "quote-amount-error" : undefined} className="w-full min-w-0 rounded-sm bg-transparent py-0.5 text-[1.75rem] font-bold tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/75 sm:text-3xl" placeholder="0.00" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} onBlur={() => markTouched("amount")} />
+                    </label>
+                    <CurrencyPicker label="Sending currency" value={payment.currency} onChange={currency => setPayment({ ...payment, currency })} />
                   </div>
-                  <CurrencyPicker label="Receiving currency" value={payment.supplier_currency} onChange={supplier_currency => setPayment({ ...payment, supplier_currency })} />
+                  {touched.amount && !amountValid && <p id="quote-amount-error" className={`mt-2 text-sm text-red-700 ${dashboard ? "lg:order-last lg:col-span-2 lg:mt-0" : ""}`}>Enter an amount greater than zero, with up to two decimal places.</p>}
+                  <div className={`ml-5 flex min-h-9 items-center gap-2 border-l border-dashed border-ink/25 pl-3 text-xs font-medium text-ink/75 sm:ml-6 sm:min-h-11 ${dashboard ? "lg:order-last lg:col-span-2 lg:ml-0 lg:min-h-6 lg:border-0 lg:pl-0" : ""}`} role="status">
+                    <ArrowDown className="size-3.5 shrink-0" aria-hidden="true" />
+                    {rate ? `Estimated rate: 1 ${payment.currency} = ${Number(rate).toLocaleString("en-ZM", { maximumFractionDigits: 12 })} ${payment.supplier_currency}` : rates.isPending ? "Checking exchange rate…" : "Exchange rate awaiting quote"}
+                  </div>
+                  <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-transparent bg-[#edf3f8] px-3 py-2.5 sm:rounded-xl sm:py-3 sm:gap-4 sm:px-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-ink/75" id="receiving-amount-label">Supplier receives</p>
+                      <output aria-labelledby="receiving-amount-label" className={`block break-words pt-0.5 font-bold tabular-nums ${amountValid && !receivingAmount ? "text-base" : "text-[1.75rem] sm:text-3xl"}`}>{amountValid ? receivingAmount ?? "Awaiting quote" : "0.00"}</output>
+                    </div>
+                    <CurrencyPicker label="Receiving currency" value={payment.supplier_currency} onChange={supplier_currency => setPayment({ ...payment, supplier_currency })} />
+                  </div>
                 </div>
-                {dashboard && <p className="mt-3 text-xs text-ink/75">Your exchange rate and receiving amount will be confirmed in your quote.</p>}
+                {dashboard && routePicker}
               </div>
-              <div className={dashboard ? "min-w-0 lg:border-l lg:border-ink/10 lg:pl-8" : "min-w-0"}>
-                <fieldset className={dashboard ? "mt-5 lg:mt-0" : "mt-4 sm:mt-5"}>
-                  <legend className="mb-2 text-sm font-semibold">Payment route</legend>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {["China", "Dubai"].map(route => <label key={route} className={`flex min-h-12 cursor-pointer items-center justify-between gap-2 rounded-xl border px-3 text-sm font-semibold focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink sm:px-4 ${payment.route === route ? "border-[#012642] bg-[#eef4f7]" : "border-ink/15 hover:bg-ink/5"}`}>
-                      <span className="flex items-center gap-2"><CurrencyFlag code={supplierCurrencyForRoute(route) === "CNY" ? "CNY" : "AED"} />{route}</span><input className="size-4 shrink-0 accent-[#012642]" type="radio" name="payment-route" value={route} checked={payment.route === route} onChange={() => selectRoute(route)} />
-                    </label>)}
-                  </div>
-                </fieldset>
-                <dl className="mt-4 border-t border-ink/10 pt-3 text-sm sm:mt-5 sm:pt-4">
+              <div className={dashboard ? "min-w-0 rounded-3xl border border-ink/10 bg-white p-4 shadow-sm sm:p-5" : "min-w-0"}>
+                {dashboard ? <h2 className="text-lg font-bold sm:text-xl">Estimated bill</h2> : routePicker}
+                <dl className={dashboard ? "mt-3 space-y-2 text-sm" : "mt-4 border-t border-ink/10 pt-3 text-sm sm:mt-5 sm:pt-4"}>
+                  {dashboard && <div className="flex flex-wrap justify-between gap-x-2 gap-y-1">
+                    <dt className="text-ink/75">Transfer amount</dt><dd className="text-right font-medium tabular-nums">{amountValid ? `${payment.currency} ${money.format(Number(payment.amount))}` : "—"}</dd>
+                  </div>}
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2"><dt className="text-ink/75">Estimated {feeLabel.toLowerCase()}</dt><dd className="text-right font-medium tabular-nums">{estimatedFee}</dd></div>
-                  <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2"><dt className="font-semibold"><span className="sm:hidden">Estimated total</span><span className="hidden sm:inline">Estimated total payable</span></dt><dd className="text-right text-lg font-bold tabular-nums sm:text-2xl">{estimatedTotal}</dd></div>
+                  <div className={`mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2 ${dashboard ? "rounded-xl bg-[#edf3f8] px-3 py-2" : ""}`}><dt className="font-semibold"><span className="sm:hidden">Estimated total</span><span className="hidden sm:inline">Estimated total payable</span></dt><dd className="text-right text-lg font-bold tabular-nums sm:text-2xl">{estimatedTotal}</dd></div>
                 </dl>
-                <div className={dashboard ? "mt-5" : "supplier-wizard-actions mt-5"}>
+                <div className={dashboard ? "mt-3" : "supplier-wizard-actions mt-5"}>
                   {dashboard && locked ? <Button asChild className={primaryClass + " w-full"}>
                     <Link href={supplierWizardPath}>Resume quote request <ArrowRight className="size-4" /></Link>
                   </Button> : <Button className={primaryClass + " w-full"} disabled={!amountValid}>Continue to supplier <ArrowRight className="size-4" /></Button>}
                 </div>
-                {dashboard && <p className="mt-3 text-xs text-ink/75">Fees and totals are estimates. Your quote confirms the final amounts.</p>}
+                {dashboard && <p className="mt-2 text-xs text-ink/75">Your quote will confirm the rate, fees and total.</p>}
               </div>
             </form> : step === "supplier" ? <form key="supplier" className="supplier-wizard-stage" onSubmit={review} noValidate>
               <div className="grid gap-4">

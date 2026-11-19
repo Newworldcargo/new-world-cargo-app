@@ -89,9 +89,9 @@ export default function SupplierTransfers({ reference }: { reference?: string })
 
   const visibleTransfers = transfers.data?.filter(record => status === "all" || record.status === status) ?? [];
 
-  return <div className="mx-auto max-w-5xl text-ink sm:py-4">
+  return <div className="mx-auto max-w-5xl text-ink sm:pb-4">
     <SupplierPayments dashboard />
-    <section id="transfers" ref={transfersSection} className={card + " mt-7 scroll-mt-24"} aria-labelledby="transfers-heading">
+    <section id="transfers" ref={transfersSection} className={card + " mt-5 scroll-mt-24"} aria-labelledby="transfers-heading">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 id="transfers-heading" className="text-xl font-bold">Recent transfers</h2>
