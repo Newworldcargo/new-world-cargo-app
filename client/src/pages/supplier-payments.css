@@ -1,7 +1,6 @@
 @media (max-width: 639px) {
   .supplier-payments {
     margin: -1.5rem -1rem 0;
-    background: radial-gradient(ellipse 100% 23rem at 50% 0%, #eaf2f8, transparent 95%);
     padding: 1.25rem 1rem 1rem;
   }
 

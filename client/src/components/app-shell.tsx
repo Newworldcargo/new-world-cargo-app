@@ -8,6 +8,7 @@ import { useSignOut } from "@/lib/use-sign-out";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "./ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { isPrimaryMobileTabRoute } from "@/lib/primary-mobile-navigation";
+import { paymentsPath } from "@/lib/payment-routes";
 import { BrandMark } from "./BrandMark";
 import { MobileBottomNavigation } from "./mobile-bottom-navigation";
 
@@ -163,7 +164,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <button onClick={() => setSupportOpen(true)} className="grid size-10 place-items-center rounded-full border border-white/10 text-white/70 transition hover:border-white/25 hover:text-white lg:hidden" aria-label="Open support"><CircleHelp className="size-[18px]" strokeWidth={1.8} /></button>
             </div>
           </header>
-          <div className="px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10">{children}</div>
+          <div className={`px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10 ${routeActiveHref === paymentsPath ? "payments-content-canvas" : ""}`}>{children}</div>
         </main>
       </div>
 

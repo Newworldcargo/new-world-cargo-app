@@ -69,6 +69,25 @@ button { @apply cursor-pointer; }
 button:active { transform: scale(0.98); }
 ::selection { background: #ffc83d; color: #0d0d0d; }
 
+/* The payment canvas fades into the workspace below the opening content. */
+.payments-content-canvas {
+  background-image:
+    radial-gradient(ellipse 57% 105% at 97% -8%, #fcf2d7 0%, transparent 76%),
+    radial-gradient(ellipse 68% 104% at 3% 1%, #e0edf8 0%, transparent 78%),
+    radial-gradient(ellipse 55% 75% at 55% -2%, #edf0fa 0%, transparent 82%);
+  background-repeat: no-repeat;
+  background-size: 100% min(100%, 36rem);
+}
+
+@media (max-width: 639px) {
+  .payments-content-canvas {
+    background-image:
+      radial-gradient(ellipse 80% 82% at 105% 0%, #fcf2d7 0%, transparent 70%),
+      radial-gradient(ellipse 85% 85% at 0% 0%, #e0edf8 0%, transparent 75%);
+    background-size: 100% min(100%, 26rem);
+  }
+}
+
 /* New World Cargo typography system: #012642 is the default secondary brand color for bold, operational emphasis. */
 .nwc-light :where(.font-semibold, .font-bold, .font-extrabold) { color: var(--nwc-brand-secondary); }
 .sea-cargo-surface { background-color: #012642; color: #ffffff; }
