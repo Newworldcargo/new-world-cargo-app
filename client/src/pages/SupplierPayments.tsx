@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowDown, ArrowRight, ArrowUpRight, Banknote, Building2, CheckCircle2, ChevronLeft, CreditCard, History, Loader2, Plus, ShieldCheck, Smartphone } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, CheckCircle2, ChevronLeft, History, Loader2, Plus, ShieldCheck } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/api/http";
@@ -9,13 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
 import { StatusBadge, supplierMethodLabels, type SupplierPaymentRecord } from "@/components/supplier-payment-record";
+import { SupplierPaymentMethods, SupplierProfiles, type SavedSupplier } from "@/components/supplier-quote-options";
 import { supplierDetailsPath, suppliersPath, supplierWizardPath } from "@/lib/payment-routes";
 import { paymentPageClass, paymentSurfaceClass, primaryPaymentAction, secondaryPaymentAction } from "@/lib/payment-presentation";
 import { useAuth } from "@/contexts/AuthContext";
 import "./supplier-payments.css";
 import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SupplierPaymentMethod, type SupplierPaymentStep } from "@/lib/supplier-payment-draft";
-
-type SavedSupplier = { id: string; name: string; email: string | null };
 
 const inputClass = "h-12 rounded-xl border-ink/20 bg-white text-base md:text-base";
 const panel = paymentSurfaceClass + " p-4 sm:p-7";
@@ -26,12 +25,6 @@ const currencies = {
   AED: ["ae", "UAE dirham"], EUR: ["eu", "Euro"],
   GBP: ["gb", "British pound"], ZAR: ["za", "South African rand"],
 } satisfies Record<typeof supplierCurrencies[number], [string, string]>;
-const paymentMethods = {
-  office_cash: { label: supplierMethodLabels.office_cash, icon: Building2 },
-  atm_deposit: { label: supplierMethodLabels.atm_deposit, icon: Banknote },
-  card: { label: supplierMethodLabels.card, icon: CreditCard },
-  mobile_money: { label: supplierMethodLabels.mobile_money, icon: Smartphone },
-} satisfies Record<SupplierPaymentMethod, { label: string; icon: typeof CreditCard }>;
 const stepTitles: Record<SupplierPaymentStep, string> = {
   transfer: "Transfer details",
   supplier: "Supplier details",
@@ -122,7 +115,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   const [supplier, setSupplier] = useState(savedForm?.supplier ?? emptySupplier);
   const [paymentMethod, setPaymentMethod] = useState<SupplierPaymentMethod | undefined>(savedForm?.paymentMethod);
   const [step, setStep] = useState<SupplierPaymentStep>(dashboard ? "transfer" : savedForm?.locked ? "review" : savedForm?.step ?? "transfer");
-  const [savedSupplierId, setSavedSupplierId] = useState(savedForm?.savedSupplierId ?? "new");
+  const [savedSupplierId, setSavedSupplierId] = useState(savedForm?.savedSupplierId ?? "");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [result, setResult] = useState<SupplierPaymentRecord | null>(null);
   const [error, setError] = useState("");
@@ -131,6 +124,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   const inFlight = useRef(false);
   const submission = useRef(savedForm?.submissionKey ?? "");
   const heading = useRef<HTMLHeadingElement>(null);
+  const supplierNameInput = useRef<HTMLInputElement>(null);
   const savedSuppliers = useQuery({
     queryKey: ["customer", user?.id, "supplier-payment-suppliers"],
     queryFn: () => apiRequest<SavedSupplier[]>("/supplier-payment-suppliers"),
@@ -166,10 +160,13 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   }
 
   function selectSupplier(id: string) {
-    const contact = savedSuppliers.data?.find(item => item.id === id);
-    setSavedSupplierId(id);
-    setSupplier(current => ({ ...current, supplier_name: contact?.name ?? "", supplier_email: contact?.email ?? "" }));
-    setTouched(current => ({ ...current, supplier_name: false, supplier_email: false }));
+    if (id !== savedSupplierId) {
+      const contact = savedSuppliers.data?.find(item => item.id === id);
+      setSavedSupplierId(id);
+      setSupplier(current => ({ ...current, supplier_name: contact?.name ?? "", supplier_email: contact?.email ?? "" }));
+      setTouched(current => ({ ...current, supplier_name: false, supplier_email: false }));
+    }
+    if (id === "new") requestAnimationFrame(() => supplierNameInput.current?.focus());
   }
 
   function updateSupplier(field: keyof typeof emptySupplier, value: string) {
@@ -238,7 +235,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
     setPayment({ amount: "", currency: payment.currency, supplier_currency: payment.supplier_currency, route: payment.route });
     setSupplier(emptySupplier);
     setPaymentMethod(undefined);
-    setSavedSupplierId("new");
+    setSavedSupplierId("");
     setTouched({});
     setResult(null);
     setLocked(false);
@@ -344,26 +341,18 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
               </div>
             </form> : step === "supplier" ? <form key="supplier" className="supplier-wizard-stage" onSubmit={review} noValidate>
               <div className="grid gap-4">
-                <div className="grid gap-1.5">
-                  <label htmlFor="saved-supplier" className="text-sm font-semibold">Supplier</label>
-                  <Select value={savedSupplierId} onValueChange={selectSupplier}>
-                    <SelectTrigger id="saved-supplier" className="w-full rounded-xl border-ink/20 bg-white text-left data-[size=default]:h-12"><SelectValue placeholder="Select or add a supplier" /></SelectTrigger>
-                    <SelectContent align="start" className="max-w-[calc(100vw-3rem)] rounded-xl bg-white text-ink">
-                      <SelectItem value="new" className="min-h-11 rounded-lg"><Plus className="size-4" /> Add new supplier</SelectItem>
-                      {savedSuppliers.data?.map(contact => <SelectItem key={contact.id} value={contact.id} textValue={contact.name} className="min-h-11 rounded-lg">
-                        <span className="block truncate">{contact.name}{contact.email && <span className="ml-2 text-xs text-ink/65">{contact.email}</span>}</span>
-                      </SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold">Supplier</h3>
+                  <SupplierProfiles contacts={savedSuppliers.data ?? []} selectedId={savedSupplierId} onSelect={selectSupplier} />
                   {savedSuppliers.isPending && <p className="text-xs text-ink/70" role="status">Loading saved suppliers…</p>}
                   {savedSuppliers.isError && <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink/75" role="status">
                     Saved suppliers are unavailable.
                     <button type="button" className="min-h-9 font-semibold underline" onClick={() => void savedSuppliers.refetch()} disabled={savedSuppliers.isFetching}>Retry</button>
                   </div>}
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
+                {savedSupplierId && <div className="grid gap-4 sm:grid-cols-2">
                   <label className={field}>Supplier or company name
-                    <Input required maxLength={160} autoComplete="off" aria-invalid={Boolean(touched.supplier_name && !supplier.supplier_name.trim())} className={inputClass} placeholder="Enter supplier name" value={supplier.supplier_name} onChange={e => updateSupplier("supplier_name", e.target.value)} onBlur={() => markTouched("supplier_name")} />
+                    <Input ref={supplierNameInput} required maxLength={160} autoComplete="off" aria-invalid={Boolean(touched.supplier_name && !supplier.supplier_name.trim())} className={inputClass} placeholder="Enter supplier name" value={supplier.supplier_name} onChange={e => updateSupplier("supplier_name", e.target.value)} onBlur={() => markTouched("supplier_name")} />
                     {touched.supplier_name && !supplier.supplier_name.trim() && <span className="text-xs font-normal text-red-700">Enter the supplier’s name.</span>}
                   </label>
                   <label className={field}>Supplier invoice reference
@@ -374,19 +363,11 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                     <Input type="email" maxLength={254} aria-invalid={Boolean(touched.supplier_email && !emailValid)} className={inputClass} placeholder="billing@example.com" value={supplier.supplier_email} onChange={e => updateSupplier("supplier_email", e.target.value)} onBlur={() => markTouched("supplier_email")} />
                     {touched.supplier_email && !emailValid && <span className="text-xs font-normal text-red-700">Enter a valid email address.</span>}
                   </label>
-                  <div className={field}>
-                    <label htmlFor="quote-method">How you’d like to pay</label>
-                    <Select value={paymentMethod} onValueChange={value => setPaymentMethod(value as SupplierPaymentMethod)} required>
-                      <SelectTrigger id="quote-method" className="w-full rounded-xl border-ink/20 bg-white text-left data-[size=default]:h-12"><SelectValue placeholder="Select payment method" /></SelectTrigger>
-                      <SelectContent className="max-w-[calc(100vw-3rem)] rounded-xl bg-white text-ink">
-                        {Object.entries(paymentMethods).map(([key, { label, icon: Icon }]) => <SelectItem key={key} value={key} className="min-h-11 rounded-lg"><Icon className="size-4" /> {label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <label className={field}><span>Notes <span className="font-normal text-ink/65">(optional)</span></span>
-                  <textarea maxLength={600} rows={2} className="min-h-16 rounded-xl border border-ink/20 px-3 py-2 text-base font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" placeholder="Add a note for our team" value={supplier.notes} onChange={e => updateSupplier("notes", e.target.value)} />
-                </label>
+                  <label className={field}><span>Notes <span className="font-normal text-ink/65">(optional)</span></span>
+                    <textarea maxLength={600} rows={2} className="min-h-16 rounded-xl border border-ink/20 px-3 py-2 text-base font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" placeholder="Add a note for our team" value={supplier.notes} onChange={e => updateSupplier("notes", e.target.value)} />
+                  </label>
+                </div>}
+                <SupplierPaymentMethods method={paymentMethod} onChange={setPaymentMethod} />
               </div>
               <div className="supplier-wizard-actions mt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 sm:flex sm:justify-between">
                 <Button type="button" variant="outline" className={secondaryPaymentAction} onClick={() => goTo("transfer")}><ChevronLeft className="size-4" /> Back</Button>
@@ -413,7 +394,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                     ["Supplier", supplier.supplier_name],
                     ["Invoice reference", supplier.invoice_reference],
                     ["Supplier email", supplier.supplier_email],
-                    ["Payment method", paymentMethod ? paymentMethods[paymentMethod].label : ""],
+                    ["Payment method", paymentMethod ? supplierMethodLabels[paymentMethod] : ""],
                     ["Notes", supplier.notes],
                   ]} />
                 </div>
