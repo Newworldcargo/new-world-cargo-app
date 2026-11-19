@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowDown, ArrowRight, ArrowUpRight, Banknote, Building2, Check, CheckCircle2, ChevronLeft, CreditCard, History, Loader2, Plus, ShieldCheck, Smartphone } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Banknote, Building2, CheckCircle2, ChevronLeft, CreditCard, History, Loader2, Plus, ShieldCheck, Smartphone } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiRequest } from "@/api/http";
@@ -33,11 +33,11 @@ const paymentMethods = {
   card: { label: supplierMethodLabels.card, icon: CreditCard },
   mobile_money: { label: supplierMethodLabels.mobile_money, icon: Smartphone },
 } satisfies Record<SupplierPaymentMethod, { label: string; icon: typeof CreditCard }>;
-const steps = [
-  { id: "transfer", label: "Transfer", title: "Transfer details" },
-  { id: "supplier", label: "Supplier", title: "Supplier details" },
-  { id: "review", label: "Review", title: "Review your request" },
-] as const;
+const stepTitles: Record<SupplierPaymentStep, string> = {
+  transfer: "Transfer details",
+  supplier: "Supplier details",
+  review: "Review your request",
+};
 const emptySupplier = { supplier_name: "", supplier_email: "", invoice_reference: "", notes: "" };
 
 async function fetchRates(signal: AbortSignal) {
@@ -148,7 +148,6 @@ export default function SupplierPayments() {
   const amountValid = isSupplierAmount(payment.amount);
   const emailValid = !supplier.supplier_email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supplier.supplier_email.trim());
   const supplierValid = Boolean(supplier.supplier_name.trim() && supplier.invoice_reference.trim() && emailValid && paymentMethod);
-  const currentStep = steps.findIndex(item => item.id === step);
   const estimatedFee = fee === null ? "Awaiting quote" : `${payment.currency} ${formatMinor(fee)}`;
   const estimatedTotal = total === null ? "Awaiting quote" : `${payment.currency} ${formatMinor(total)}`;
 
@@ -248,17 +247,11 @@ export default function SupplierPayments() {
     </nav>
     <div className="mt-5 sm:mt-7">
         <div className="mx-auto max-w-2xl">
-          {!result && <ol aria-label="Request progress" className="mb-4 grid grid-cols-3 gap-2 sm:mb-7 sm:gap-4">
-            {steps.map((item, index) => <li key={item.id} aria-current={item.id === step ? "step" : undefined} className={`relative flex min-w-0 items-center gap-1.5 pt-3 text-xs before:absolute before:inset-x-0 before:top-0 before:h-0.5 sm:gap-2 sm:pt-4 sm:text-sm ${index <= currentStep ? "text-ink before:bg-[#012642]" : "text-ink/60 before:bg-ink/10"}`}>
-              <span className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-medium ${item.id === step ? "bg-[#012642] text-[#fff]" : "bg-[#f1f4f6]"}`} aria-hidden="true">{index < currentStep ? <Check className="size-3.5" /> : index + 1}</span>
-              <span className={item.id === step ? "font-bold" : "font-medium"}>{item.label}</span>
-            </li>)}
-          </ol>}
           <section className={panel + " supplier-wizard-card max-sm:rounded-[1.75rem]"} aria-labelledby="quote-heading">
             <header className={`mb-4 sm:mb-6 ${!result && step === "transfer" ? "max-sm:sr-only" : ""}`}>
               {result && <div className="mb-4 grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-800"><CheckCircle2 className="size-6" aria-hidden="true" /></div>}
               <h2 ref={heading} id="quote-heading" tabIndex={-1} className="scroll-mt-24 text-xl font-bold focus:outline-none sm:text-[1.75rem]">
-                {result ? "Quote request received" : steps[currentStep].title}
+                {result ? "Quote request received" : stepTitles[step]}
               </h2>
               {result && <p className="mt-2 text-sm text-ink/70">We’ll review your request and contact you with the confirmed quote and payment instructions.</p>}
             </header>
