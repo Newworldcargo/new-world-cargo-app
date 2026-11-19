@@ -299,15 +299,15 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                   <h2 id="quote-heading" className="text-lg font-bold sm:text-xl">International transfer</h2>
                   <span className="rounded-full bg-[#edf3f8] px-2.5 py-1 text-xs font-semibold text-ink">Quote-based</span>
                 </header>}
-                <div className={dashboard ? "lg:grid lg:grid-cols-2 lg:gap-x-2.5 lg:gap-y-1.5" : undefined}>
+                <div className={dashboard ? "xl:grid xl:grid-cols-2 xl:gap-x-2.5 xl:gap-y-1.5" : undefined}>
                   <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-transparent bg-[#edf3f8] px-3 py-2.5 sm:rounded-xl sm:py-3 focus-within:border-ink/35 sm:gap-4 sm:px-4">
                     <label className="grid min-w-0 flex-1 gap-1 text-sm font-medium text-ink/75">{dashboard ? "You send" : "Amount to send"}
                       <input required inputMode="decimal" maxLength={13} aria-invalid={Boolean(touched.amount && !amountValid)} aria-describedby={touched.amount && !amountValid ? "quote-amount-error" : undefined} className="w-full min-w-0 rounded-sm bg-transparent py-0.5 text-[1.75rem] font-bold tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/75 sm:text-3xl" placeholder="0.00" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} onBlur={() => markTouched("amount")} />
                     </label>
                     <CurrencyPicker label="Sending currency" value={payment.currency} onChange={currency => setPayment({ ...payment, currency })} />
                   </div>
-                  {touched.amount && !amountValid && <p id="quote-amount-error" className={`mt-2 text-sm text-red-700 ${dashboard ? "lg:order-last lg:col-span-2 lg:mt-0" : ""}`}>Enter an amount greater than zero, with up to two decimal places.</p>}
-                  <div className={`ml-5 flex min-h-9 items-center gap-2 border-l border-dashed border-ink/25 pl-3 text-xs font-medium text-ink/75 sm:ml-6 sm:min-h-11 ${dashboard ? "lg:order-last lg:col-span-2 lg:ml-0 lg:min-h-6 lg:border-0 lg:pl-0" : ""}`} role="status">
+                  {touched.amount && !amountValid && <p id="quote-amount-error" className={`mt-2 text-sm text-red-700 ${dashboard ? "xl:order-last xl:col-span-2 xl:mt-0" : ""}`}>Enter an amount greater than zero, with up to two decimal places.</p>}
+                  <div className={`ml-5 flex min-h-9 items-center gap-2 border-l border-dashed border-ink/25 pl-3 text-xs font-medium text-ink/75 sm:ml-6 sm:min-h-11 ${dashboard ? "xl:order-last xl:col-span-2 xl:ml-0 xl:min-h-6 xl:border-0 xl:pl-0" : ""}`} role="status">
                     <ArrowDown className="size-3.5 shrink-0" aria-hidden="true" />
                     {rate ? `Estimated rate: 1 ${payment.currency} = ${Number(rate).toLocaleString("en-ZM", { maximumFractionDigits: 12 })} ${payment.supplier_currency}` : rates.isPending ? "Checking exchange rate…" : "Exchange rate awaiting quote"}
                   </div>
