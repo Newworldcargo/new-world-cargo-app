@@ -5,6 +5,8 @@ import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/api/http";
 import { CustomerApiError } from "@/api/errors";
 import { Button } from "@/components/ui/button";
+import { DepositProofField } from "@/components/deposit-proof-field";
+import { acceptsDepositProof, encodeDepositProof } from "@/lib/deposit-proof";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
@@ -114,6 +116,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   });
   const [supplier, setSupplier] = useState(savedForm?.supplier ?? emptySupplier);
   const [paymentMethod, setPaymentMethod] = useState<SupplierPaymentMethod | undefined>(savedForm?.paymentMethod);
+  const [depositProof, setDepositProof] = useState(savedForm?.depositProof ?? null);
   const [step, setStep] = useState<SupplierPaymentStep>(dashboard ? "transfer" : savedForm?.locked ? "review" : savedForm?.step ?? "transfer");
   const [savedSupplierId, setSavedSupplierId] = useState(savedForm?.savedSupplierId ?? "");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -147,8 +150,8 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
 
   useEffect(clearSupplierPaymentReturn, []);
   useEffect(() => {
-    if (user?.id && !result && !(dashboard && locked)) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, step, savedSupplierId, submissionKey: submission.current, locked });
-  }, [user?.id, result, payment, supplier, paymentMethod, step, savedSupplierId, locked, dashboard]);
+    if (user?.id && !result && !(dashboard && locked)) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, depositProof: depositProof ?? undefined, step, savedSupplierId, submissionKey: submission.current, locked });
+  }, [user?.id, result, payment, supplier, paymentMethod, depositProof, step, savedSupplierId, locked, dashboard]);
   function selectRoute(route: string) {
     setPayment(current => ({ ...current, route, supplier_currency: supplierCurrencyForRoute(route) }));
   }
@@ -186,7 +189,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
     }
     if (!amountValid) return;
     if (dashboard && user?.id) {
-      rememberSupplierForm(user.id, { payment, supplier, paymentMethod, step: "supplier", savedSupplierId, submissionKey: submission.current, locked: false });
+      rememberSupplierForm(user.id, { payment, supplier, paymentMethod, depositProof: depositProof ?? undefined, step: "supplier", savedSupplierId, submissionKey: submission.current, locked: false });
       navigate(supplierWizardPath);
       return;
     }
@@ -203,12 +206,15 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
     inFlight.current = true;
     setSubmitting(true);
     setError("");
+    let requestStarted = false;
     try {
+      const proof = depositProof && acceptsDepositProof(paymentMethod) ? await encodeDepositProof(depositProof) : null;
       submission.current ||= crypto.randomUUID();
-      if (user?.id) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, step, savedSupplierId, submissionKey: submission.current, locked: true });
+      if (user?.id) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, depositProof: depositProof ?? undefined, step, savedSupplierId, submissionKey: submission.current, locked: true });
+      requestStarted = true;
       const response = await apiRequest<SupplierPaymentRecord>("/supplier-payment-requests", {
         method: "POST",
-        body: { ...payment, ...supplier, payment_method: paymentMethod, submission_key: submission.current },
+        body: { ...payment, ...supplier, payment_method: paymentMethod, submission_key: submission.current, ...(proof && { deposit_proof: proof }) },
       });
       clearSupplierPaymentDraft();
       clearSupplierForm();
@@ -219,11 +225,11 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
       requestAnimationFrame(() => heading.current?.focus());
     } catch (caught) {
       // An uncertain network result is retried with the same key and details.
-      const rejected = caught instanceof CustomerApiError && caught.status === 422;
-      setLocked(!rejected);
+      const rejected = caught instanceof CustomerApiError && [413, 415, 422].includes(caught.status);
+      if (requestStarted) setLocked(!rejected);
       setError(caught instanceof CustomerApiError
         ? Object.values(caught.fieldErrors || {})[0]?.[0] || caught.message
-        : "We could not confirm submission. Try again to check this request.");
+        : !requestStarted && caught instanceof Error ? caught.message : "We could not confirm submission. Try again to check this request.");
     } finally {
       inFlight.current = false;
       setSubmitting(false);
@@ -235,6 +241,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
     setPayment({ amount: "", currency: payment.currency, supplier_currency: payment.supplier_currency, route: payment.route });
     setSupplier(emptySupplier);
     setPaymentMethod(undefined);
+    setDepositProof(null);
     setSavedSupplierId("");
     setTouched({});
     setResult(null);
@@ -367,7 +374,11 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                     <textarea maxLength={600} rows={2} className="min-h-16 rounded-xl border border-ink/20 px-3 py-2 text-base font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" placeholder="Add a note for our team" value={supplier.notes} onChange={e => updateSupplier("notes", e.target.value)} />
                   </label>
                 </div>}
-                <SupplierPaymentMethods method={paymentMethod} onChange={setPaymentMethod} />
+                <SupplierPaymentMethods method={paymentMethod} onChange={method => {
+                  setPaymentMethod(method);
+                  if (!acceptsDepositProof(method)) setDepositProof(null);
+                }} />
+                {acceptsDepositProof(paymentMethod) && <DepositProofField file={depositProof} onChange={setDepositProof} optional />}
               </div>
               <div className="supplier-wizard-actions mt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 sm:flex sm:justify-between">
                 <Button type="button" variant="outline" className={secondaryPaymentAction} onClick={() => goTo("transfer")}><ChevronLeft className="size-4" /> Back</Button>
@@ -395,6 +406,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                     ["Invoice reference", supplier.invoice_reference],
                     ["Supplier email", supplier.supplier_email],
                     ["Payment method", paymentMethod ? supplierMethodLabels[paymentMethod] : ""],
+                    ["Deposit receipt", depositProof?.name ?? ""],
                     ["Notes", supplier.notes],
                   ]} />
                 </div>

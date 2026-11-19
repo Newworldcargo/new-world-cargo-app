@@ -5,8 +5,11 @@ export type GatewayRoute = {
   methods: readonly string[];
   access: GatewayAccess;
   routeClass: string;
+  bodyLimitBytes?: number;
 };
 
+// Three MiB of receipt data expands to four MiB in JSON.
+const supplierProofBodyLimitBytes = 4_220_000;
 const ID_SEGMENT = "[^/?#]+";
 
 /**
@@ -35,7 +38,8 @@ export const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: /^\/v1\/addresses$/, methods: ["GET", "POST"], access: "session", routeClass: "addresses" },
   { pattern: new RegExp(`^/v1/addresses/${ID_SEGMENT}$`), methods: ["PUT", "DELETE"], access: "session", routeClass: "addresses" },
   { pattern: new RegExp(`^/v1/addresses/${ID_SEGMENT}/default$`), methods: ["PATCH"], access: "session", routeClass: "addresses" },
-  { pattern: /^\/v1\/supplier-payment-requests$/, methods: ["GET", "POST"], access: "session", routeClass: "supplier-payments" },
+  { pattern: /^\/v1\/supplier-payment-requests$/, methods: ["GET", "POST"], access: "session", routeClass: "supplier-payments", bodyLimitBytes: supplierProofBodyLimitBytes },
+  { pattern: /^\/v1\/supplier-payment-requests\/FCP-R-[1-9][0-9]{0,19}\/deposit-proof$/, methods: ["POST"], access: "session", routeClass: "supplier-payments", bodyLimitBytes: supplierProofBodyLimitBytes },
   { pattern: /^\/v1\/supplier-payment-requests\/FCP-(?:R-)?[1-9][0-9]{0,19}$/, methods: ["GET"], access: "session", routeClass: "supplier-payments" },
   { pattern: /^\/v1\/supplier-payment-suppliers$/, methods: ["GET"], access: "session", routeClass: "supplier-payments" },
   { pattern: /^\/v1\/recipients$/, methods: ["GET", "POST"], access: "session", routeClass: "recipients" },

@@ -72,6 +72,7 @@ type SupplierFormSnapshot = {
   step?: SupplierPaymentStep;
   savedSupplierId?: string;
   paymentMethod?: SupplierPaymentMethod;
+  depositProof?: File;
   submissionKey: string;
   locked: boolean;
 };

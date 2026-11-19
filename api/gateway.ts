@@ -7,8 +7,11 @@ type GatewayRoute = {
   methods: readonly string[];
   access: GatewayAccess;
   routeClass: string;
+  bodyLimitBytes?: number;
 };
 
+// Three MiB of receipt data expands to four MiB in JSON.
+const supplierProofBodyLimitBytes = 4_220_000;
 const ID_SEGMENT = "[^/?#]+";
 const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: /^\/v1\/session$/, methods: ["GET"], access: "session", routeClass: "session" },
@@ -32,7 +35,8 @@ const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: /^\/v1\/addresses$/, methods: ["GET", "POST"], access: "session", routeClass: "addresses" },
   { pattern: new RegExp(`^/v1/addresses/${ID_SEGMENT}$`), methods: ["PUT", "DELETE"], access: "session", routeClass: "addresses" },
   { pattern: new RegExp(`^/v1/addresses/${ID_SEGMENT}/default$`), methods: ["PATCH"], access: "session", routeClass: "addresses" },
-  { pattern: /^\/v1\/supplier-payment-requests$/, methods: ["GET", "POST"], access: "session", routeClass: "supplier-payments" },
+  { pattern: /^\/v1\/supplier-payment-requests$/, methods: ["GET", "POST"], access: "session", routeClass: "supplier-payments", bodyLimitBytes: supplierProofBodyLimitBytes },
+  { pattern: /^\/v1\/supplier-payment-requests\/FCP-R-[1-9][0-9]{0,19}\/deposit-proof$/, methods: ["POST"], access: "session", routeClass: "supplier-payments", bodyLimitBytes: supplierProofBodyLimitBytes },
   { pattern: /^\/v1\/supplier-payment-requests\/FCP-(?:R-)?[1-9][0-9]{0,19}$/, methods: ["GET"], access: "session", routeClass: "supplier-payments" },
   { pattern: /^\/v1\/supplier-payment-suppliers$/, methods: ["GET"], access: "session", routeClass: "supplier-payments" },
   { pattern: /^\/v1\/recipients$/, methods: ["GET", "POST"], access: "session", routeClass: "recipients" },
@@ -152,10 +156,10 @@ function hasCsrfToken(headers: IncomingHttpHeaders) {
   return typeof csrfToken === "string" && csrfToken.length >= 16 && csrfToken.length <= 512;
 }
 
-function requestJsonBody(request: GatewayRequest): { body: string | undefined } | { error: "REQUEST_TOO_LARGE" | "UNSUPPORTED_MEDIA_TYPE" } {
+function requestJsonBody(request: GatewayRequest, limit: number): { body: string | undefined } | { error: "REQUEST_TOO_LARGE" | "UNSUPPORTED_MEDIA_TYPE" } {
   const contentLength = request.headers["content-length"];
   const declaredLength = Number(Array.isArray(contentLength) ? contentLength[0] : contentLength || 0);
-  if (Number.isFinite(declaredLength) && declaredLength > gatewayBodyLimitBytes) return { error: "REQUEST_TOO_LARGE" };
+  if (Number.isFinite(declaredLength) && declaredLength > limit) return { error: "REQUEST_TOO_LARGE" };
 
   if (
     request.body === undefined ||
@@ -168,7 +172,7 @@ function requestJsonBody(request: GatewayRequest): { body: string | undefined } 
   if (!contentType.startsWith("application/json")) return { error: "UNSUPPORTED_MEDIA_TYPE" };
 
   const serialized = typeof request.body === "string" ? request.body : JSON.stringify(request.body);
-  if (Buffer.byteLength(serialized, "utf8") > gatewayBodyLimitBytes) return { error: "REQUEST_TOO_LARGE" };
+  if (Buffer.byteLength(serialized, "utf8") > limit) return { error: "REQUEST_TOO_LARGE" };
   return { body: serialized };
 }
 
@@ -220,7 +224,7 @@ export async function nodeHandler(request: GatewayRequest, response: ServerRespo
     return sendProblem(response, 403, "CSRF_TOKEN_REQUIRED", "This request is missing its security token.", requestId);
   }
 
-  const requestBody = requestJsonBody(request);
+  const requestBody = requestJsonBody(request, route.bodyLimitBytes ?? gatewayBodyLimitBytes);
   if ("error" in requestBody) {
     const bodyError = requestBody.error;
     const isTooLarge = bodyError === "REQUEST_TOO_LARGE";

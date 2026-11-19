@@ -12,6 +12,7 @@ export type SupplierPaymentRecord = {
   paymentMethod?: SupplierPaymentMethod | null;
   invoiceReference?: string | null;
   supplierEmail?: string | null;
+  depositProofName?: string | null;
   status: "under_review" | "pending_confirmation" | "paid";
 };
 

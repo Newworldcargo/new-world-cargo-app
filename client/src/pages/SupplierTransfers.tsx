@@ -1,15 +1,17 @@
 import { ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiRequest } from "@/api/http";
 import { CustomerApiError } from "@/api/errors";
 import { ContentSkeleton } from "@/components/loading-skeleton";
+import { DepositProofField } from "@/components/deposit-proof-field";
+import { acceptsDepositProof, encodeDepositProof } from "@/lib/deposit-proof";
 import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
 import { StatusBadge, supplierMethodLabels, type SupplierPaymentRecord } from "@/components/supplier-payment-record";
 import { useAuth } from "@/contexts/AuthContext";
 import { supplierDetailsPath } from "@/lib/payment-routes";
-import { paymentControlClass, paymentPageClass, paymentSurfaceClass, secondaryPaymentAction } from "@/lib/payment-presentation";
+import { paymentControlClass, paymentPageClass, paymentSurfaceClass, primaryPaymentAction, secondaryPaymentAction } from "@/lib/payment-presentation";
 import SupplierPayments from "./SupplierPayments";
 
 const money = new Intl.NumberFormat("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -34,6 +36,9 @@ const card = paymentSurfaceClass + " p-4 sm:p-6";
 
 export default function SupplierTransfers({ reference }: { reference?: string }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [depositProof, setDepositProof] = useState<File | null>(null);
+  const detailKey = ["customer", user?.id, "supplier-payment-requests", reference];
   const [status, setStatus] = useState("all");
   const transfersSection = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -47,11 +52,29 @@ export default function SupplierTransfers({ reference }: { reference?: string })
     enabled: Boolean(user?.id) && !reference,
   });
   const details = useQuery({
-    queryKey: ["customer", user?.id, "supplier-payment-requests", reference],
+    queryKey: detailKey,
     queryFn: () => apiRequest<SupplierPaymentRecord>(`/supplier-payment-requests/${encodeURIComponent(reference ?? "")}`),
     enabled: Boolean(user?.id && reference),
     retry: false,
   });
+
+  const attachProof = useMutation({
+    mutationFn: async (file: File) => apiRequest<{ depositProofName: string }>(`/supplier-payment-requests/${encodeURIComponent(reference ?? "")}/deposit-proof`, {
+      method: "POST",
+      body: { deposit_proof: await encodeDepositProof(file) },
+    }),
+    onSuccess: ({ depositProofName }) => {
+      queryClient.setQueryData<SupplierPaymentRecord>(detailKey, current => current ? { ...current, depositProofName } : undefined);
+      void queryClient.invalidateQueries({ queryKey: detailKey });
+      setDepositProof(null);
+    },
+    onError: error => {
+      if (error instanceof CustomerApiError && error.status === 409) void details.refetch();
+    },
+  });
+  const proofError = attachProof.error instanceof CustomerApiError
+    ? Object.values(attachProof.error.fieldErrors || {})[0]?.[0] || attachProof.error.message
+    : attachProof.error?.message;
 
   if (reference) {
     const record = details.data;
@@ -84,6 +107,22 @@ export default function SupplierTransfers({ reference }: { reference?: string })
             </div>)}
             </dl>
           </div>
+          {record.depositProofName ? <dl className="mt-4 rounded-xl border border-[#d5e2eb] bg-[#f3f7fa] p-3 text-sm">
+            <dt className="font-semibold">Deposit receipt attached</dt>
+            <dd className="mt-1 break-all text-ink/75">{record.depositProofName}</dd>
+          </dl> : acceptsDepositProof(record.paymentMethod) && <form className="mt-4 space-y-3" onSubmit={event => {
+            event.preventDefault();
+            if (depositProof && !attachProof.isPending) attachProof.mutate(depositProof);
+          }}>
+            <DepositProofField file={depositProof} disabled={attachProof.isPending} optional onChange={file => {
+              setDepositProof(file);
+              attachProof.reset();
+            }} />
+            {proofError && <p className="text-sm text-red-700" role="alert">{proofError}</p>}
+            {depositProof && <button className={primaryPaymentAction} disabled={attachProof.isPending}>
+              {attachProof.isPending ? "Uploading receipt…" : "Save receipt"}
+            </button>}
+          </form>}
           {record.status === "under_review" && <p className="mt-3 text-sm text-ink/75">We’ll contact you with your confirmed quote and payment instructions.</p>}
         </>}
       </div>

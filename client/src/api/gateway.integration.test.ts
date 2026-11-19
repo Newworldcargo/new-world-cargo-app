@@ -155,6 +155,32 @@ describe("server-side BFF to Laravel integration", () => {
     expect(fetchMock.mock.calls[1][1].headers.get("x-csrf-token")).toBe("csrf-token-from-register");
   });
 
+  it("accepts receipt-sized JSON only on the supplier receipt routes", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ data: {} }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const proof = { name: "receipt.pdf", data: Buffer.alloc(3 * 1024 * 1024).toString("base64") };
+    const post = async (path: string) => {
+      const result = response();
+      await nodeHandler(request({
+        method: "POST",
+        query: { path },
+        headers: {
+          origin: "https://app.newworldcargo.com",
+          host: "app.newworldcargo.com",
+          "content-type": "application/json",
+          "x-csrf-token": "csrf-token-123456",
+        },
+        body: { deposit_proof: proof },
+      } as Partial<MockRequest> & { body: object }), result as never);
+      return result.statusCode;
+    };
+
+    expect(await post("v1/supplier-payment-requests")).toBe(200);
+    expect(await post("v1/supplier-payment-requests/FCP-R-11/deposit-proof")).toBe(200);
+    expect(await post("v1/shipment-drafts/42/submit")).toBe(413);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("forwards an empty draft submission POST without requiring a content type", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({ data: { id: "booking-1", status: "pending" } }), {
