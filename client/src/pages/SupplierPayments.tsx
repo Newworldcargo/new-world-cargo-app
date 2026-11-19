@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ArrowDown, ArrowRight, ArrowUpRight, CheckCircle2, ChevronLeft, History, Loader2, Plus, ShieldCheck } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
@@ -12,11 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
 import { StatusBadge, supplierMethodLabels, type SupplierPaymentRecord } from "@/components/supplier-payment-record";
 import { SupplierPaymentMethods, SupplierProfiles, type SavedSupplier } from "@/components/supplier-quote-options";
+import { emptySupplierContact, SupplierContactDialog } from "@/components/supplier-contact-dialog";
+import { InlineSkeleton, RefreshProgress } from "@/components/loading-skeleton";
 import { supplierDetailsPath, suppliersPath, supplierWizardPath } from "@/lib/payment-routes";
 import { paymentPageClass, paymentSurfaceClass, primaryPaymentAction, secondaryPaymentAction } from "@/lib/payment-presentation";
 import { useAuth } from "@/contexts/AuthContext";
 import "./supplier-payments.css";
-import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SupplierPaymentMethod, type SupplierPaymentStep } from "@/lib/supplier-payment-draft";
+import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, normalizeSupplierPhone, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SupplierContactFields, type SupplierPaymentMethod, type SupplierPaymentStep } from "@/lib/supplier-payment-draft";
 
 const inputClass = "h-12 rounded-xl border-ink/20 bg-white text-base md:text-base";
 const panel = paymentSurfaceClass + " p-4 sm:p-7";
@@ -32,7 +34,7 @@ const stepTitles: Record<SupplierPaymentStep, string> = {
   supplier: "Supplier details",
   review: "Review your request",
 };
-const emptySupplier = { supplier_name: "", supplier_email: "", invoice_reference: "", notes: "" };
+const emptySupplier = { ...emptySupplierContact, invoice_reference: "", notes: "" };
 
 async function fetchRates(signal: AbortSignal) {
   const response = await fetch("https://admin.newworldcargo.com/api/fcp/rate", { signal, cache: "no-store", credentials: "omit" });
@@ -95,7 +97,7 @@ function useMobileKeyboard() {
   return open;
 }
 
-function SummaryRows({ rows }: { rows: string[][] }) {
+function SummaryRows({ rows }: { rows: [string, ReactNode][] }) {
   return <dl className="divide-y divide-ink/10">
     {rows.filter(([, value]) => value).map(([label, value]) => <div key={label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-3 py-3 text-sm">
       <dt className="text-ink/70">{label}</dt><dd className="whitespace-pre-wrap break-words text-right font-semibold">{value}</dd>
@@ -114,7 +116,8 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
     amount: estimate.amount, currency: estimate.currency,
     supplier_currency: estimate.supplier_currency, route: estimate.route,
   });
-  const [supplier, setSupplier] = useState(savedForm?.supplier ?? emptySupplier);
+  const [supplier, setSupplier] = useState({ ...emptySupplier, ...savedForm?.supplier });
+  const [contactDialog, setContactDialog] = useState<{ contact: SupplierContactFields; editing: boolean } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<SupplierPaymentMethod | undefined>(savedForm?.paymentMethod);
   const [depositProof, setDepositProof] = useState(savedForm?.depositProof ?? null);
   const [step, setStep] = useState<SupplierPaymentStep>(dashboard ? "transfer" : savedForm?.locked ? "review" : savedForm?.step ?? "transfer");
@@ -127,7 +130,6 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   const inFlight = useRef(false);
   const submission = useRef(savedForm?.submissionKey ?? "");
   const heading = useRef<HTMLHeadingElement>(null);
-  const supplierNameInput = useRef<HTMLInputElement>(null);
   const savedSuppliers = useQuery({
     queryKey: ["customer", user?.id, "supplier-payment-suppliers"],
     queryFn: () => apiRequest<SavedSupplier[]>("/supplier-payment-suppliers"),
@@ -137,8 +139,9 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   });
   const rates = useQuery({ queryKey: ["supplier-payment-rates"], queryFn: ({ signal }) => fetchRates(signal), staleTime: 60_000, retry: false });
   const candidate = rates.data?.rates[payment.currency]?.[payment.supplier_currency];
-  const rate = !rates.isError && typeof candidate === "string" && /^\d{1,12}\.\d{12}$/.test(candidate) && Number(candidate) > 0 ? candidate : null;
-  const feeBps = rates.isError ? undefined : rates.data?.feeBps;
+  const rate = typeof candidate === "string" && /^\d{1,12}\.\d{12}$/.test(candidate) && Number(candidate) > 0 ? candidate : null;
+  const feeBps = rates.data?.feeBps;
+  const loadingRates = rates.isFetching && !rates.data;
   const { receives, fee, total } = estimateAmounts(payment.amount, rate, feeBps);
   const receivingAmount = receives === null ? null : formatMinor(receives);
   const feeLabel = feeBps === undefined ? "Handling fee" : `Handling fee (${feeBps / 100}%)`;
@@ -146,9 +149,11 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   const emailValid = !supplier.supplier_email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supplier.supplier_email.trim());
   const onlineMethod = paymentMethod === "mobile_money" || paymentMethod === "card";
   const methodCurrencyValid = paymentMethod === "mobile_money" ? payment.currency === "ZMW" : paymentMethod !== "card" || ["ZMW", "USD"].includes(payment.currency);
-  const supplierValid = Boolean(supplier.supplier_name.trim() && supplier.invoice_reference.trim() && emailValid && paymentMethod && methodCurrencyValid);
-  const estimatedFee = fee === null ? "Awaiting quote" : `${payment.currency} ${formatMinor(fee)}`;
-  const estimatedTotal = total === null ? "Awaiting quote" : `${payment.currency} ${formatMinor(total)}`;
+  const supplierValid = Boolean(supplier.supplier_name.trim() && normalizeSupplierPhone(supplier.supplier_phone) && supplier.invoice_reference.trim() && emailValid && paymentMethod && methodCurrencyValid);
+  const missingQuote = rates.isError && !rates.data ? "Unavailable" : "Awaiting quote";
+  const pendingAmount = loadingRates ? <InlineSkeleton /> : amountValid ? missingQuote : "—";
+  const estimatedFee = fee === null ? pendingAmount : `${payment.currency} ${formatMinor(fee)}`;
+  const estimatedTotal = total === null ? pendingAmount : `${payment.currency} ${formatMinor(total)}`;
 
   useEffect(clearSupplierPaymentReturn, []);
   useEffect(() => {
@@ -165,17 +170,19 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   }
 
   function selectSupplier(id: string) {
-    if (id !== savedSupplierId) {
-      const contact = savedSuppliers.data?.find(item => item.id === id);
-      setSavedSupplierId(id);
-      setSupplier(current => ({ ...current, supplier_name: contact?.name ?? "", supplier_email: contact?.email ?? "" }));
-      setTouched(current => ({ ...current, supplier_name: false, supplier_email: false }));
+    if (id === "new") {
+      setContactDialog({ contact: emptySupplierContact, editing: false });
+      return;
     }
-    if (id === "new") requestAnimationFrame(() => supplierNameInput.current?.focus());
+    const contact = savedSuppliers.data?.find(item => item.id === id);
+    if (!contact || id === savedSupplierId) return;
+    const selected = { supplier_name: contact.name, supplier_email: contact.email ?? "", supplier_phone: contact.phone ?? "" };
+    setSavedSupplierId(id);
+    setSupplier(current => ({ ...current, ...selected }));
+    if (!selected.supplier_phone) setContactDialog({ contact: selected, editing: true });
   }
 
   function updateSupplier(field: keyof typeof emptySupplier, value: string) {
-    if (field === "supplier_name" || field === "supplier_email") setSavedSupplierId("new");
     setSupplier(current => ({ ...current, [field]: value }));
   }
 
@@ -221,7 +228,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
       clearSupplierPaymentDraft();
       clearSupplierForm();
       setResult(response);
-      queryClient.setQueryData(["customer", user?.id, "supplier-payment-requests", response.reference], { ...response, invoiceReference: supplier.invoice_reference, supplierEmail: supplier.supplier_email });
+      queryClient.setQueryData(["customer", user?.id, "supplier-payment-requests", response.reference], { ...response, invoiceReference: supplier.invoice_reference, supplierEmail: supplier.supplier_email, supplierPhone: supplier.supplier_phone });
       void queryClient.invalidateQueries({ queryKey: ["customer", user?.id, "supplier-payment-requests"] });
       void queryClient.invalidateQueries({ queryKey: ["customer", user?.id, "supplier-payment-suppliers"] });
       if (onlineMethod) {
@@ -318,16 +325,25 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                   {touched.amount && !amountValid && <p id="quote-amount-error" className={`mt-2 text-sm text-red-700 ${dashboard ? "xl:order-last xl:col-span-2 xl:mt-0" : ""}`}>Enter an amount greater than zero, with up to two decimal places.</p>}
                   <div className={`ml-5 flex min-h-9 items-center gap-2 border-l border-dashed border-ink/25 pl-3 text-xs font-medium text-ink/75 sm:ml-6 sm:min-h-11 ${dashboard ? "xl:order-last xl:col-span-2 xl:ml-0 xl:min-h-6 xl:border-0 xl:pl-0" : ""}`} role="status">
                     <ArrowDown className="size-3.5 shrink-0" aria-hidden="true" />
-                    {rate ? `Estimated rate: 1 ${payment.currency} = ${Number(rate).toLocaleString("en-ZM", { maximumFractionDigits: 12 })} ${payment.supplier_currency}` : rates.isPending ? "Checking exchange rate…" : "Exchange rate awaiting quote"}
+                    {loadingRates ? <><span className="sr-only">Loading exchange rate and fees</span><InlineSkeleton className="h-3 w-40" /></>
+                      : rate ? `Estimated rate: 1 ${payment.currency} = ${Number(rate).toLocaleString("en-ZM", { maximumFractionDigits: 12 })} ${payment.supplier_currency}`
+                      : rates.isError ? "Exchange rate unavailable" : "Exchange rate awaiting quote"}
                   </div>
                   <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-transparent bg-[#edf3f8] px-3 py-2.5 sm:rounded-xl sm:py-3 sm:gap-4 sm:px-4">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-ink/75" id="receiving-amount-label">Supplier receives</p>
-                      <output aria-labelledby="receiving-amount-label" className={`block break-words pt-0.5 font-bold tabular-nums ${amountValid && !receivingAmount ? "text-base" : "text-[1.75rem] sm:text-3xl"}`}>{amountValid ? receivingAmount ?? "Awaiting quote" : "0.00"}</output>
+                      <output aria-labelledby="receiving-amount-label" aria-busy={loadingRates} className={`block min-h-9 break-words pt-0.5 font-bold tabular-nums ${amountValid && !receivingAmount ? "text-base" : "text-[1.75rem] sm:text-3xl"}`}>
+                        {loadingRates ? <InlineSkeleton className="h-6 w-24" /> : amountValid ? receivingAmount ?? missingQuote : "0.00"}
+                      </output>
                     </div>
                     <CurrencyPicker label="Receiving currency" value={payment.supplier_currency} onChange={supplier_currency => setPayment({ ...payment, supplier_currency })} />
                   </div>
                 </div>
+                {rates.isFetching && rates.data && <div className="mt-2"><RefreshProgress label="Refreshing exchange rates" /></div>}
+                {rates.isError && !rates.isFetching && <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink/75">
+                  <span>{rates.data ? "Could not refresh the estimate." : "Could not load rates and fees."}</span>
+                  <button type="button" className="min-h-9 font-semibold underline" onClick={() => void rates.refetch()}>Try again</button>
+                </div>}
                 {dashboard && routePicker}
               </div>
               <div className={dashboard ? paymentSurfaceClass + " p-4 sm:p-5" : "min-w-0"}>
@@ -356,25 +372,27 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
               <div className="grid gap-4">
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold">Supplier</h3>
-                  <SupplierProfiles contacts={savedSuppliers.data ?? []} selectedId={savedSupplierId} onSelect={selectSupplier} />
-                  {savedSuppliers.isPending && <p className="text-xs text-ink/70" role="status">Loading saved suppliers…</p>}
-                  {savedSuppliers.isError && <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink/75" role="status">
+                  <SupplierProfiles contacts={savedSuppliers.data ?? []} selectedId={savedSupplierId} loading={savedSuppliers.isFetching && !savedSuppliers.data} onSelect={selectSupplier} />
+                  {savedSuppliers.isFetching && savedSuppliers.data && <RefreshProgress label="Refreshing saved suppliers" />}
+                  {savedSuppliers.isError && !savedSuppliers.isFetching && <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink/75" role="status">
                     Saved suppliers are unavailable.
                     <button type="button" className="min-h-9 font-semibold underline" onClick={() => void savedSuppliers.refetch()} disabled={savedSuppliers.isFetching}>Retry</button>
                   </div>}
                 </div>
                 {savedSupplierId && <div className="grid gap-4 sm:grid-cols-2">
-                  <label className={field}>Supplier or company name
-                    <Input ref={supplierNameInput} required maxLength={160} autoComplete="off" aria-invalid={Boolean(touched.supplier_name && !supplier.supplier_name.trim())} className={inputClass} placeholder="Enter supplier name" value={supplier.supplier_name} onChange={e => updateSupplier("supplier_name", e.target.value)} onBlur={() => markTouched("supplier_name")} />
-                    {touched.supplier_name && !supplier.supplier_name.trim() && <span className="text-xs font-normal text-red-700">Enter the supplier’s name.</span>}
-                  </label>
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#dce6ee] bg-[#f3f7fa] px-4 py-3 sm:col-span-2">
+                    <div className="min-w-0">
+                      <p className="break-words text-sm font-bold">{supplier.supplier_name}</p>
+                      <p className="break-words text-sm text-ink/75">{supplier.supplier_phone || "Phone number required"}</p>
+                      {supplier.supplier_email && <p className="break-all text-xs text-ink/75">{supplier.supplier_email}</p>}
+                    </div>
+                    <Button type="button" variant="outline" className={secondaryPaymentAction} onClick={() => setContactDialog({ contact: supplier, editing: true })}>
+                      {supplier.supplier_phone ? "Edit supplier" : "Add phone number"}
+                    </Button>
+                  </div>
                   <label className={field}>Supplier invoice reference
                     <Input required maxLength={100} aria-invalid={Boolean(touched.invoice_reference && !supplier.invoice_reference.trim())} className={inputClass} placeholder="e.g. INV-2048" value={supplier.invoice_reference} onChange={e => updateSupplier("invoice_reference", e.target.value)} onBlur={() => markTouched("invoice_reference")} />
                     {touched.invoice_reference && !supplier.invoice_reference.trim() && <span className="text-xs font-normal text-red-700">Enter the invoice reference.</span>}
-                  </label>
-                  <label className={field}><span>Supplier email <span className="font-normal text-ink/65">(optional)</span></span>
-                    <Input type="email" maxLength={254} aria-invalid={Boolean(touched.supplier_email && !emailValid)} className={inputClass} placeholder="billing@example.com" value={supplier.supplier_email} onChange={e => updateSupplier("supplier_email", e.target.value)} onBlur={() => markTouched("supplier_email")} />
-                    {touched.supplier_email && !emailValid && <span className="text-xs font-normal text-red-700">Enter a valid email address.</span>}
                   </label>
                   <label className={field}><span>Notes <span className="font-normal text-ink/65">(optional)</span></span>
                     <textarea maxLength={600} rows={2} className="min-h-16 rounded-xl border border-ink/20 px-3 py-2 text-base font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" placeholder="Add a note for our team" value={supplier.notes} onChange={e => updateSupplier("notes", e.target.value)} />
@@ -400,7 +418,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                   <SummaryRows rows={[
                     ["You send", `${payment.currency} ${money.format(Number(payment.amount))}`],
                     ["Receive in", payment.supplier_currency],
-                    ["Est. to supplier", receivingAmount ? `${payment.supplier_currency} ${receivingAmount}` : "Awaiting quote"],
+                    ["Est. to supplier", receivingAmount ? `${payment.supplier_currency} ${receivingAmount}` : pendingAmount],
                     ["Payment route", payment.route],
                     [`Est. ${feeLabel.toLowerCase()}`, estimatedFee],
                   ]} />
@@ -410,6 +428,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                   <SummaryRows rows={[
                     ["Supplier", supplier.supplier_name],
                     ["Invoice reference", supplier.invoice_reference],
+                    ["Supplier phone", supplier.supplier_phone],
                     ["Supplier email", supplier.supplier_email],
                     ["Payment method", paymentMethod ? supplierMethodLabels[paymentMethod] : ""],
                     ["Deposit receipt", depositProof?.name ?? ""],
@@ -421,7 +440,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
               <div className="supplier-wizard-actions mt-5 flex gap-2.5 sm:justify-between">
                 {!locked && <Button type="button" aria-label="Back to supplier" variant="outline" className={secondaryPaymentAction} disabled={submitting} onClick={() => goTo("supplier")}><ChevronLeft className="size-4" /><span className="sm:hidden">Back</span><span className="hidden sm:inline">Back to supplier</span></Button>}
                 <Button type="button" className={primaryPaymentAction + " min-w-0 flex-1 px-2 sm:ml-auto sm:flex-none sm:px-5"} disabled={submitting} onClick={submit}>
-                  {submitting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                  {submitting && <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" />}
                   {submitting ? "Preparing transfer…" : locked ? "Retry request" : onlineMethod ? "Continue to payment" : depositProof ? "Submit for approval" : "Request Quote"}
                   {!submitting && <ArrowRight className="size-4" aria-hidden="true" />}
                 </Button>
@@ -430,5 +449,11 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
           </div>
         </section>
     </div>
+    {contactDialog && <SupplierContactDialog contact={contactDialog.contact} editing={contactDialog.editing} onClose={() => setContactDialog(null)}
+      onSave={contact => {
+        if (!contactDialog.editing) setSavedSupplierId("new");
+        setSupplier(current => ({ ...current, ...contact }));
+        setContactDialog(null);
+      }} />}
   </div>;
 }

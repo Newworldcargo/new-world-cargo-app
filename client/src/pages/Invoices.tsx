@@ -1,5 +1,5 @@
 import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
-import { ContentSkeleton } from "@/components/loading-skeleton";
+import { ContentSkeleton, RefreshProgress } from "@/components/loading-skeleton";
 // New World Cargo billing style: white operational workspace, Poppins hierarchy, navy ink, Cargo Yellow actions, restrained borders, mobile-first layout.
 
 import { ArrowDownToLine, ArrowUpRight, CalendarDays, Check, ChevronRight, CircleAlert, Download, FileText, Package, ReceiptText, Search, X } from "lucide-react";
@@ -74,7 +74,8 @@ export default function Invoices() {
   const [query, setQuery] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
-  const { data: invoices = [], isLoading, isError, refetch } = useCustomerInvoices({ query, status: filter });
+  const { data, isLoading, isFetching, isError, refetch } = useCustomerInvoices({ query, status: filter });
+  const invoices = data ?? [];
   const ledger = invoices;
   const matching = useMemo(() => ledger.filter((invoice) => filter === "all" || invoice.status === filter), [filter, ledger]);
   const recent = matching.slice(0, 3);
@@ -121,9 +122,9 @@ export default function Invoices() {
     <section className={paymentSurfaceClass + " mt-5 p-4 sm:p-5"}>
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-xl font-bold">Recent invoices</h2>
-        {!isLoading && !isError && <p className="text-xs text-ink/75">{recent.length} shown</p>}
+        {isFetching && data ? <RefreshProgress label="Refreshing invoices" /> : !isLoading && !isError && <p className="text-xs text-ink/75">{recent.length} shown</p>}
       </div>
-      {isLoading ? <ContentSkeleton label="Loading invoices" /> : isError ? <div className="py-6 text-center">
+      {isLoading ? <ContentSkeleton label="Loading invoices" /> : isError && !data ? <div className="py-6 text-center">
         <p role="status" className="mb-3 text-sm text-ink/75">We could not load your invoices.</p>
         <button className={secondaryPaymentAction} onClick={() => void refetch()}>Try again</button>
       </div> : recent.length ? <ul className="divide-y divide-[#e2ebf2]">

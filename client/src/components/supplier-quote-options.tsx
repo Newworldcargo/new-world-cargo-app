@@ -1,12 +1,14 @@
 import { Banknote, Building2, Check, CreditCard, Plus, Smartphone } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supplierMethodLabels } from "@/components/supplier-payment-record";
+import { ContentSkeleton } from "@/components/loading-skeleton";
 import type { SupplierPaymentMethod } from "@/lib/supplier-payment-draft";
 
 export type SavedSupplier = {
   id: string;
   name: string;
   email: string | null;
+  phone?: string | null;
   avatarUrl?: string | null;
 };
 
@@ -18,9 +20,10 @@ const methodOptions = [
   { value: "office_cash", icon: Building2 },
 ] as const;
 
-export function SupplierProfiles({ contacts, selectedId, onSelect }: {
+export function SupplierProfiles({ contacts, selectedId, loading, onSelect }: {
   contacts: SavedSupplier[];
   selectedId: string;
+  loading?: boolean;
   onSelect: (id: string) => void;
 }) {
   return <div role="group" aria-label="Choose a supplier" className="-mx-1 flex min-w-0 gap-1 overflow-x-auto overscroll-x-contain px-1 pb-2 pt-1">
@@ -30,9 +33,10 @@ export function SupplierProfiles({ contacts, selectedId, onSelect }: {
       </span>
       <span className="text-xs font-semibold">Add supplier</span>
     </button>
+    {loading && <div className="min-w-0 flex-1"><ContentSkeleton variant="profiles" label="Loading saved suppliers" /></div>}
     {contacts.map(contact => {
       const selected = contact.id === selectedId;
-      const title = contact.email ? `${contact.name} · ${contact.email}` : contact.name;
+      const title = [contact.name, contact.phone, contact.email].filter(Boolean).join(" · ");
       const initials = contact.name.trim().split(/\s+/).slice(0, 2)
         .map(word => Array.from(word)[0]).join("").toLocaleUpperCase();
       return <button key={contact.id} type="button" onClick={() => onSelect(contact.id)} aria-pressed={selected}

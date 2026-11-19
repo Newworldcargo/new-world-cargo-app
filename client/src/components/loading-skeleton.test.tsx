@@ -6,7 +6,7 @@ const state = vi.hoisted(() => ({ pending: 0 }));
 vi.mock("@tanstack/react-query", () => ({ useIsMutating: () => state.pending }));
 
 describe("reusable loading states", () => {
-  it.each([["/", "dashboard"], ["/shipments", "cards"], ["/shipments/booking-5", "detail"], ["/send/import/route", "form"], ["/recover-account", "form"], ["/settings", "list"]])("matches %s to its layout", (path, variant) => {
+  it.each([["/", "dashboard"], ["/shipments", "cards"], ["/shipments/booking-5", "detail"], ["/send/import/route", "form"], ["/recover-account", "form"], ["/settings", "list"], ["/payments", "cards"], ["/payments/suppliers/new", "form"], ["/payments/suppliers/FCP-R-3", "payment-detail"]])("matches %s to its layout", (path, variant) => {
     expect(skeletonVariant(path)).toBe(variant);
   });
   it("announces loading once and hides placeholder shapes from assistive technology", () => {

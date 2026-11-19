@@ -10,6 +10,11 @@ export function isSupplierAmount(value: string) {
   return /^\d{1,10}(\.\d{1,2})?$/.test(value) && Number(value) >= 0.01;
 }
 
+export function normalizeSupplierPhone(value: string) {
+  const phone = value.trim().replace(/[ ()-]/g, "");
+  return /^\+[1-9][0-9]{7,14}$/.test(phone) ? phone : "";
+}
+
 function currency(value: string | null, fallback: string) {
   return supplierCurrencies.some(code => code === value) ? value! : fallback;
 }
@@ -66,9 +71,11 @@ export type SupplierPaymentMethod = "office_cash" | "atm_deposit" | "card" | "mo
 
 export type SupplierPaymentStep = "transfer" | "supplier" | "review";
 
+export type SupplierContactFields = { supplier_name: string; supplier_email: string; supplier_phone: string };
+
 type SupplierFormSnapshot = {
   payment: { amount: string; currency: string; supplier_currency: string; route: string };
-  supplier: { supplier_name: string; supplier_email: string; invoice_reference: string; notes: string };
+  supplier: SupplierContactFields & { invoice_reference: string; notes: string };
   step?: SupplierPaymentStep;
   savedSupplierId?: string;
   paymentMethod?: SupplierPaymentMethod;

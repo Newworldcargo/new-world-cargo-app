@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiRequest } from "@/api/http";
 import { CustomerApiError } from "@/api/errors";
-import { ContentSkeleton } from "@/components/loading-skeleton";
+import { ContentSkeleton, RefreshProgress } from "@/components/loading-skeleton";
 import { DepositProofField } from "@/components/deposit-proof-field";
 import { acceptsDepositProof, encodeDepositProof } from "@/lib/deposit-proof";
 import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
@@ -92,13 +92,16 @@ export default function SupplierTransfers({ reference }: { reference?: string })
       <PaymentBreadcrumb current="Details" supplierChild />
       <h1 className="font-heading text-3xl font-extrabold sm:text-4xl">{record?.status === "under_review" ? "Quote request" : "Supplier payment details"}</h1>
       <div className={card + " mt-5"}>
-        {details.isPending ? <ContentSkeleton label="Loading supplier payment" /> : details.isError ? <>
+        {details.isPending ? <ContentSkeleton variant="payment-detail" label="Loading supplier payment" /> : details.isError && !record ? <>
           <p role="status" className="text-sm text-ink/75">{missing ? "We couldn’t find this supplier payment." : "We couldn’t load this supplier payment."}</p>
           {!missing && <button type="button" className={secondaryPaymentAction + " mt-3"} onClick={() => void details.refetch()}>Try again</button>}
         </> : record && <>
           <header className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-lg font-bold">{record.reference}</p>
-            <StatusBadge status={record.status} fundingConfirmed={record.fundingConfirmed} />
+            <div className="flex flex-wrap items-center gap-2">
+              {details.isFetching && <RefreshProgress label="Refreshing transfer" />}
+              <StatusBadge status={record.status} fundingConfirmed={record.fundingConfirmed} />
+            </div>
           </header>
           <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,.8fr)_minmax(0,1.2fr)] md:gap-6">
             <div className="self-start rounded-2xl border border-[#dce6ee] bg-[#edf3f8] p-4 sm:p-5">
@@ -113,7 +116,7 @@ export default function SupplierTransfers({ reference }: { reference?: string })
             <dl className="min-w-0 divide-y divide-[#e2ebf2] text-sm">
             {[
               ["Supplier", record.supplierName], ["Route", record.route], ["Receiving currency", record.receivingCurrency],
-              ["Supplier invoice", record.invoiceReference], ["Supplier email", record.supplierEmail],
+              ["Supplier invoice", record.invoiceReference], ["Supplier phone", record.supplierPhone], ["Supplier email", record.supplierEmail],
               ["Payment method", record.paymentMethod && supplierMethodLabels[record.paymentMethod]],
               ["Date", paymentDate(record.createdAt)],
             ].filter(([, value]) => value).map(([label, value]) => <div key={label} className="grid grid-cols-2 gap-3 py-3">
@@ -137,7 +140,7 @@ export default function SupplierTransfers({ reference }: { reference?: string })
             }} />
             {proofError && <p className="text-sm text-red-700" role="alert">{proofError}</p>}
             {depositProof && <button className={primaryPaymentAction} disabled={attachProof.isPending}>
-              {attachProof.isPending ? "Uploading receipt…" : "Submit deposit proof"}
+              {attachProof.isPending ? <RefreshProgress label="Uploading receipt" /> : "Submit deposit proof"}
             </button>}
           </form>}
           {canOpenCheckout && <button type="button" className={primaryPaymentAction + " mt-4"} onClick={() => setCheckoutOpen(true)}>{paymentLabel}<ArrowRight className="size-4" aria-hidden="true" /></button>}
@@ -175,12 +178,13 @@ export default function SupplierTransfers({ reference }: { reference?: string })
         <div>
           <h2 id="transfers-heading" className="text-xl font-bold">Recent transfers</h2>
           <p className="mt-1 text-sm text-ink/75">Payment requests and transfers</p>
+          {transfers.isFetching && transfers.data && <RefreshProgress label="Refreshing transfers" />}
         </div>
         <select aria-label="Filter transfers by status" value={status} onChange={event => setStatus(event.target.value)} className={paymentControlClass + " max-w-full px-3 text-sm font-medium"}>
           {statusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </div>
-      {transfers.isPending ? <ContentSkeleton label="Loading transfers" /> : transfers.isError ? <>
+      {transfers.isPending ? <ContentSkeleton label="Loading transfers" /> : transfers.isError && !transfers.data ? <>
         <p role="status" className="mt-4 text-sm text-ink/75">We couldn’t load your transfers.</p>
         <button type="button" className={secondaryPaymentAction + " mt-3"} onClick={() => void transfers.refetch()}>Try again</button>
       </> : visibleTransfers.length ? <>

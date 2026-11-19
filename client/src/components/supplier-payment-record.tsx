@@ -13,6 +13,7 @@ export type SupplierPaymentRecord = {
   paymentMethod?: SupplierPaymentMethod | null;
   invoiceReference?: string | null;
   supplierEmail?: string | null;
+  supplierPhone?: string | null;
   depositProofName?: string | null;
   fundingConfirmed?: boolean;
   payment?: PaymentIntentDto | null;
