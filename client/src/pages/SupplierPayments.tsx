@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowDown, ArrowRight, ArrowUpRight, CheckCircle2, ChevronDown, Clock3, FileText, History, Loader2 } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Banknote, Building2, CheckCircle2, ChevronDown, Clock3, CreditCard, FileText, History, Loader2, Smartphone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/api/http";
 import { CustomerApiError } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute } from "@/lib/supplier-payment-draft";
+import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SupplierPaymentMethod } from "@/lib/supplier-payment-draft";
 
-type PaymentRequest = { reference: string; supplierName: string; route: string; currency: string; amount: string; receivingCurrency?: string; createdAt?: string; status: "under_review" | "pending_confirmation" | "paid" };
+type PaymentRequest = { reference: string; supplierName: string; route: string; currency: string; amount: string; receivingCurrency?: string; createdAt?: string; paymentMethod?: SupplierPaymentMethod | null; status: "under_review" | "pending_confirmation" | "paid" };
 
 const selectClass = "h-12 w-full rounded-xl border border-ink/15 bg-white px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 const inputClass = "h-12 rounded-xl border-ink/15 text-base";
@@ -17,7 +17,17 @@ const panel = "min-w-0 rounded-2xl border border-ink/10 bg-white p-5 shadow-sm s
 const field = "grid min-w-0 gap-1.5 text-sm font-semibold";
 const money = new Intl.NumberFormat("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const date = new Intl.DateTimeFormat("en-ZM", { dateStyle: "medium", timeZone: "Africa/Lusaka" });
-const flags: Record<string, string> = { ZMW: "🇿🇲", USD: "🇺🇸", CNY: "🇨🇳", AED: "🇦🇪", EUR: "🇪🇺", GBP: "🇬🇧", ZAR: "🇿🇦" };
+const flags: Record<string, [string, string]> = {
+  ZMW: ["zm", "Zambia"], USD: ["us", "United States"], CNY: ["cn", "China"],
+  AED: ["ae", "United Arab Emirates"], EUR: ["eu", "European Union"],
+  GBP: ["gb", "United Kingdom"], ZAR: ["za", "South Africa"],
+};
+const paymentMethods = {
+  office_cash: { label: "Cash deposit at an office", description: "Pay in person at a New World Cargo office.", icon: Building2 },
+  atm_deposit: { label: "ATM or bank deposit", description: "Deposit using the bank details on your confirmed quote.", icon: Banknote },
+  card: { label: "Debit or credit card", description: "We’ll send instructions for paying by card.", icon: CreditCard },
+  mobile_money: { label: "Mobile money", description: "We’ll send instructions for paying with your mobile wallet.", icon: Smartphone },
+} satisfies Record<SupplierPaymentMethod, { label: string; description: string; icon: typeof CreditCard }>;
 const statuses = {
   under_review: { label: "Under review", style: "bg-amber-50 text-amber-900" },
   pending_confirmation: { label: "Pending confirmation", style: "bg-sky-50 text-sky-900" },
@@ -51,8 +61,9 @@ function formatMinor(minor: bigint) {
 }
 
 function CurrencyPicker({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  const [country, name] = flags[value];
   return <div className="relative flex shrink-0 items-center rounded-xl bg-[#012642] text-[#fff]">
-    <span aria-hidden="true" className="pointer-events-none absolute left-2.5 text-base sm:left-3">{flags[value]}</span>
+    <img src={`/flags/${country}.png`} alt="" title={name} width={24} height={24} className="pointer-events-none absolute left-2 size-6 rounded-full object-fill sm:left-2.5" />
     <select aria-label={label} value={value} onChange={event => onChange(event.target.value)} className="h-11 cursor-pointer appearance-none rounded-xl bg-transparent pl-9 pr-7 text-sm font-bold text-[#fff]! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:pl-10 sm:pr-8">
       {supplierCurrencies.map(code => <option className="bg-white text-ink" key={code}>{code}</option>)}
     </select>
@@ -77,7 +88,8 @@ export default function SupplierPayments() {
     supplier_currency: estimate.supplier_currency, route: estimate.route,
   });
   const [supplier, setSupplier] = useState(savedForm?.supplier ?? emptySupplier);
-  const [step, setStep] = useState<"details" | "review">(savedForm?.locked ? "review" : "details");
+  const [paymentMethod, setPaymentMethod] = useState<SupplierPaymentMethod | undefined>(savedForm?.paymentMethod);
+  const [step, setStep] = useState<"details" | "method" | "review">(savedForm?.locked ? "review" : "details");
   const [result, setResult] = useState<PaymentRequest | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -104,22 +116,31 @@ export default function SupplierPayments() {
 
   useEffect(clearSupplierPaymentReturn, []);
   useEffect(() => {
-    if (user?.id && !result) rememberSupplierForm(user.id, { payment, supplier, submissionKey: submission.current, locked });
-  }, [user?.id, result, payment, supplier, locked]);
+    if (user?.id && !result) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, submissionKey: submission.current, locked });
+  }, [user?.id, result, payment, supplier, paymentMethod, locked]);
 
   function selectRoute(route: string) {
     setPayment(current => ({ ...current, route, supplier_currency: supplierCurrencyForRoute(route) }));
   }
 
-  function review(event: FormEvent) {
+  function goTo(next: typeof step) {
+    setError("");
+    setStep(next);
+    requestAnimationFrame(() => heading.current?.focus());
+  }
+
+  function chooseMethod(event: FormEvent) {
     event.preventDefault();
     if (!isSupplierAmount(payment.amount) || !supplier.supplier_name.trim() || !supplier.invoice_reference.trim()) {
       setError("Enter a valid amount, supplier name and invoice reference.");
       return;
     }
-    setError("");
-    setStep("review");
-    requestAnimationFrame(() => heading.current?.focus());
+    goTo("method");
+  }
+
+  function review(event: FormEvent) {
+    event.preventDefault();
+    if (paymentMethod) goTo("review");
   }
 
   async function submit() {
@@ -129,10 +150,10 @@ export default function SupplierPayments() {
     setError("");
     try {
       submission.current ||= crypto.randomUUID();
-      if (user?.id) rememberSupplierForm(user.id, { payment, supplier, submissionKey: submission.current, locked: true });
+      if (user?.id) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, submissionKey: submission.current, locked: true });
       const response = await apiRequest<PaymentRequest>("/supplier-payment-requests", {
         method: "POST",
-        body: { ...payment, ...supplier, submission_key: submission.current },
+        body: { ...payment, ...supplier, payment_method: paymentMethod, submission_key: submission.current },
       });
       clearSupplierPaymentDraft();
       clearSupplierForm();
@@ -156,6 +177,7 @@ export default function SupplierPayments() {
     submission.current = "";
     setPayment({ amount: "", currency: payment.currency, supplier_currency: payment.supplier_currency, route: payment.route });
     setSupplier(emptySupplier);
+    setPaymentMethod(undefined);
     setResult(null);
     setLocked(false);
     setError("");
@@ -167,10 +189,10 @@ export default function SupplierPayments() {
     <header className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div>
         <h1 ref={heading} tabIndex={-1} className="text-3xl font-bold tracking-tight sm:text-4xl">
-          {result ? "Request received" : step === "details" ? "Pay a supplier" : "Review your request"}
+          {result ? "Request received" : step === "details" ? "Pay a supplier" : step === "method" ? "Choose how to pay" : "Review your request"}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-ink/70 sm:text-base">
-          {result ? "We’ll contact you with your confirmed quote and payment instructions." : step === "details" ? "Estimate the cost and request a quote for your supplier invoice." : "Check the amount and supplier details before submitting."}
+          {result ? "We’ll contact you with your confirmed quote and payment instructions." : step === "details" ? "Estimate the cost and request a quote for your supplier invoice." : step === "method" ? "Choose how you’d like to pay once we confirm your quote." : "Check the amount, supplier details and payment method before submitting."}
         </p>
       </div>
       <a href="#transfers" className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-bold hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-ink">View transfers <ArrowDown className="size-4" aria-hidden="true" /></a>
@@ -184,7 +206,7 @@ export default function SupplierPayments() {
         </div>
         <Button className={primaryClass} onClick={newRequest}>New request <ArrowUpRight className="size-4" /></Button>
       </div>
-    </section> : step === "details" ? <form onSubmit={review} className="grid gap-4 lg:grid-cols-2 lg:gap-6">
+    </section> : step === "details" ? <form onSubmit={chooseMethod} className="grid gap-4 lg:grid-cols-2 lg:gap-6">
       <section className={panel} aria-labelledby="amount-heading">
         <h2 id="amount-heading" className="text-xl font-bold">Transfer amount</h2>
         <div className="mt-4 flex min-w-0 items-center gap-2 rounded-xl border border-ink/15 bg-[#f6f8fa] p-3 focus-within:border-ink/45 sm:gap-3">
@@ -229,8 +251,32 @@ export default function SupplierPayments() {
             <textarea maxLength={600} rows={2} className="min-h-16 rounded-xl border border-ink/15 px-3 py-2 text-base font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" placeholder="Anything we should know about this invoice?" value={supplier.notes} onChange={e => setSupplier({ ...supplier, notes: e.target.value })} />
           </label>
         </div>
-        <Button className={primaryClass + " mt-5 w-full"}>Review request <ArrowRight className="size-4" /></Button>
+        <Button className={primaryClass + " mt-5 w-full"}>Continue to payment method <ArrowRight className="size-4" /></Button>
       </section>
+    </form> : step === "method" ? <form onSubmit={review} className={panel}>
+      <fieldset>
+        <legend className="text-lg font-bold">Preferred payment method</legend>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {Object.entries(paymentMethods).map(([key, { label, description, icon: Icon }]) => {
+            const method = key as SupplierPaymentMethod;
+            return <label key={method} className={`flex min-h-20 cursor-pointer items-center gap-3 rounded-xl border p-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink ${paymentMethod === method ? "border-ink bg-cargo-yellow/15" : "border-ink/15 hover:bg-ink/5"}`}>
+              <Icon className="size-5 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold">{label}</span>
+                <span className="mt-1 block text-xs text-ink/75 sm:text-sm">{description}</span>
+              </span>
+              <input required type="radio" name="supplier-payment-method" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="size-4 shrink-0 accent-[#012642]" />
+            </label>;
+          })}
+        </div>
+      </fieldset>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-ink/10 pt-4">
+        <p className="text-sm text-ink/70">You’ll get payment instructions with your confirmed quote.</p>
+        <div className="grid w-full gap-2 sm:flex sm:w-auto">
+          <Button type="button" variant="outline" className="h-12 rounded-xl" onClick={() => goTo("details")}>Back to details</Button>
+          <Button className={primaryClass}>Review request <ArrowRight className="size-4" /></Button>
+        </div>
+      </div>
     </form> : <section className={panel}>
       <div className="grid gap-5 lg:grid-cols-2 lg:gap-8">
         <div>
@@ -239,6 +285,7 @@ export default function SupplierPayments() {
             ["You send", `${payment.currency} ${money.format(Number(payment.amount))}`],
             ["Supplier receives", receivingAmount ? `${payment.supplier_currency} ${receivingAmount}` : payment.supplier_currency],
             ["Route", payment.route],
+            ["Preferred payment method", paymentMethod ? paymentMethods[paymentMethod].label : ""],
             [feeLabel, fee === null ? "Confirmed with quote" : `${payment.currency} ${formatMinor(fee)}`],
           ]} />
           <div className="flex flex-wrap justify-between gap-2 rounded-xl bg-cargo-yellow/20 px-3 py-3 text-sm font-bold"><span>Estimated total</span><span>{total === null ? "—" : `${payment.currency} ${formatMinor(total)}`}</span></div>
@@ -256,7 +303,10 @@ export default function SupplierPayments() {
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-ink/10 pt-4">
         <p className="text-sm text-ink/70">We’ll confirm the quote before you pay.</p>
         <div className="grid w-full gap-2 sm:flex sm:w-auto">
-          {!locked && <Button variant="outline" className="h-12 rounded-xl" disabled={submitting} onClick={() => { setError(""); setStep("details"); requestAnimationFrame(() => heading.current?.focus()); }}>Edit details</Button>}
+          {!locked && <>
+            <Button variant="outline" className="h-12 rounded-xl" disabled={submitting} onClick={() => goTo("details")}>Edit details</Button>
+            <Button variant="outline" className="h-12 rounded-xl" disabled={submitting} onClick={() => goTo("method")}>Change payment method</Button>
+          </>}
           <Button className={primaryClass} disabled={submitting} onClick={submit}>{submitting && <Loader2 className="size-4 animate-spin" />}{locked ? "Retry submission" : "Submit payment request"}</Button>
         </div>
       </div>
@@ -282,6 +332,7 @@ export default function SupplierPayments() {
             <div className="col-start-1 row-start-2 text-xs leading-relaxed text-ink/75 sm:col-start-auto sm:row-start-auto sm:text-sm">
               <p>{transfer.route}{transfer.receivingCurrency ? ` · ${transfer.receivingCurrency}` : ""}</p>
               {displayDate && <time dateTime={transfer.createdAt}>{displayDate}</time>}
+              {transfer.paymentMethod && paymentMethods[transfer.paymentMethod] && <p>{paymentMethods[transfer.paymentMethod].label}</p>}
             </div>
             <div className="col-start-2 row-start-1 min-w-0 self-center text-right sm:col-start-auto sm:row-start-auto">
               <p className="break-words text-sm font-bold tabular-nums sm:text-base">{transfer.currency} {money.format(Number(transfer.amount))}</p>
