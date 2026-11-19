@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { apiRequest } from "@/api/http";
+import { Button } from "@/components/ui/button";
 
 type GoogleIdentity = {
   initialize: (options: {
@@ -60,18 +61,33 @@ export function GoogleSignIn({ onCredential, loading }: {
 }) {
   const button = useRef<HTMLDivElement>(null);
   const callback = useRef(onCredential);
-  const [failed, setFailed] = useState(false);
+  const [buttonState, setButtonState] = useState<"preparing" | "ready" | "failed">("preparing");
+  const [requested, setRequested] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => { callback.current = onCredential; }, [onCredential]);
 
   useEffect(() => {
-    let observer: ResizeObserver | undefined;
+    let resizeObserver: ResizeObserver | undefined;
+    let frameObserver: MutationObserver | undefined;
+    let frame: HTMLIFrameElement | null = null;
     const controller = new AbortController();
     const container = button.current;
-    setFailed(false);
-    apiRequest<{ clientId: string; nonce: string }>("/auth/google", { signal: controller.signal })
-      .then(async challenge => ({ challenge, google: await loadGoogleIdentity() }))
-      .then(({ challenge, google }) => {
+    setButtonState("preparing");
+    const markReady = () => {
+      if (!controller.signal.aborted) {
+        window.clearTimeout(timeout);
+        setButtonState("ready");
+      }
+    };
+    const timeout = window.setTimeout(() => {
+      controller.abort();
+      setButtonState("failed");
+    }, 15000);
+    Promise.all([
+      apiRequest<{ clientId: string; nonce: string }>("/auth/google", { signal: controller.signal }),
+      loadGoogleIdentity(),
+    ])
+      .then(([challenge, google]) => {
         if (controller.signal.aborted || !container) return;
         google.initialize({
           client_id: challenge.clientId,
@@ -96,23 +112,59 @@ export function GoogleSignIn({ onCredential, loading }: {
             width,
           });
         };
+        frameObserver = new MutationObserver(() => {
+          const nextFrame = container.querySelector("iframe");
+          if (!nextFrame || nextFrame === frame) return;
+          frame?.removeEventListener("load", markReady);
+          frame = nextFrame;
+          frame.addEventListener("load", markReady, { once: true });
+        });
+        frameObserver.observe(container, { childList: true, subtree: true });
         renderButton();
-        observer = new ResizeObserver(renderButton);
-        observer.observe(container);
+        resizeObserver = new ResizeObserver(renderButton);
+        resizeObserver.observe(container);
       })
-      .catch(() => { if (!controller.signal.aborted) setFailed(true); });
-    return () => { controller.abort(); observer?.disconnect(); container?.replaceChildren(); };
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          window.clearTimeout(timeout);
+          setButtonState("failed");
+        }
+      });
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+      frameObserver?.disconnect();
+      resizeObserver?.disconnect();
+      frame?.removeEventListener("load", markReady);
+      container?.replaceChildren();
+    };
   }, [attempt]);
 
-  return <div className="grid gap-2 text-center text-sm" aria-busy={loading}>
-    <div className="flex h-12 items-start justify-center">
+  const ready = buttonState === "ready";
+  const connecting = requested && buttonState === "preparing";
+
+  return <div className="grid gap-2 text-center text-sm" aria-busy={loading || connecting}>
+    <div className="relative flex h-12 items-start justify-center">
+      {!ready && <Button
+        type="button"
+        variant="outline"
+        disabled={loading || connecting}
+        className="absolute inset-0 h-12 w-full rounded-xl border-ink/15 bg-white font-semibold text-ink"
+        onClick={() => {
+          setRequested(true);
+          if (buttonState === "failed") setAttempt(current => current + 1);
+        }}
+      >
+        <span className="mr-2 grid size-5 place-items-center rounded-full border border-ink/15 text-xs font-bold" aria-hidden="true">G</span>
+        {connecting ? "Connecting…" : buttonState === "failed" ? "Retry Google sign-in" : "Continue with Google"}
+      </Button>}
       <div
         ref={button}
-        className={`flex w-5/6 max-w-[400px] origin-top scale-[1.2] justify-center ${loading ? "pointer-events-none opacity-50" : ""}`}
-        inert={loading}
+        className={`flex w-5/6 max-w-[400px] origin-top scale-[1.2] justify-center ${!ready ? "pointer-events-none opacity-0" : loading ? "pointer-events-none opacity-50" : ""}`}
+        inert={!ready || loading}
       />
     </div>
     {loading && <p role="status">Signing in with Google…</p>}
-    {failed && <button type="button" className="min-h-11 underline" onClick={() => setAttempt(current => current + 1)}>Retry Google sign-in</button>}
+    {!loading && ready && requested && <p role="status">Google is ready. Select Continue with Google to sign in.</p>}
   </div>;
 }
