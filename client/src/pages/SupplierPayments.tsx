@@ -11,14 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
 import { StatusBadge, supplierMethodLabels, type SupplierPaymentRecord } from "@/components/supplier-payment-record";
-import { SupplierPaymentMethods, SupplierProfiles, type SavedSupplier } from "@/components/supplier-quote-options";
+import { SupplierPaymentMethods, SupplierProfiles } from "@/components/supplier-quote-options";
 import { emptySupplierContact, SupplierContactDialog } from "@/components/supplier-contact-dialog";
 import { InlineSkeleton, RefreshProgress } from "@/components/loading-skeleton";
 import { supplierDetailsPath, suppliersPath, supplierWizardPath } from "@/lib/payment-routes";
 import { paymentPageClass, paymentSurfaceClass, primaryPaymentAction, secondaryPaymentAction } from "@/lib/payment-presentation";
 import { useAuth } from "@/contexts/AuthContext";
 import "./supplier-payments.css";
-import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, normalizeSupplierPhone, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SupplierContactFields, type SupplierPaymentMethod, type SupplierPaymentStep } from "@/lib/supplier-payment-draft";
+import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, normalizeSupplierPhone, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SavedSupplier, type SupplierContactFields, type SupplierPaymentMethod, type SupplierPaymentStep } from "@/lib/supplier-payment-draft";
 
 const inputClass = "h-12 rounded-xl border-ink/20 bg-white text-base md:text-base";
 const panel = paymentSurfaceClass + " p-4 sm:p-7";
@@ -122,6 +122,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   const [depositProof, setDepositProof] = useState(savedForm?.depositProof ?? null);
   const [step, setStep] = useState<SupplierPaymentStep>(dashboard ? "transfer" : savedForm?.locked ? "review" : savedForm?.step ?? "transfer");
   const [savedSupplierId, setSavedSupplierId] = useState(savedForm?.savedSupplierId ?? "");
+  const [draftSuppliers, setDraftSuppliers] = useState<SavedSupplier[]>(savedForm?.draftSuppliers ?? []);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [result, setResult] = useState<SupplierPaymentRecord | null>(null);
   const [error, setError] = useState("");
@@ -137,6 +138,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
     staleTime: 60_000,
     retry: false,
   });
+  const contacts = [...draftSuppliers, ...(savedSuppliers.data ?? []).filter(contact => !draftSuppliers.some(draft => draft.id === contact.id))];
   const rates = useQuery({ queryKey: ["supplier-payment-rates"], queryFn: ({ signal }) => fetchRates(signal), staleTime: 60_000, retry: false });
   const candidate = rates.data?.rates[payment.currency]?.[payment.supplier_currency];
   const rate = typeof candidate === "string" && /^\d{1,12}\.\d{12}$/.test(candidate) && Number(candidate) > 0 ? candidate : null;
@@ -157,8 +159,8 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
 
   useEffect(clearSupplierPaymentReturn, []);
   useEffect(() => {
-    if (user?.id && !result && !(dashboard && locked)) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, depositProof: depositProof ?? undefined, step, savedSupplierId, submissionKey: submission.current, locked });
-  }, [user?.id, result, payment, supplier, paymentMethod, depositProof, step, savedSupplierId, locked, dashboard]);
+    if (user?.id && !result && !(dashboard && locked)) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, depositProof: depositProof ?? undefined, step, savedSupplierId, draftSuppliers, submissionKey: submission.current, locked });
+  }, [user?.id, result, payment, supplier, paymentMethod, depositProof, step, savedSupplierId, draftSuppliers, locked, dashboard]);
   function selectRoute(route: string) {
     setPayment(current => ({ ...current, route, supplier_currency: supplierCurrencyForRoute(route) }));
   }
@@ -170,16 +172,31 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   }
 
   function selectSupplier(id: string) {
-    if (id === "new") {
-      setContactDialog({ contact: emptySupplierContact, editing: false });
-      return;
-    }
-    const contact = savedSuppliers.data?.find(item => item.id === id);
+    const contact = contacts.find(item => item.id === id);
     if (!contact || id === savedSupplierId) return;
     const selected = { supplier_name: contact.name, supplier_email: contact.email ?? "", supplier_phone: contact.phone ?? "" };
     setSavedSupplierId(id);
     setSupplier(current => ({ ...current, ...selected }));
     if (!selected.supplier_phone) setContactDialog({ contact: selected, editing: true });
+  }
+
+  function saveSupplierContact(contact: SupplierContactFields) {
+    const previous = contactDialog?.editing
+      ? contacts.find(item => item.id === savedSupplierId)
+      : contacts.find(item => item.name.toLowerCase() === contact.supplier_name.toLowerCase()
+        && (item.email ?? "").toLowerCase() === contact.supplier_email.toLowerCase()
+        && item.phone === contact.supplier_phone);
+    const profile = {
+      ...previous,
+      id: previous?.id ?? crypto.randomUUID(),
+      name: contact.supplier_name,
+      email: contact.supplier_email || null,
+      phone: contact.supplier_phone,
+    };
+    setDraftSuppliers(current => [profile, ...current.filter(item => item.id !== profile.id)]);
+    setSavedSupplierId(profile.id);
+    setSupplier(current => ({ ...current, ...contact }));
+    setContactDialog(null);
   }
 
   function updateSupplier(field: keyof typeof emptySupplier, value: string) {
@@ -198,7 +215,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
     }
     if (!amountValid) return;
     if (dashboard && user?.id) {
-      rememberSupplierForm(user.id, { payment, supplier, paymentMethod, depositProof: depositProof ?? undefined, step: "supplier", savedSupplierId, submissionKey: submission.current, locked: false });
+      rememberSupplierForm(user.id, { payment, supplier, paymentMethod, depositProof: depositProof ?? undefined, step: "supplier", savedSupplierId, draftSuppliers, submissionKey: submission.current, locked: false });
       navigate(supplierWizardPath);
       return;
     }
@@ -219,7 +236,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
     try {
       const proof = depositProof && acceptsDepositProof(paymentMethod) ? await encodeDepositProof(depositProof) : null;
       submission.current ||= crypto.randomUUID();
-      if (user?.id) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, depositProof: depositProof ?? undefined, step, savedSupplierId, submissionKey: submission.current, locked: true });
+      if (user?.id) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, depositProof: depositProof ?? undefined, step, savedSupplierId, draftSuppliers, submissionKey: submission.current, locked: true });
       requestStarted = true;
       const response = await apiRequest<SupplierPaymentRecord>("/supplier-payment-requests", {
         method: "POST",
@@ -227,6 +244,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
       });
       clearSupplierPaymentDraft();
       clearSupplierForm();
+      setDraftSuppliers(current => current.filter(contact => contact.id !== savedSupplierId));
       setResult(response);
       queryClient.setQueryData(["customer", user?.id, "supplier-payment-requests", response.reference], { ...response, invoiceReference: supplier.invoice_reference, supplierEmail: supplier.supplier_email, supplierPhone: supplier.supplier_phone });
       void queryClient.invalidateQueries({ queryKey: ["customer", user?.id, "supplier-payment-requests"] });
@@ -372,7 +390,8 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
               <div className="grid gap-4">
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold">Supplier</h3>
-                  <SupplierProfiles contacts={savedSuppliers.data ?? []} selectedId={savedSupplierId} loading={savedSuppliers.isFetching && !savedSuppliers.data} onSelect={selectSupplier} />
+                  <SupplierProfiles contacts={contacts} selectedId={savedSupplierId} loading={savedSuppliers.isFetching && !savedSuppliers.data}
+                    onAdd={() => setContactDialog({ contact: emptySupplierContact, editing: false })} onSelect={selectSupplier} />
                   {savedSuppliers.isFetching && savedSuppliers.data && <RefreshProgress label="Refreshing saved suppliers" />}
                   {savedSuppliers.isError && !savedSuppliers.isFetching && <div className="flex flex-wrap items-center gap-x-2 text-xs text-ink/75" role="status">
                     Saved suppliers are unavailable.
@@ -449,11 +468,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
           </div>
         </section>
     </div>
-    {contactDialog && <SupplierContactDialog contact={contactDialog.contact} editing={contactDialog.editing} onClose={() => setContactDialog(null)}
-      onSave={contact => {
-        if (!contactDialog.editing) setSavedSupplierId("new");
-        setSupplier(current => ({ ...current, ...contact }));
-        setContactDialog(null);
-      }} />}
+    {contactDialog && <SupplierContactDialog contact={contactDialog.contact} editing={contactDialog.editing}
+      onClose={() => setContactDialog(null)} onSave={saveSupplierContact} />}
   </div>;
 }

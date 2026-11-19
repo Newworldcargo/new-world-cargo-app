@@ -73,11 +73,20 @@ export type SupplierPaymentStep = "transfer" | "supplier" | "review";
 
 export type SupplierContactFields = { supplier_name: string; supplier_email: string; supplier_phone: string };
 
+export type SavedSupplier = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone?: string | null;
+  avatarUrl?: string | null;
+};
+
 type SupplierFormSnapshot = {
   payment: { amount: string; currency: string; supplier_currency: string; route: string };
   supplier: SupplierContactFields & { invoice_reference: string; notes: string };
   step?: SupplierPaymentStep;
   savedSupplierId?: string;
+  draftSuppliers?: SavedSupplier[];
   paymentMethod?: SupplierPaymentMethod;
   depositProof?: File;
   submissionKey: string;

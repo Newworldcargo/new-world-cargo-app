@@ -2,15 +2,7 @@ import { Banknote, Building2, Check, CreditCard, Plus, Smartphone } from "lucide
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supplierMethodLabels } from "@/components/supplier-payment-record";
 import { ContentSkeleton } from "@/components/loading-skeleton";
-import type { SupplierPaymentMethod } from "@/lib/supplier-payment-draft";
-
-export type SavedSupplier = {
-  id: string;
-  name: string;
-  email: string | null;
-  phone?: string | null;
-  avatarUrl?: string | null;
-};
+import type { SavedSupplier, SupplierPaymentMethod } from "@/lib/supplier-payment-draft";
 
 const profileButton = "group flex w-[5.5rem] shrink-0 flex-col items-center gap-2 rounded-xl p-1.5 text-center focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#012642]";
 const methodOptions = [
@@ -20,20 +12,20 @@ const methodOptions = [
   { value: "office_cash", icon: Building2 },
 ] as const;
 
-export function SupplierProfiles({ contacts, selectedId, loading, onSelect }: {
+export function SupplierProfiles({ contacts, selectedId, loading, onAdd, onSelect }: {
   contacts: SavedSupplier[];
   selectedId: string;
   loading?: boolean;
+  onAdd: () => void;
   onSelect: (id: string) => void;
 }) {
   return <div role="group" aria-label="Choose a supplier" className="-mx-1 flex min-w-0 gap-1 overflow-x-auto overscroll-x-contain px-1 pb-2 pt-1">
-    <button type="button" onClick={() => onSelect("new")} aria-pressed={selectedId === "new"} className={profileButton}>
-      <span className={`grid size-14 place-items-center rounded-full border transition-colors ${selectedId === "new" ? "border-[#012642] bg-[#e3edf5]" : "border-dashed border-[#9eb6c7] bg-[#f1f6fa] group-hover:bg-[#e3edf5]"}`}>
+    <button type="button" onClick={onAdd} aria-haspopup="dialog" className={profileButton}>
+      <span className="grid size-14 place-items-center rounded-full border border-dashed border-[#9eb6c7] bg-[#f1f6fa] transition-colors group-hover:bg-[#e3edf5]">
         <Plus className="size-5 text-ink" aria-hidden="true" />
       </span>
       <span className="text-xs font-semibold">Add supplier</span>
     </button>
-    {loading && <div className="min-w-0 flex-1"><ContentSkeleton variant="profiles" label="Loading saved suppliers" /></div>}
     {contacts.map(contact => {
       const selected = contact.id === selectedId;
       const title = [contact.name, contact.phone, contact.email].filter(Boolean).join(" · ");
@@ -51,6 +43,7 @@ export function SupplierProfiles({ contacts, selectedId, loading, onSelect }: {
         <span className="line-clamp-2 break-words text-xs font-semibold">{contact.name}</span>
       </button>;
     })}
+    {loading && <div className="min-w-0 flex-1"><ContentSkeleton variant="profiles" label="Loading saved suppliers" /></div>}
   </div>;
 }
 
