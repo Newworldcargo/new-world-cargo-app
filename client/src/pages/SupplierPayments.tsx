@@ -7,7 +7,7 @@ import { CustomerApiError } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import { clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierPaymentDraft, supplierCurrencies } from "@/lib/supplier-payment-draft";
+import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies } from "@/lib/supplier-payment-draft";
 
 type PaymentRequest = { reference: string; supplierName: string; route: string; currency: string; amount: string; status: "under_review" };
 
@@ -19,18 +19,19 @@ const websiteUrl = "https://www.newworldcargo.com/supplier-payments";
 export default function SupplierPayments() {
   const { user } = useAuth();
   const [estimate] = useState(readSupplierPaymentDraft);
-  const [payment, setPayment] = useState({
+  const [savedForm] = useState(() => readSupplierForm(user?.id));
+  const [payment, setPayment] = useState(savedForm?.payment ?? {
     amount: estimate.amount, currency: estimate.currency,
     supplier_currency: estimate.supplier_currency, route: estimate.route,
   });
-  const [supplier, setSupplier] = useState({ supplier_name: "", supplier_email: "", invoice_reference: "", notes: "" });
-  const [step, setStep] = useState<"details" | "review">("details");
+  const [supplier, setSupplier] = useState(savedForm?.supplier ?? { supplier_name: "", supplier_email: "", invoice_reference: "", notes: "" });
+  const [step, setStep] = useState<"details" | "review">(savedForm?.locked ? "review" : "details");
   const [result, setResult] = useState<PaymentRequest | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [locked, setLocked] = useState(false);
+  const [locked, setLocked] = useState(savedForm?.locked ?? false);
   const inFlight = useRef(false);
-  const submission = useRef("");
+  const submission = useRef(savedForm?.submissionKey ?? "");
   const heading = useRef<HTMLHeadingElement>(null);
   const requests = useQuery({
     queryKey: ["customer", user?.id, "supplier-payment-requests"],
@@ -40,6 +41,10 @@ export default function SupplierPayments() {
   const sameEstimate = Object.entries(payment).every(([key, value]) => value === estimate[key as keyof typeof payment]);
 
   useEffect(clearSupplierPaymentReturn, []);
+  useEffect(() => {
+    if (user?.id && !result) rememberSupplierForm(user.id, { payment, supplier, submissionKey: submission.current, locked });
+  }, [user?.id, result, payment, supplier, locked]);
+
   function review(event: FormEvent) {
     event.preventDefault();
     if (!isSupplierAmount(payment.amount) || !supplier.supplier_name.trim() || !supplier.invoice_reference.trim()) {
@@ -58,11 +63,13 @@ export default function SupplierPayments() {
     setError("");
     try {
       submission.current ||= crypto.randomUUID();
+      if (user?.id) rememberSupplierForm(user.id, { payment, supplier, submissionKey: submission.current, locked: true });
       const response = await apiRequest<PaymentRequest>("/supplier-payment-requests", {
         method: "POST",
         body: { ...payment, ...supplier, submission_key: submission.current },
       });
       clearSupplierPaymentDraft();
+      clearSupplierForm();
       setResult(response);
       void requests.refetch();
       requestAnimationFrame(() => heading.current?.focus());

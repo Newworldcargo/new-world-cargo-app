@@ -77,7 +77,7 @@ function RoutedApp() {
       if (!isAuthenticated) rememberSupplierPaymentReturn();
     }
     if (!sessionLoading && !isAuthenticated && !isPublic && !sessionError) {
-      navigate(`/login?returnTo=${encodeURIComponent(location)}`, { replace: true });
+      navigate(`/login?returnTo=${encodeURIComponent(location + window.location.search + window.location.hash)}`, { replace: true });
     }
   }, [isAuthenticated, isPublic, location, navigate, sessionError, sessionLoading]);
   if (sessionLoading) return <AppPreloader />;

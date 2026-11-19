@@ -1,3 +1,5 @@
+import { safeCustomerReturnPath } from "./auth-workflow";
+
 export const supplierPaymentPath = "/supplier-payments";
 export const supplierCurrencies = ["ZMW", "USD", "CNY", "AED", "EUR", "GBP", "ZAR"] as const;
 const draftKey = "nwc.supplier-payment.estimate.v1";
@@ -40,8 +42,9 @@ export function rememberSupplierPaymentReturn() {
   try { sessionStorage.setItem(resumeKey, "1"); } catch { /* The direct return link still works. */ }
 }
 
-export function resumeSupplierPaymentOrHome() {
-  if (new URLSearchParams(window.location.search).get("returnTo") === supplierPaymentPath) return supplierPaymentPath;
+export function customerPostSignInPath() {
+  const returnPath = safeCustomerReturnPath(new URLSearchParams(window.location.search).get("returnTo"));
+  if (returnPath) return returnPath;
   try { return sessionStorage.getItem(resumeKey) ? supplierPaymentPath : "/"; } catch { return "/"; }
 }
 
@@ -51,4 +54,27 @@ export function clearSupplierPaymentReturn() {
 
 export function clearSupplierPaymentDraft() {
   try { sessionStorage.removeItem(draftKey); } catch { /* Storage can be disabled. */ }
+}
+
+
+type SupplierFormSnapshot = {
+  payment: { amount: string; currency: string; supplier_currency: string; route: string };
+  supplier: { supplier_name: string; supplier_email: string; invoice_reference: string; notes: string };
+  submissionKey: string;
+  locked: boolean;
+};
+
+let supplierForm: { customerId: string; details: SupplierFormSnapshot } | undefined;
+
+// Keep unsent details in this tab's memory while the same customer signs back in.
+export function readSupplierForm(customerId: string | undefined) {
+  if (customerId && supplierForm?.customerId === customerId) return supplierForm.details;
+}
+
+export function rememberSupplierForm(customerId: string, details: SupplierFormSnapshot) {
+  supplierForm = { customerId, details };
+}
+
+export function clearSupplierForm() {
+  supplierForm = undefined;
 }

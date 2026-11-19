@@ -1,5 +1,6 @@
 import { apiProblemSchema, type ApiSuccess } from "./contracts";
 import { CustomerApiError } from "./errors";
+import { CUSTOMER_SESSION_REJECTED } from "@/lib/auth-workflow";
 import { emailRecoveryRedirect } from "@/lib/auth-recovery-guard";
 
 const apiBaseUrl = "/api/gateway";
@@ -153,6 +154,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const parsedProblem = apiProblemSchema.safeParse(payload);
+    // A protected request can be the first sign that a still-open tab has lost its session.
+    if (response.status === 401 && typeof window !== "undefined" &&
+        (parsedProblem.success ? parsedProblem.data.error.code === "UNAUTHENTICATED" : true) &&
+        !/^\/v1\/(auth\/|session(?:[/?]|$))/.test(resolvedPath)) {
+      window.dispatchEvent(new Event(CUSTOMER_SESSION_REJECTED));
+    }
     if (parsedProblem.success && typeof window !== "undefined") {
       const recoveryPath = emailRecoveryRedirect(parsedProblem.data.error.code, window.location.pathname);
       if (recoveryPath) window.location.replace(recoveryPath);

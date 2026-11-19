@@ -54,6 +54,16 @@ export function otpAttemptResult(code: string, attempts: number) {
   return { status: validation, attempts };
 }
 
+export const CUSTOMER_SESSION_REJECTED = "nwc:customer-session-rejected";
+
+export function safeCustomerReturnPath(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(value)) return null;
+  const origin = "https://app.newworldcargo.com";
+  const url = new URL(value, origin);
+  if (url.origin !== origin || url.pathname.startsWith("//") || isPublicAuthPath(url.pathname)) return null;
+  return url.pathname + url.search + url.hash;
+}
+
 export function isProtectedRoute(pathname: string) {
   return !isPublicAuthPath(pathname);
 }

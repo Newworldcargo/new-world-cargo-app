@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAdminResetPasswordUrl, extractRecoveryIdentifier, extractResetEmail, extractResetToken, isProtectedRoute, isPublicAuthPath, isStrongPassword, otpAttemptResult, passwordRequirements, validateOtp, validateRegistration, validateSignedInPasswordChange } from "./auth-workflow";
+import { buildAdminResetPasswordUrl, extractRecoveryIdentifier, extractResetEmail, extractResetToken, isProtectedRoute, isPublicAuthPath, isStrongPassword, otpAttemptResult, safeCustomerReturnPath, passwordRequirements, validateOtp, validateRegistration, validateSignedInPasswordChange } from "./auth-workflow";
 
 describe("auth workflow helpers", () => {
   it("evaluates password requirements", () => {
@@ -64,5 +64,16 @@ describe("auth workflow helpers", () => {
     expect(buildAdminResetPasswordUrl("abc123", "user@example.com")).toBe("https://admin.newworldcargo.com/reset-password/abc123?email=user%40example.com");
     expect(extractRecoveryIdentifier("?identifier=%2B260970000245")).toBe("+260970000245");
     expect(extractRecoveryIdentifier("?email=user@example.com")).toBe("user@example.com");
+  });
+});
+
+
+describe("customer sign-in return", () => {
+  it("preserves the intended page and rejects external or auth redirects", () => {
+    expect(safeCustomerReturnPath("/shipments/123?tab=details#payments")).toBe("/shipments/123?tab=details#payments");
+    expect(safeCustomerReturnPath("/supplier-payments")).toBe("/supplier-payments");
+    for (const path of ["//other.example", "/\\other.example", "/x/..//other.example", "/login", "/verify", "https://other.example", null]) {
+      expect(safeCustomerReturnPath(path)).toBeNull();
+    }
   });
 });
