@@ -1,4 +1,4 @@
-export const PRIMARY_MOBILE_TAB_ROUTES = ["/", "/shipments", "/send", "/invoices", "/settings"] as const;
+export const PRIMARY_MOBILE_TAB_ROUTES = ["/", "/shipments", "/send", "/payments", "/settings"] as const;
 
 export function isPrimaryMobileTabRoute(location: string) {
   const pathname = location.split("?")[0].replace(/\/+$/, "") || "/";

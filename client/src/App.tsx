@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route, Switch, useLocation } from "wouter";
+import { Redirect, Route, Switch, useLocation } from "wouter";
 import { lazy, Suspense, useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -12,6 +12,10 @@ import { PageSkeleton, MutationProgress } from "./components/loading-skeleton";
 
 import { captureSupplierPaymentDraft, rememberSupplierPaymentReturn, supplierPaymentPath } from "./lib/supplier-payment-draft";
 
+import { invoicesPath, paymentsPath, suppliersPath, supplierWizardPath } from "./lib/payment-routes";
+
+const PaymentsOverview = lazy(() => import("./pages/PaymentsOverview"));
+const SupplierTransfers = lazy(() => import("./pages/SupplierTransfers"));
 const SupplierPayments = lazy(() => import("./pages/SupplierPayments"));
 const Home = lazy(() => import("./pages/Home"));
 const Shipments = lazy(() => import("./pages/Shipments"));
@@ -49,7 +53,7 @@ function CustomerRouter() {
   if (pageState === "loading") return <PageSkeleton path={location} />;
   if (pageState === "empty") return <EmptyState title="Nothing to show here yet" detail="When there is new cargo activity, it will appear here." action={{ label: "View shipments", onClick: () => navigate("/shipments") }} />;
   if (pageState === "error") return <ErrorState title="We could not load this page" detail="Your saved details are safe. Please try again." action={{ label: "Try again", onClick: retry }} />;
-  return <Switch><Route path="/" component={Home} /><Route path="/track" component={Tracking} /><Route path="/support" component={Support} /><Route path="/returns" component={Returns} /><Route path="/pickups" component={Pickup} /><Route path="/shipments/drafts" component={Drafts} /><Route path="/shipments" component={Shipments} /><Route path="/shipments/:id/proof" component={ProofOfDelivery} /><Route path="/shipments/:id" component={ShipmentDetail} /><Route path="/send/:service/:stage" component={BookingWizard} /><Route path="/send" component={SendShipment} /><Route path={supplierPaymentPath} component={SupplierPayments} /><Route path="/quote" component={Quote} /><Route path="/notifications" component={Notifications} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route path="/settings/security/activity" component={SignInActivity} /><Route path="/settings/recipients" component={Recipients} /><Route path="/settings/:section" component={SettingsDetail} /><Route path="/settings" component={Settings} /><Route path="/account" component={Settings} /><Route path="/invoices" component={Invoices} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/" component={Home} /><Route path="/track" component={Tracking} /><Route path="/support" component={Support} /><Route path="/returns" component={Returns} /><Route path="/pickups" component={Pickup} /><Route path="/shipments/drafts" component={Drafts} /><Route path="/shipments" component={Shipments} /><Route path="/shipments/:id/proof" component={ProofOfDelivery} /><Route path="/shipments/:id" component={ShipmentDetail} /><Route path="/send/:service/:stage" component={BookingWizard} /><Route path="/send" component={SendShipment} /><Route path={paymentsPath} component={PaymentsOverview} /><Route path={invoicesPath} component={Invoices} /><Route path={suppliersPath}><SupplierTransfers /></Route><Route path={supplierWizardPath} component={SupplierPayments} /><Route path={`${suppliersPath}/:reference`}>{params => <SupplierTransfers key={params.reference} reference={params.reference} />}</Route><Route path={supplierPaymentPath}><Redirect to={(window.location.hash === "#transfers" ? suppliersPath : supplierWizardPath) + window.location.search} replace /></Route><Route path="/quote" component={Quote} /><Route path="/notifications" component={Notifications} /><Route path="/settings/legal/:policy" component={Legal} /><Route path="/settings/legal" component={Legal} /><Route path="/settings/security/activity" component={SignInActivity} /><Route path="/settings/recipients" component={Recipients} /><Route path="/settings/:section" component={SettingsDetail} /><Route path="/settings" component={Settings} /><Route path="/account" component={Settings} /><Route path="/invoices"><Redirect to={invoicesPath + window.location.search + window.location.hash} replace /></Route><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 
 function PublicTrackingRoute() {
@@ -72,7 +76,7 @@ function RoutedApp() {
   const isLegacyPublicTracking = /^\/[a-z]{2}\/shipments\/tracking(\/|$)/i.test(location);
   const isPublic = ["/recover-account", "/login", "/register", "/verify", "/forgot-password", "/reset-password", "/password/reset", "/auth/complete-profile", "/session-expired", "/shipments/tracking", "/track"].some(path => location.startsWith(path)) || isLegacyPublicTracking || location.startsWith("/settings/legal");
   useEffect(() => {
-    if (location === supplierPaymentPath) {
+    if (location === supplierPaymentPath || location === supplierWizardPath) {
       captureSupplierPaymentDraft();
       if (!isAuthenticated) rememberSupplierPaymentReturn();
     }

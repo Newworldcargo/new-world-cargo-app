@@ -86,7 +86,7 @@ export default function Home() {
         ? `${outstandingInvoice.amount} due for cargo`
         : "Review your cargo payments",
       icon: WalletCards,
-      onClick: () => navigate("/invoices"),
+      onClick: () => navigate("/payments/invoices"),
       accent: "bg-white text-foreground border-ink/10",
     },
     ...(arriving
@@ -310,7 +310,7 @@ export default function Home() {
         </main>
         <aside className="mt-6 min-w-0 space-y-6 lg:mt-0 lg:pl-0">
           <section
-            data-sidebar-section="/invoices"
+            data-sidebar-section="/payments"
             className="rounded-[28px] border border-ink/10 bg-[#f7f8fb] p-5 sm:p-6"
           >
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -335,7 +335,7 @@ export default function Home() {
               </div>
             </div>
             <button
-              onClick={() => navigate("/invoices")}
+              onClick={() => navigate("/payments/invoices")}
               className="mt-6 flex w-full min-w-0 items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-white px-4 py-3 text-left text-xs font-bold text-foreground transition hover:border-cargo-yellow/70"
             >
               Review payment <ArrowRight className="size-4 text-cargo-yellow" />

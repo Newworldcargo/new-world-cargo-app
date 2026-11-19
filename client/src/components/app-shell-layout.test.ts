@@ -32,7 +32,7 @@ describe("desktop portal shell layout", () => {
   it("marks the dashboard regions that can drive scroll-aware navigation highlighting", () => {
     expect(homeSource).toContain('data-sidebar-section="/"');
     expect(homeSource).toContain('data-sidebar-section="/shipments"');
-    expect(homeSource).toContain('data-sidebar-section="/invoices"');
+    expect(homeSource).toContain('data-sidebar-section="/payments"');
     expect(homeSource).toContain('data-sidebar-section="/send"');
   });
 });

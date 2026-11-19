@@ -17,7 +17,7 @@ const desktopNavItems: NavItem[] = [
   { label: "Home", href: "/", icon: House },
   { label: "Send", href: "/send", icon: Plus },
   { label: "Shipments", href: "/shipments", icon: Package },
-  { label: "Invoices", href: "/invoices", icon: ReceiptText },
+  { label: "Payments", href: "/payments", icon: ReceiptText },
   { label: "Settings", href: "/settings", icon: Settings2 },
 ];
 

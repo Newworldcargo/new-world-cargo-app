@@ -7,9 +7,9 @@ type PrimaryTab = { label: string; href: string; icon: LucideIcon };
 
 const primaryTabs: PrimaryTab[] = [
   { label: "Home", href: "/", icon: House },
-  { label: "Shipments", href: "/shipments", icon: Package },
   { label: "Send", href: "/send", icon: Plus },
-  { label: "Invoices", href: "/invoices", icon: ReceiptText },
+  { label: "Shipments", href: "/shipments", icon: Package },
+  { label: "Payments", href: "/payments", icon: ReceiptText },
   { label: "Settings", href: "/settings", icon: Settings2 },
 ];
 

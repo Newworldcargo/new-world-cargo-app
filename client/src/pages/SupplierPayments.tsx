@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowDown, ArrowRight, ArrowUpRight, Banknote, Building2, Check, CheckCircle2, ChevronLeft, Clock3, CreditCard, History, Loader2, Plus, ShieldCheck, Smartphone } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { ArrowDown, ArrowRight, ArrowUpRight, Banknote, Building2, Check, CheckCircle2, ChevronLeft, CreditCard, History, Loader2, Plus, ShieldCheck, Smartphone } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { apiRequest } from "@/api/http";
 import { CustomerApiError } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
+import { StatusBadge, supplierMethodLabels, type SupplierPaymentRecord } from "@/components/supplier-payment-record";
+import { supplierDetailsPath, suppliersPath, supplierWizardPath } from "@/lib/payment-routes";
 import { useAuth } from "@/contexts/AuthContext";
 import "./supplier-payments.css";
 import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SupplierPaymentMethod, type SupplierPaymentStep } from "@/lib/supplier-payment-draft";
-
-type PaymentRequest = { reference: string; supplierName: string; route: string; currency: string; amount: string; receivingCurrency?: string; createdAt?: string; paymentMethod?: SupplierPaymentMethod | null; status: "under_review" | "pending_confirmation" | "paid" };
 
 type SavedSupplier = { id: string; name: string; email: string | null };
 
@@ -21,28 +22,22 @@ const secondaryClass = "h-12 gap-2 rounded-xl border-ink/20 px-5 font-semibold";
 const panel = "min-w-0 rounded-[1.5rem] border border-ink/10 bg-white p-4 shadow-sm sm:p-8";
 const field = "grid min-w-0 gap-1.5 text-sm font-semibold";
 const money = new Intl.NumberFormat("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const date = new Intl.DateTimeFormat("en-ZM", { dateStyle: "medium", timeZone: "Africa/Lusaka" });
 const currencies = {
   ZMW: ["zm", "Zambian kwacha"], USD: ["us", "US dollar"], CNY: ["cn", "Chinese yuan"],
   AED: ["ae", "UAE dirham"], EUR: ["eu", "Euro"],
   GBP: ["gb", "British pound"], ZAR: ["za", "South African rand"],
 } satisfies Record<typeof supplierCurrencies[number], [string, string]>;
 const paymentMethods = {
-  office_cash: { label: "Cash deposit at an office", icon: Building2 },
-  atm_deposit: { label: "ATM or bank deposit", icon: Banknote },
-  card: { label: "Debit or credit card", icon: CreditCard },
-  mobile_money: { label: "Mobile money", icon: Smartphone },
+  office_cash: { label: supplierMethodLabels.office_cash, icon: Building2 },
+  atm_deposit: { label: supplierMethodLabels.atm_deposit, icon: Banknote },
+  card: { label: supplierMethodLabels.card, icon: CreditCard },
+  mobile_money: { label: supplierMethodLabels.mobile_money, icon: Smartphone },
 } satisfies Record<SupplierPaymentMethod, { label: string; icon: typeof CreditCard }>;
 const steps = [
   { id: "transfer", label: "Transfer", title: "Transfer details" },
   { id: "supplier", label: "Supplier", title: "Supplier details" },
   { id: "review", label: "Review", title: "Review your request" },
 ] as const;
-const statuses = {
-  under_review: { label: "Under review", style: "bg-amber-50 text-amber-900" },
-  pending_confirmation: { label: "Pending confirmation", style: "bg-sky-50 text-sky-900" },
-  paid: { label: "Paid", style: "bg-emerald-50 text-emerald-900" },
-};
 const emptySupplier = { supplier_name: "", supplier_email: "", invoice_reference: "", notes: "" };
 
 async function fetchRates(signal: AbortSignal) {
@@ -106,15 +101,6 @@ function useMobileKeyboard() {
   return open;
 }
 
-function StatusBadge({ status }: { status: PaymentRequest["status"] }) {
-  const display = statuses[status];
-  if (!display) return null;
-  const Icon = status === "paid" ? CheckCircle2 : Clock3;
-  return <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${display.style}`}>
-    <Icon className="size-3.5" aria-hidden="true" />{display.label}
-  </span>;
-}
-
 function SummaryRows({ rows }: { rows: string[][] }) {
   return <dl className="divide-y divide-ink/10">
     {rows.filter(([, value]) => value).map(([label, value]) => <div key={label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-3 py-3 text-sm">
@@ -125,6 +111,7 @@ function SummaryRows({ rows }: { rows: string[][] }) {
 
 export default function SupplierPayments() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const keyboardOpen = useMobileKeyboard();
   const [estimate] = useState(readSupplierPaymentDraft);
   const [savedForm] = useState(() => readSupplierForm(user?.id));
@@ -135,22 +122,15 @@ export default function SupplierPayments() {
   const [supplier, setSupplier] = useState(savedForm?.supplier ?? emptySupplier);
   const [paymentMethod, setPaymentMethod] = useState<SupplierPaymentMethod | undefined>(savedForm?.paymentMethod);
   const [step, setStep] = useState<SupplierPaymentStep>(savedForm?.locked ? "review" : savedForm?.step ?? "transfer");
-  const [tab, setTab] = useState(window.location.hash === "#transfers" ? "transfers" : "quote");
   const [savedSupplierId, setSavedSupplierId] = useState(savedForm?.savedSupplierId ?? "new");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [result, setResult] = useState<PaymentRequest | null>(null);
+  const [result, setResult] = useState<SupplierPaymentRecord | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [locked, setLocked] = useState(savedForm?.locked ?? false);
   const inFlight = useRef(false);
   const submission = useRef(savedForm?.submissionKey ?? "");
   const heading = useRef<HTMLHeadingElement>(null);
-  const transfersHeading = useRef<HTMLHeadingElement>(null);
-  const requests = useQuery({
-    queryKey: ["customer", user?.id, "supplier-payment-requests"],
-    queryFn: () => apiRequest<PaymentRequest[]>("/supplier-payment-requests"),
-    enabled: Boolean(user?.id),
-  });
   const savedSuppliers = useQuery({
     queryKey: ["customer", user?.id, "supplier-payment-suppliers"],
     queryFn: () => apiRequest<SavedSupplier[]>("/supplier-payment-suppliers"),
@@ -165,9 +145,6 @@ export default function SupplierPayments() {
   const { receives, fee, total } = estimateAmounts(payment.amount, rate, feeBps);
   const receivingAmount = receives === null ? null : formatMinor(receives);
   const feeLabel = feeBps === undefined ? "Handling fee" : `Handling fee (${feeBps / 100}%)`;
-  const transfers = requests.data ?? [];
-  const history = result && !transfers.some(transfer => transfer.reference === result.reference) ? [result, ...transfers] : transfers;
-
   const amountValid = isSupplierAmount(payment.amount);
   const emailValid = !supplier.supplier_email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supplier.supplier_email.trim());
   const supplierValid = Boolean(supplier.supplier_name.trim() && supplier.invoice_reference.trim() && emailValid && paymentMethod);
@@ -179,18 +156,6 @@ export default function SupplierPayments() {
   useEffect(() => {
     if (user?.id && !result) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, step, savedSupplierId, submissionKey: submission.current, locked });
   }, [user?.id, result, payment, supplier, paymentMethod, step, savedSupplierId, locked]);
-  useEffect(() => {
-    const updateTab = () => setTab(window.location.hash === "#transfers" ? "transfers" : "quote");
-    window.addEventListener("hashchange", updateTab);
-    return () => window.removeEventListener("hashchange", updateTab);
-  }, []);
-
-  function selectTab(next: string) {
-    setTab(next);
-    const { pathname, search } = window.location;
-    window.history.replaceState(window.history.state, "", pathname + search + (next === "transfers" ? "#transfers" : ""));
-  }
-
   function selectRoute(route: string) {
     setPayment(current => ({ ...current, route, supplier_currency: supplierCurrencyForRoute(route) }));
   }
@@ -235,15 +200,16 @@ export default function SupplierPayments() {
     try {
       submission.current ||= crypto.randomUUID();
       if (user?.id) rememberSupplierForm(user.id, { payment, supplier, paymentMethod, step, savedSupplierId, submissionKey: submission.current, locked: true });
-      const response = await apiRequest<PaymentRequest>("/supplier-payment-requests", {
+      const response = await apiRequest<SupplierPaymentRecord>("/supplier-payment-requests", {
         method: "POST",
         body: { ...payment, ...supplier, payment_method: paymentMethod, submission_key: submission.current },
       });
       clearSupplierPaymentDraft();
       clearSupplierForm();
       setResult(response);
-      void requests.refetch();
-      void savedSuppliers.refetch();
+      queryClient.setQueryData(["customer", user?.id, "supplier-payment-requests", response.reference], { ...response, invoiceReference: supplier.invoice_reference, supplierEmail: supplier.supplier_email });
+      void queryClient.invalidateQueries({ queryKey: ["customer", user?.id, "supplier-payment-requests"] });
+      void queryClient.invalidateQueries({ queryKey: ["customer", user?.id, "supplier-payment-suppliers"] });
       requestAnimationFrame(() => heading.current?.focus());
     } catch (caught) {
       // An uncertain network result is retried with the same key and details.
@@ -270,20 +236,17 @@ export default function SupplierPayments() {
     goTo("transfer");
   }
 
-  return <div data-keyboard-open={keyboardOpen || undefined} className={`supplier-payments mx-auto max-w-6xl text-ink sm:px-8 sm:pb-12 sm:pt-10 ${tab === "quote" && !result ? "supplier-payments--wizard" : ""}`}>
-    <header>
-      <h1 className="text-[1.65rem] font-bold sm:text-[clamp(1.7rem,4vw,2.6rem)]">Supplier payments</h1>
+  return <div data-keyboard-open={keyboardOpen || undefined} className={`supplier-payments mx-auto max-w-6xl text-ink sm:px-8 sm:pb-12 sm:pt-6 ${!result ? "supplier-payments--wizard" : ""}`}>
+    <div className="hidden sm:block"><PaymentBreadcrumb current="New request" supplierChild /></div>
+    <header className="flex items-center gap-2">
+      <Link href={suppliersPath} aria-label="Back to Supplier Payments" className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-ink sm:hidden"><ChevronLeft className="size-5" aria-hidden="true" /></Link>
+      <h1 className="text-[1.65rem] font-bold sm:text-[clamp(1.7rem,4vw,2.6rem)]">Pay a Supplier</h1>
     </header>
-    <Tabs value={tab} onValueChange={selectTab} className="mt-3 gap-0 sm:mt-5">
-      <TabsList aria-label="Supplier payment views" className="h-auto w-fit justify-start gap-0.5 rounded-2xl bg-[#dfeaf2] p-1 sm:w-full sm:gap-7 sm:rounded-none sm:border-b sm:border-ink/10 sm:bg-transparent sm:p-0">
-        <TabsTrigger value="quote" className="relative min-h-11 flex-none rounded-xl border-0 px-3 text-ink/75 data-[state=active]:bg-white data-[state=active]:font-bold data-[state=active]:text-ink sm:rounded-none sm:px-1 sm:after:absolute sm:after:inset-x-0 sm:after:-bottom-px sm:after:h-0.5 sm:data-[state=active]:bg-transparent sm:data-[state=active]:shadow-none sm:data-[state=active]:after:bg-[#012642]">
-          <ArrowUpRight className="size-4" aria-hidden="true" /><span className="sm:hidden">Exchange</span><span className="hidden sm:inline">Request a quote</span>
-        </TabsTrigger>
-        <TabsTrigger value="transfers" className="relative min-h-11 flex-none rounded-xl border-0 px-3 text-ink/75 data-[state=active]:bg-white data-[state=active]:font-bold data-[state=active]:text-ink sm:rounded-none sm:px-1 sm:after:absolute sm:after:inset-x-0 sm:after:-bottom-px sm:after:h-0.5 sm:data-[state=active]:bg-transparent sm:data-[state=active]:shadow-none sm:data-[state=active]:after:bg-[#012642]">
-          <History className="size-4" aria-hidden="true" /> Transfers
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="quote" className="mt-5 sm:mt-9">
+    <nav aria-label="Supplier payment views" className="mt-3 inline-flex gap-0.5 rounded-2xl bg-[#dfeaf2] p-1 sm:hidden">
+      <Link href={supplierWizardPath} aria-current="page" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-3 text-sm font-bold shadow-sm"><ArrowUpRight className="size-4" aria-hidden="true" />Exchange</Link>
+      <Link href={suppliersPath} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm text-ink/75"><History className="size-4" aria-hidden="true" />Transfers</Link>
+    </nav>
+    <div className="mt-5 sm:mt-7">
         <div className="mx-auto max-w-2xl">
           {!result && <ol aria-label="Request progress" className="mb-4 grid grid-cols-3 gap-2 sm:mb-7 sm:gap-4">
             {steps.map((item, index) => <li key={item.id} aria-current={item.id === step ? "step" : undefined} className={`relative flex min-w-0 items-center gap-1.5 pt-3 text-xs before:absolute before:inset-x-0 before:top-0 before:h-0.5 sm:gap-2 sm:pt-4 sm:text-sm ${index <= currentStep ? "text-ink before:bg-[#012642]" : "text-ink/60 before:bg-ink/10"}`}>
@@ -307,10 +270,7 @@ export default function SupplierPayments() {
               </div>
               <div className="mt-6 grid gap-2.5 sm:flex sm:justify-end">
                 <Button type="button" variant="outline" className={secondaryClass} onClick={newRequest}><Plus className="size-4" /> New request</Button>
-                <Button type="button" className={primaryClass} onClick={() => {
-                  selectTab("transfers");
-                  requestAnimationFrame(() => transfersHeading.current?.focus());
-                }}>View transfers <ArrowRight className="size-4" /></Button>
+                <Button asChild className={primaryClass}><Link href={supplierDetailsPath(result.reference)}>View request <ArrowRight className="size-4" /></Link></Button>
               </div>
             </> : step === "transfer" ? <form key="transfer" className="supplier-wizard-stage" onSubmit={continueTransfer} noValidate>
               <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-transparent bg-[#edf3f8] px-3 py-2.5 sm:rounded-xl sm:py-3 focus-within:border-ink/35 sm:gap-4 sm:px-4">
@@ -434,42 +394,6 @@ export default function SupplierPayments() {
             </div>}
           </section>
         </div>
-      </TabsContent>
-      <TabsContent value="transfers" className="mt-5 sm:mt-9">
-        <section aria-labelledby="transfers-heading" className={panel}>
-          <header className="flex items-center gap-3">
-            <h2 ref={transfersHeading} id="transfers-heading" tabIndex={-1} className="text-xl font-bold focus:outline-none">Recent transfers</h2>
-          </header>
-          {requests.isError && <div className="mt-4 flex flex-wrap items-center gap-2" role="status">
-            <p className="text-sm text-ink/75">Couldn’t load your transfers.</p>
-            <Button variant="outline" onClick={() => void requests.refetch()} disabled={requests.isFetching}>{requests.isFetching ? "Retrying…" : "Retry"}</Button>
-          </div>}
-          {history.length > 0 && <div aria-hidden="true" className="mt-6 hidden grid-cols-[minmax(0,1.35fr)_minmax(0,.85fr)_minmax(0,1fr)_9rem] gap-3 px-1 text-xs font-medium text-ink/65 sm:grid">
-            <span>Supplier</span><span>Route and date</span><span className="text-right">Amount</span><span className="text-right">Status</span>
-          </div>}
-          {history.length ? <ul className="mt-3 divide-y divide-ink/10">
-            {history.map(transfer => {
-              const displayDate = transfer.createdAt && !Number.isNaN(Date.parse(transfer.createdAt)) ? date.format(new Date(transfer.createdAt)) : null;
-              return <li key={transfer.reference} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 py-4 first:border-t first:border-ink/10 last:pb-0 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,.85fr)_minmax(0,1fr)_9rem] sm:items-center">
-                <div className="min-w-0">
-                  <p className="break-words font-bold">{transfer.supplierName}</p>
-                  <p className="break-words text-xs text-ink/70">{transfer.reference}</p>
-                </div>
-                <div className="col-start-1 row-start-2 text-xs leading-relaxed text-ink/75 sm:col-start-auto sm:row-start-auto sm:text-sm">
-                  <p>{transfer.route}{transfer.receivingCurrency ? ` · ${transfer.receivingCurrency}` : ""}</p>
-                  {displayDate && <time dateTime={transfer.createdAt}>{displayDate}</time>}
-                  {transfer.paymentMethod && paymentMethods[transfer.paymentMethod] && <p>{paymentMethods[transfer.paymentMethod].label}</p>}
-                </div>
-                <div className="col-start-2 row-start-1 min-w-0 self-center text-right sm:col-start-auto sm:row-start-auto">
-                  <p className="break-words text-sm font-bold tabular-nums sm:text-base">{transfer.currency} {money.format(Number(transfer.amount))}</p>
-                  <p className="text-xs text-ink/70">{transfer.status === "under_review" ? "Requested amount" : "Total funds"}</p>
-                </div>
-                <div className="col-start-2 row-start-2 justify-self-end sm:col-start-auto sm:row-start-auto"><StatusBadge status={transfer.status} /></div>
-              </li>;
-            })}
-          </ul> : !requests.isError && <p role="status" className="mt-4 rounded-xl border border-dashed border-ink/15 bg-[#f6f8fa] px-4 py-5 text-sm text-ink/75">{requests.isPending ? "Loading your transfers…" : "Your payment requests and transfers will appear here."}</p>}
-        </section>
-      </TabsContent>
-    </Tabs>
+    </div>
   </div>;
 }

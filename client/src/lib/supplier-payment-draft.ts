@@ -1,4 +1,5 @@
 import { safeCustomerReturnPath } from "./auth-workflow";
+import { supplierWizardPath } from "./payment-routes";
 
 export const supplierPaymentPath = "/supplier-payments";
 export const supplierCurrencies = ["ZMW", "USD", "CNY", "AED", "EUR", "GBP", "ZAR"] as const;
@@ -14,7 +15,7 @@ function currency(value: string | null, fallback: string) {
 }
 
 export function captureSupplierPaymentDraft() {
-  if (window.location.pathname !== supplierPaymentPath || !window.location.hash.startsWith("#estimate=")) return;
+  if (![supplierPaymentPath, supplierWizardPath].includes(window.location.pathname) || !window.location.hash.startsWith("#estimate=")) return;
   try {
     const value = new URLSearchParams(window.location.hash.slice(1)).get("estimate");
     if (value) sessionStorage.setItem(draftKey, value);
@@ -49,7 +50,7 @@ export function rememberSupplierPaymentReturn() {
 export function customerPostSignInPath() {
   const returnPath = safeCustomerReturnPath(new URLSearchParams(window.location.search).get("returnTo"));
   if (returnPath) return returnPath;
-  try { return sessionStorage.getItem(resumeKey) ? supplierPaymentPath : "/"; } catch { return "/"; }
+  try { return sessionStorage.getItem(resumeKey) ? supplierWizardPath : "/"; } catch { return "/"; }
 }
 
 export function clearSupplierPaymentReturn() {
