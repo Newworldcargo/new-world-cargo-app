@@ -53,10 +53,6 @@ export function PasswordRequirements({ password }: { password: string }) {
   return <div className="grid gap-1 rounded-xl bg-ink/[0.04] p-3 text-xs text-ink/55">{checks.map(check => <div key={check.label} className={`flex items-center gap-2 ${check.ok ? "text-ink" : ""}`}><Check className={`size-3.5 ${check.ok ? "text-cargo-yellow" : "text-ink/25"}`} />{check.label}</div>)}</div>;
 }
 
-export function GoogleAuthButton({ onClick, loading }: { onClick: () => void; loading?: boolean }) {
-  return <Button type="button" variant="outline" onClick={onClick} disabled={loading} className="h-12 w-full rounded-xl border-ink/15 bg-white font-semibold text-ink"><span className="mr-2 grid size-5 place-items-center rounded-full border border-ink/15 text-xs font-bold">G</span>{loading ? "Connecting…" : "Continue with Google"}</Button>;
-}
-
 export function AuthError({ children }: { children: React.ReactNode }) { return <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-medium text-red-800" role="alert">{children}</div>; }
 export function AuthSuccess({ title, children }: { title: string; children: React.ReactNode }) { return <div className="grid gap-3 rounded-2xl border border-cargo-yellow/50 bg-cargo-yellow/10 p-4"><div className="flex items-center gap-2 font-bold text-ink"><ShieldCheck className="size-5 text-cargo-yellow" />{title}</div><div className="text-sm leading-6 text-ink/65">{children}</div></div>; }
 export function OtpInput({ value, onChange }: { value: string; onChange: (value: string) => void }) { return <InputOTP maxLength={6} value={value} onChange={onChange} aria-label="Six digit verification code"><InputOTPGroup>{Array.from({ length: 6 }, (_, index) => <InputOTPSlot key={index} index={index} />)}</InputOTPGroup></InputOTP>; }

@@ -14,7 +14,7 @@ type AuthContextValue = {
   retrySession: () => void;
   login: (identifier: string, password: string) => ReturnType<typeof authGateway.login>;
   register: (input: Omit<AuthUser, "id" | "provider" | "verified"> & { password: string }) => ReturnType<typeof authGateway.register>;
-  googleLogin: () => ReturnType<typeof authGateway.googleLogin>;
+  googleLogin: (credential: string) => ReturnType<typeof authGateway.googleLogin>;
   verify: (code: string) => ReturnType<typeof authGateway.verify>;
   resendVerification: () => ReturnType<typeof authGateway.resendVerification>;
   requestPasswordReset: (identifier: string) => ReturnType<typeof authGateway.requestPasswordReset>;
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user, loading, sessionError, isAuthenticated: Boolean(user), retrySession: () => setSessionAttempt((attempt) => attempt + 1),
     async login(identifier, password) { const result = await authGateway.login(identifier, password); if (result.ok && result.user) setUser(result.user); return result; },
     async register(input) { const result = await authGateway.register(input); if (result.ok && result.user) setUser(result.user); return result; },
-    async googleLogin() { const result = await authGateway.googleLogin(); if (result.ok && result.user) setUser(result.user); return result; },
+    async googleLogin(credential) { const result = await authGateway.googleLogin(credential); if (result.ok && result.user) setUser(result.user); return result; },
     async verify(code) { const result = await authGateway.verify(code); if (result.ok) setUser((current) => current ? { ...current, verified: true } : current); return result; }, resendVerification: () => authGateway.resendVerification(), requestPasswordReset: (identifier) => authGateway.requestPasswordReset(identifier), resetPassword: (input) => authGateway.resetPassword(input), verifyCurrentPassword: (password) => authGateway.verifyCurrentPassword(password), changePassword: (currentPassword, nextPassword) => authGateway.changePassword(currentPassword, nextPassword),
     async logout() { await authGateway.logout(); clearSupplierForm(); setUser(null); customerQueryClient.clear(); useCustomerWorkflowStore.getState().clearCustomerWorkflowState(); },
     updateUser(input) { const previous = user; if (previous) setUser({ ...previous, ...input }); void authGateway.updateProfile(input).then(setUser).catch(() => setUser(previous)); },

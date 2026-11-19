@@ -15,7 +15,7 @@ export type AuthUser = {
 
 type LoginResult = { ok: boolean; reason?: "invalid" | "disabled" | "unverified" | "service"; user?: AuthUser };
 type RegisterResult = { ok: boolean; reason?: "existing" | "validation" | "service"; user?: AuthUser; message?: string; fieldErrors?: Record<string, string[]> };
-type GoogleResult = { ok: boolean; needsProfile?: boolean; reason?: "cancelled" | "service"; user?: AuthUser };
+type GoogleResult = { ok: boolean; message?: string; needsProfile?: boolean; reason?: "cancelled" | "service"; user?: AuthUser };
 type VerificationResult = { ok: boolean; reason?: "incomplete" | "incorrect" | "expired" | "attempts" };
 export type PasswordResetInput = { identifier: string; code: string; password: string; passwordConfirmation: string };
 
@@ -36,7 +36,7 @@ export interface AuthGateway {
   getSession(): Promise<AuthUser | null>;
   login(identifier: string, password: string): Promise<LoginResult>;
   register(input: Omit<AuthUser, "id" | "provider" | "verified"> & { password: string }): Promise<RegisterResult>;
-  googleLogin(): Promise<GoogleResult>;
+  googleLogin(credential: string): Promise<GoogleResult>;
   verify(code: string): Promise<VerificationResult>;
   resendVerification(): Promise<{ ok: boolean }>;
   requestPasswordReset(identifier: string): Promise<{ ok: boolean }>;
@@ -81,7 +81,14 @@ const httpAuthGateway: AuthGateway = {
   async getSession() { try { return await apiRequest<AuthUser>("/session"); } catch (error) { if (error instanceof CustomerApiError && error.status === 401) return null; throw error; } },
   async login(identifier, password) { try { return { ok: true, user: await apiRequest<AuthUser>("/auth/login", { method: "POST", body: { identifier, password } }) }; } catch (error) { return { ok: false, reason: authReason(error) }; } },
   async register(input) { try { return { ok: true, user: await apiRequest<AuthUser>("/auth/register", { method: "POST", body: input }) }; } catch (error) { if (!(error instanceof CustomerApiError)) return { ok: false, reason: "service" }; const duplicateEmail = error.code === "ACCOUNT_EXISTS" || Boolean(error.fieldErrors?.email?.some(message => message.toLowerCase().includes("taken"))); return { ok: false, reason: duplicateEmail ? "existing" : error.code === "VALIDATION_FAILED" ? "validation" : "service", message: error.message, fieldErrors: error.fieldErrors }; } },
-  async googleLogin() { return { ok: false, reason: "service" }; },
+  async googleLogin(credential) {
+    try {
+      const user = await apiRequest<AuthUser>("/auth/google", { method: "POST", body: { credential } });
+      return { ok: true, user };
+    } catch (error) {
+      return { ok: false, reason: "service", message: error instanceof CustomerApiError ? error.message : undefined };
+    }
+  },
   async verify(code) { try { await apiRequest<void>("/auth/verify", { method: "POST", body: { code } }); return { ok: true }; } catch (error) { if (!(error instanceof CustomerApiError)) return { ok: false, reason: "incorrect" }; const codeName = error.code; return { ok: false, reason: codeName === "OTP_EXPIRED" ? "expired" : codeName === "OTP_ATTEMPTS_EXCEEDED" ? "attempts" : "incorrect" }; } },
   async resendVerification() { await apiRequest<void>("/auth/verify/resend", { method: "POST" }); return { ok: true }; },
   async requestPasswordReset(identifier) { await apiRequest<void>("/auth/password/forgot", { method: "POST", body: passwordResetRequestPayload(identifier) }); return { ok: true }; },
