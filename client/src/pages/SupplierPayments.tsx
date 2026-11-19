@@ -327,8 +327,14 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                   {dashboard && <div className="flex flex-wrap justify-between gap-x-2 gap-y-1">
                     <dt className="text-ink/75">Transfer amount</dt><dd className="text-right font-medium tabular-nums">{amountValid ? `${payment.currency} ${money.format(Number(payment.amount))}` : "—"}</dd>
                   </div>}
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2"><dt className="text-ink/75">Estimated {feeLabel.toLowerCase()}</dt><dd className="text-right font-medium tabular-nums">{estimatedFee}</dd></div>
-                  <div className={`mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2 ${dashboard ? "rounded-xl bg-[#edf3f8] px-3 py-2" : ""}`}><dt className="font-semibold"><span className="sm:hidden">Estimated total</span><span className="hidden sm:inline">Estimated total payable</span></dt><dd className="text-right text-lg font-bold tabular-nums sm:text-2xl">{estimatedTotal}</dd></div>
+                  <div className={dashboard ? "flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1" : "grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2"}>
+                    <dt className="text-ink/75">Estimated {feeLabel.toLowerCase()}</dt>
+                    <dd className="text-right font-medium tabular-nums">{estimatedFee}</dd>
+                  </div>
+                  <div className={dashboard ? "mt-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 rounded-xl bg-[#edf3f8] px-3 py-2" : "mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2"}>
+                    <dt className="font-semibold">{dashboard ? "Estimated total" : <><span className="sm:hidden">Estimated total</span><span className="hidden sm:inline">Estimated total payable</span></>}</dt>
+                    <dd className={dashboard ? "max-w-full break-words text-xl font-bold tabular-nums xl:text-2xl" : "text-right text-lg font-bold tabular-nums sm:text-2xl"}>{estimatedTotal}</dd>
+                  </div>
                 </dl>
                 <div className={dashboard ? "mt-3" : "supplier-wizard-actions mt-5"}>
                   {dashboard && locked ? <Button asChild className={primaryClass + " w-full"}>
