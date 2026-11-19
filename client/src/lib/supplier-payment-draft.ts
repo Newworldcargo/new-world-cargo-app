@@ -22,6 +22,10 @@ export function captureSupplierPaymentDraft() {
   window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
 }
 
+export function supplierCurrencyForRoute(route: string) {
+  return route === "Dubai" ? "AED" : "CNY";
+}
+
 export function readSupplierPaymentDraft() {
   let value = "";
   try { value = sessionStorage.getItem(draftKey) || ""; } catch { /* Storage can be disabled. */ }
@@ -33,7 +37,7 @@ export function readSupplierPaymentDraft() {
     receives: isSupplierAmount(receives) ? receives : "",
     amount: isSupplierAmount(amount) ? amount : "",
     currency: currency(draft.get("currency"), "ZMW"),
-    supplier_currency: currency(draft.get("supplier_currency"), route === "Dubai" ? "AED" : "CNY"),
+    supplier_currency: currency(draft.get("supplier_currency"), supplierCurrencyForRoute(route)),
     route,
   };
 }

@@ -7,7 +7,7 @@ import { CustomerApiError } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies } from "@/lib/supplier-payment-draft";
+import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute } from "@/lib/supplier-payment-draft";
 
 type PaymentRequest = { reference: string; supplierName: string; route: string; currency: string; amount: string; status: "under_review" };
 
@@ -44,6 +44,10 @@ export default function SupplierPayments() {
   useEffect(() => {
     if (user?.id && !result) rememberSupplierForm(user.id, { payment, supplier, submissionKey: submission.current, locked });
   }, [user?.id, result, payment, supplier, locked]);
+
+  function selectRoute(route: string) {
+    setPayment(current => ({ ...current, route, supplier_currency: supplierCurrencyForRoute(route) }));
+  }
 
   function review(event: FormEvent) {
     event.preventDefault();
@@ -117,7 +121,7 @@ export default function SupplierPayments() {
               <select className={selectClass} value={payment.supplier_currency} onChange={e => setPayment({ ...payment, supplier_currency: e.target.value })}>{supplierCurrencies.map(code => <option key={code}>{code}</option>)}</select>
             </label>
             <label className="grid gap-2 text-sm font-semibold">Payment route
-              <select className={selectClass} value={payment.route} onChange={e => setPayment({ ...payment, route: e.target.value })}><option>China</option><option>Dubai</option></select>
+              <select className={selectClass} value={payment.route} onChange={e => selectRoute(e.target.value)}><option>China</option><option>Dubai</option></select>
             </label>
             {sameEstimate && estimate.receives && <p className="text-sm text-ink/65 sm:col-span-2">Website estimate · Supplier gets {estimate.receives} {payment.supplier_currency}</p>}
           </div>
