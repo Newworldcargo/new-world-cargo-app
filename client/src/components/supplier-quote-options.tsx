@@ -50,8 +50,9 @@ export function SupplierProfiles({ contacts, selectedId, onSelect }: {
   </div>;
 }
 
-export function SupplierPaymentMethods({ method, onChange }: {
+export function SupplierPaymentMethods({ method, currency, onChange }: {
   method?: SupplierPaymentMethod;
+  currency: string;
   onChange: (method: SupplierPaymentMethod) => void;
 }) {
   return <fieldset className="min-w-0">
@@ -59,13 +60,15 @@ export function SupplierPaymentMethods({ method, onChange }: {
     <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
       {methodOptions.map(({ value, icon: Icon }) => {
         const selected = method === value;
-        return <label key={value} className={`relative flex min-w-0 cursor-pointer flex-col items-start gap-2 rounded-xl border p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[#012642] ${selected ? "border-[#012642] bg-[#eaf2f8]" : "border-[#d5e2eb] bg-white hover:border-[#a9bfce] hover:bg-[#f3f7fa]"}`}>
-          <input className="sr-only" type="radio" name="supplier-payment-method" value={value} checked={selected} onChange={() => onChange(value)} />
+        const unavailable = value === "mobile_money" && currency !== "ZMW" || value === "card" && !["ZMW", "USD"].includes(currency);
+        return <label key={value} className={`relative flex min-w-0 flex-col items-start gap-2 rounded-xl border p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[#012642] ${unavailable ? "cursor-not-allowed border-[#d5e2eb] bg-[#f3f6f8]" : selected ? "cursor-pointer border-[#012642] bg-[#eaf2f8]" : "cursor-pointer border-[#d5e2eb] bg-white hover:border-[#a9bfce] hover:bg-[#f3f7fa]"}`}>
+          <input className="sr-only" type="radio" name="supplier-payment-method" value={value} checked={selected} disabled={unavailable} onChange={() => onChange(value)} />
           <span className="grid size-8 place-items-center rounded-lg bg-[#edf3f8] text-ink"><Icon className="size-4" aria-hidden="true" /></span>
           <span className={`absolute right-3 top-3 grid size-4 place-items-center rounded-full border ${selected ? "border-[#012642] bg-[#012642] text-[#fff]" : "border-[#9eb6c7] bg-white"}`} aria-hidden="true">
             {selected && <Check className="size-3" />}
           </span>
           <span className="text-xs font-semibold sm:text-sm">{supplierMethodLabels[value]}</span>
+          {unavailable && <span className="text-xs text-ink/75">{value === "mobile_money" ? "ZMW only" : "ZMW or USD"}</span>}
         </label>;
       })}
     </div>

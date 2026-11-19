@@ -1,5 +1,6 @@
 import { CheckCircle2, Clock3 } from "lucide-react";
 import type { SupplierPaymentMethod } from "@/lib/supplier-payment-draft";
+import type { PaymentIntentDto } from "@/api/contracts";
 
 export type SupplierPaymentRecord = {
   reference: string;
@@ -13,6 +14,10 @@ export type SupplierPaymentRecord = {
   invoiceReference?: string | null;
   supplierEmail?: string | null;
   depositProofName?: string | null;
+  fundingConfirmed?: boolean;
+  payment?: PaymentIntentDto | null;
+  paymentMethods?: ("mobile-money" | "card")[];
+  quote?: { token: string; currency: string; amount: string; handlingFee: string; total: string; receivingCurrency: string; receivingAmount: string } | null;
   status: "under_review" | "pending_confirmation" | "paid";
 };
 
@@ -29,11 +34,11 @@ const statuses = {
   paid: { label: "Paid", style: "bg-emerald-50 text-emerald-900" },
 };
 
-export function StatusBadge({ status }: { status: SupplierPaymentRecord["status"] }) {
+export function StatusBadge({ status, fundingConfirmed }: { status: SupplierPaymentRecord["status"]; fundingConfirmed?: boolean }) {
   const display = statuses[status];
   if (!display) return null;
   const Icon = status === "paid" ? CheckCircle2 : Clock3;
   return <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${display.style}`}>
-    <Icon className="size-3.5 shrink-0" aria-hidden="true" />{display.label}
+    <Icon className="size-3.5 shrink-0" aria-hidden="true" />{status === "pending_confirmation" && fundingConfirmed ? "Awaiting supplier receipt" : display.label}
   </span>;
 }

@@ -38,6 +38,7 @@ const gatewayAllowedRoutes: readonly GatewayRoute[] = [
   { pattern: /^\/v1\/supplier-payment-requests$/, methods: ["GET", "POST"], access: "session", routeClass: "supplier-payments", bodyLimitBytes: supplierProofBodyLimitBytes },
   { pattern: /^\/v1\/supplier-payment-requests\/FCP-R-[1-9][0-9]{0,19}\/deposit-proof$/, methods: ["POST"], access: "session", routeClass: "supplier-payments", bodyLimitBytes: supplierProofBodyLimitBytes },
   { pattern: /^\/v1\/supplier-payment-requests\/FCP-(?:R-)?[1-9][0-9]{0,19}$/, methods: ["GET"], access: "session", routeClass: "supplier-payments" },
+  { pattern: /^\/v1\/supplier-payment-requests\/FCP-R-[1-9][0-9]{0,19}\/payment$/, methods: ["GET", "POST"], access: "session", routeClass: "payments" },
   { pattern: /^\/v1\/supplier-payment-suppliers$/, methods: ["GET"], access: "session", routeClass: "supplier-payments" },
   { pattern: /^\/v1\/recipients$/, methods: ["GET", "POST"], access: "session", routeClass: "recipients" },
   { pattern: new RegExp(`^/v1/recipients/${ID_SEGMENT}$`), methods: ["PATCH", "DELETE"], access: "session", routeClass: "recipients" },

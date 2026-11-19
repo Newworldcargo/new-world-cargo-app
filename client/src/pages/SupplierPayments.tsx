@@ -144,7 +144,9 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
   const feeLabel = feeBps === undefined ? "Handling fee" : `Handling fee (${feeBps / 100}%)`;
   const amountValid = isSupplierAmount(payment.amount);
   const emailValid = !supplier.supplier_email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supplier.supplier_email.trim());
-  const supplierValid = Boolean(supplier.supplier_name.trim() && supplier.invoice_reference.trim() && emailValid && paymentMethod);
+  const onlineMethod = paymentMethod === "mobile_money" || paymentMethod === "card";
+  const methodCurrencyValid = paymentMethod === "mobile_money" ? payment.currency === "ZMW" : paymentMethod !== "card" || ["ZMW", "USD"].includes(payment.currency);
+  const supplierValid = Boolean(supplier.supplier_name.trim() && supplier.invoice_reference.trim() && emailValid && paymentMethod && methodCurrencyValid);
   const estimatedFee = fee === null ? "Awaiting quote" : `${payment.currency} ${formatMinor(fee)}`;
   const estimatedTotal = total === null ? "Awaiting quote" : `${payment.currency} ${formatMinor(total)}`;
 
@@ -222,6 +224,10 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
       queryClient.setQueryData(["customer", user?.id, "supplier-payment-requests", response.reference], { ...response, invoiceReference: supplier.invoice_reference, supplierEmail: supplier.supplier_email });
       void queryClient.invalidateQueries({ queryKey: ["customer", user?.id, "supplier-payment-requests"] });
       void queryClient.invalidateQueries({ queryKey: ["customer", user?.id, "supplier-payment-suppliers"] });
+      if (onlineMethod) {
+        navigate(supplierDetailsPath(response.reference) + "?pay=1");
+        return;
+      }
       requestAnimationFrame(() => heading.current?.focus());
     } catch (caught) {
       // An uncertain network result is retried with the same key and details.
@@ -284,7 +290,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
               <h2 ref={heading} id="quote-heading" tabIndex={-1} className="scroll-mt-24 text-xl font-bold focus:outline-none sm:text-[1.75rem]">
                 {result ? "Quote request received" : stepTitles[step]}
               </h2>
-              {result && <p className="mt-2 text-sm text-ink/70">We’ll review your request and contact you with the confirmed quote and payment instructions.</p>}
+              {result && <p className="mt-2 text-sm text-ink/70">{result.depositProofName ? "Your deposit receipt is ready for our team to verify." : "Open your request to see the total and attach your deposit receipt when ready."}</p>}
             </header>}
             {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
             {result ? <>
@@ -374,7 +380,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                     <textarea maxLength={600} rows={2} className="min-h-16 rounded-xl border border-ink/20 px-3 py-2 text-base font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" placeholder="Add a note for our team" value={supplier.notes} onChange={e => updateSupplier("notes", e.target.value)} />
                   </label>
                 </div>}
-                <SupplierPaymentMethods method={paymentMethod} onChange={method => {
+                <SupplierPaymentMethods method={paymentMethod} currency={payment.currency} onChange={method => {
                   setPaymentMethod(method);
                   if (!acceptsDepositProof(method)) setDepositProof(null);
                 }} />
@@ -416,7 +422,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                 {!locked && <Button type="button" aria-label="Back to supplier" variant="outline" className={secondaryPaymentAction} disabled={submitting} onClick={() => goTo("supplier")}><ChevronLeft className="size-4" /><span className="sm:hidden">Back</span><span className="hidden sm:inline">Back to supplier</span></Button>}
                 <Button type="button" className={primaryPaymentAction + " min-w-0 flex-1 px-2 sm:ml-auto sm:flex-none sm:px-5"} disabled={submitting} onClick={submit}>
                   {submitting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-                  {submitting ? "Requesting quote…" : locked ? "Retry request" : "Request Quote"}
+                  {submitting ? "Preparing transfer…" : locked ? "Retry request" : onlineMethod ? "Continue to payment" : depositProof ? "Submit for approval" : "Request Quote"}
                   {!submitting && <ArrowRight className="size-4" aria-hidden="true" />}
                 </Button>
               </div>

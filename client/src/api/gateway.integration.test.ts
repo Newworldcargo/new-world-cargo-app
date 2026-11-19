@@ -177,6 +177,7 @@ describe("server-side BFF to Laravel integration", () => {
 
     expect(await post("v1/supplier-payment-requests")).toBe(200);
     expect(await post("v1/supplier-payment-requests/FCP-R-11/deposit-proof")).toBe(200);
+    expect(await post("v1/supplier-payment-requests/FCP-R-11/payment")).toBe(413);
     expect(await post("v1/shipment-drafts/42/submit")).toBe(413);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });

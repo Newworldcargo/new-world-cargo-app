@@ -8,6 +8,7 @@ import { ContentSkeleton } from "@/components/loading-skeleton";
 import { DepositProofField } from "@/components/deposit-proof-field";
 import { acceptsDepositProof, encodeDepositProof } from "@/lib/deposit-proof";
 import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
+import { PaymentModal } from "@/components/payment-modal";
 import { StatusBadge, supplierMethodLabels, type SupplierPaymentRecord } from "@/components/supplier-payment-record";
 import { useAuth } from "@/contexts/AuthContext";
 import { supplierDetailsPath } from "@/lib/payment-routes";
@@ -38,6 +39,7 @@ export default function SupplierTransfers({ reference }: { reference?: string })
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [depositProof, setDepositProof] = useState<File | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(() => new URLSearchParams(window.location.search).get("pay") === "1");
   const detailKey = ["customer", user?.id, "supplier-payment-requests", reference];
   const [status, setStatus] = useState("all");
   const transfersSection = useRef<HTMLElement>(null);
@@ -61,7 +63,7 @@ export default function SupplierTransfers({ reference }: { reference?: string })
   const attachProof = useMutation({
     mutationFn: async (file: File) => apiRequest<{ depositProofName: string }>(`/supplier-payment-requests/${encodeURIComponent(reference ?? "")}/deposit-proof`, {
       method: "POST",
-      body: { deposit_proof: await encodeDepositProof(file) },
+      body: { deposit_proof: await encodeDepositProof(file), quote_token: details.data?.quote?.token },
     }),
     onSuccess: ({ depositProofName }) => {
       queryClient.setQueryData<SupplierPaymentRecord>(detailKey, current => current ? { ...current, depositProofName } : undefined);
@@ -69,7 +71,7 @@ export default function SupplierTransfers({ reference }: { reference?: string })
       setDepositProof(null);
     },
     onError: error => {
-      if (error instanceof CustomerApiError && error.status === 409) void details.refetch();
+      if (error instanceof CustomerApiError && (error.status === 409 || error.fieldErrors?.quote_token)) void details.refetch();
     },
   });
   const proofError = attachProof.error instanceof CustomerApiError
@@ -79,6 +81,13 @@ export default function SupplierTransfers({ reference }: { reference?: string })
   if (reference) {
     const record = details.data;
     const missing = details.error instanceof CustomerApiError && details.error.status === 404;
+    const quote = record?.quote;
+    const isRequest = record?.status === "under_review";
+    const manual = isRequest && acceptsDepositProof(record?.paymentMethod);
+    const online = isRequest && (record?.paymentMethod === "mobile_money" || record?.paymentMethod === "card");
+    const canOpenCheckout = online && quote && (Boolean(record?.paymentMethods?.length) || Boolean(record?.payment));
+    const paymentLabel = record?.payment && !["failed", "succeeded"].includes(record.payment.status) ? "Check payment status" : "Pay now";
+    const moneyText = (currency: string, value: string) => `${currency} ${money.format(Number(value))}`;
     return <div data-payments-page className={paymentPageClass}>
       <PaymentBreadcrumb current="Details" supplierChild />
       <h1 className="font-heading text-3xl font-extrabold sm:text-4xl">{record?.status === "under_review" ? "Quote request" : "Supplier payment details"}</h1>
@@ -89,12 +98,17 @@ export default function SupplierTransfers({ reference }: { reference?: string })
         </> : record && <>
           <header className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-lg font-bold">{record.reference}</p>
-            <StatusBadge status={record.status} />
+            <StatusBadge status={record.status} fundingConfirmed={record.fundingConfirmed} />
           </header>
           <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,.8fr)_minmax(0,1.2fr)] md:gap-6">
             <div className="self-start rounded-2xl border border-[#dce6ee] bg-[#edf3f8] p-4 sm:p-5">
-              <p className="text-sm text-ink/75">{record.status === "under_review" ? "Requested amount" : "Total funds"}</p>
-              <p className="mt-1 break-words text-2xl font-bold tabular-nums sm:text-3xl">{paymentAmount(record)}</p>
+              <p className="text-sm text-ink/75">{quote ? "Total to pay" : record.fundingConfirmed ? "Customer funds received" : isRequest ? "Requested amount" : "Total funds"}</p>
+              <p className="mt-1 break-words text-2xl font-bold tabular-nums sm:text-3xl">{quote ? moneyText(quote.currency, quote.total) : paymentAmount(record)}</p>
+              {quote && <dl className="mt-3 space-y-2 text-sm">
+                <div className="flex justify-between gap-2"><dt>Transfer amount</dt><dd>{moneyText(quote.currency, quote.amount)}</dd></div>
+                <div className="flex justify-between gap-2"><dt>Handling fee</dt><dd>{moneyText(quote.currency, quote.handlingFee)}</dd></div>
+                <div className="flex justify-between gap-2 border-t border-ink/10 pt-2"><dt>Supplier receives</dt><dd className="font-semibold">{moneyText(quote.receivingCurrency, quote.receivingAmount)}</dd></div>
+              </dl>}
             </div>
             <dl className="min-w-0 divide-y divide-[#e2ebf2] text-sm">
             {[
@@ -108,22 +122,45 @@ export default function SupplierTransfers({ reference }: { reference?: string })
             </dl>
           </div>
           {record.depositProofName ? <dl className="mt-4 rounded-xl border border-[#d5e2eb] bg-[#f3f7fa] p-3 text-sm">
-            <dt className="font-semibold">Deposit receipt attached</dt>
+            <dt className="font-semibold">{manual ? "Deposit receipt attached · Awaiting approval" : "Deposit receipt attached"}</dt>
             <dd className="mt-1 break-all text-ink/75">{record.depositProofName}</dd>
-          </dl> : acceptsDepositProof(record.paymentMethod) && <form className="mt-4 space-y-3" onSubmit={event => {
+          </dl> : manual && <form className="mt-4 space-y-3" onSubmit={event => {
             event.preventDefault();
             if (depositProof && !attachProof.isPending) attachProof.mutate(depositProof);
           }}>
-            <DepositProofField file={depositProof} disabled={attachProof.isPending} optional onChange={file => {
+            <p className="text-sm text-ink/75">{record.paymentMethod === "office_cash"
+              ? "Use this reference at the office, then upload the receipt so we can verify your deposit."
+              : "Get the bank deposit details from New World Cargo, then upload your receipt for verification."}</p>
+            <DepositProofField file={depositProof} disabled={attachProof.isPending} onChange={file => {
               setDepositProof(file);
               attachProof.reset();
             }} />
             {proofError && <p className="text-sm text-red-700" role="alert">{proofError}</p>}
             {depositProof && <button className={primaryPaymentAction} disabled={attachProof.isPending}>
-              {attachProof.isPending ? "Uploading receipt…" : "Save receipt"}
+              {attachProof.isPending ? "Uploading receipt…" : "Submit deposit proof"}
             </button>}
           </form>}
-          {record.status === "under_review" && <p className="mt-3 text-sm text-ink/75">We’ll contact you with your confirmed quote and payment instructions.</p>}
+          {canOpenCheckout && <button type="button" className={primaryPaymentAction + " mt-4"} onClick={() => setCheckoutOpen(true)}>{paymentLabel}<ArrowRight className="size-4" aria-hidden="true" /></button>}
+          {online && !canOpenCheckout && <p className="mt-4 text-sm text-ink/75" role="status">{quote
+            ? "Online payment is unavailable for this method or currency. Contact us to arrange payment."
+            : "We’ll confirm the rate before you can pay."}</p>}
+          {record.fundingConfirmed && record.status !== "paid" && <p className="mt-4 text-sm text-ink/75" role="status">We’ve received your payment. We’ll update this transfer when your supplier confirms receipt.</p>}
+          {isRequest && !online && !manual && <p className="mt-3 text-sm text-ink/75">We’ll contact you with your confirmed quote and payment instructions.</p>}
+          {canOpenCheckout && <PaymentModal
+            open={checkoutOpen}
+            amount={moneyText(quote.currency, quote.total)}
+            reference={record.reference}
+            supplierCheckout={{
+              reference,
+              quoteToken: quote.token,
+              amount: { currency: quote.currency, amountMinor: Math.round(Number(quote.total) * 100) },
+              methods: record.paymentMethods ?? [],
+              refreshQuote: () => { void details.refetch(); },
+            }}
+            onClose={() => setCheckoutOpen(false)}
+            onSuccess={() => { setCheckoutOpen(false); void details.refetch(); }}
+            actionClassName={primaryPaymentAction + " w-full"}
+          />}
         </>}
       </div>
     </div>;
@@ -167,7 +204,7 @@ export default function SupplierTransfers({ reference }: { reference?: string })
               <p className="text-xs text-ink/75">{record.status === "under_review" ? "Requested amount" : "Total funds"}</p>
             </div>
             <span className="col-start-2 row-start-2 flex items-center justify-end gap-2 sm:col-start-auto sm:row-start-auto">
-              <StatusBadge status={record.status} />
+              <StatusBadge status={record.status} fundingConfirmed={record.fundingConfirmed} />
               <span className="hidden size-8 shrink-0 place-items-center rounded-lg border border-[#dce6ee] bg-[#f2f6fa] text-ink group-hover:bg-[#e5eef5] sm:grid"><ArrowRight className="size-4" aria-hidden="true" /></span>
             </span>
           </Link>
