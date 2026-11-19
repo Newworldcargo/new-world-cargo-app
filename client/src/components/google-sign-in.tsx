@@ -8,7 +8,13 @@ type GoogleIdentity = {
     callback: (response: { credential?: string }) => void;
   }) => void;
   renderButton: (container: HTMLElement, options: {
-    theme: "outline"; size: "large"; text: "continue_with"; width: number;
+    theme: "outline";
+    size: "large";
+    text: "continue_with";
+    shape: "pill";
+    logo_alignment: "center";
+    locale: "en";
+    width: number;
   }) => void;
 };
 
@@ -59,6 +65,7 @@ export function GoogleSignIn({ onCredential, loading }: {
   useEffect(() => { callback.current = onCredential; }, [onCredential]);
 
   useEffect(() => {
+    let observer: ResizeObserver | undefined;
     const controller = new AbortController();
     const container = button.current;
     setFailed(false);
@@ -73,16 +80,38 @@ export function GoogleSignIn({ onCredential, loading }: {
             if (credential && !controller.signal.aborted) callback.current(credential);
           },
         });
-        google.renderButton(container, {
-          theme: "outline", size: "large", text: "continue_with", width: Math.min(400, container.clientWidth),
-        });
+        let renderedWidth = 0;
+        const renderButton = () => {
+          const width = Math.min(400, container.clientWidth);
+          if (width <= 0 || width === renderedWidth) return;
+          renderedWidth = width;
+          container.replaceChildren();
+          google.renderButton(container, {
+            theme: "outline",
+            size: "large",
+            text: "continue_with",
+            shape: "pill",
+            logo_alignment: "center",
+            locale: "en",
+            width,
+          });
+        };
+        renderButton();
+        observer = new ResizeObserver(renderButton);
+        observer.observe(container);
       })
       .catch(() => { if (!controller.signal.aborted) setFailed(true); });
-    return () => { controller.abort(); container?.replaceChildren(); };
+    return () => { controller.abort(); observer?.disconnect(); container?.replaceChildren(); };
   }, [attempt]);
 
   return <div className="grid gap-2 text-center text-sm" aria-busy={loading}>
-    <div ref={button} className={loading ? "mx-auto w-full pointer-events-none opacity-50" : "mx-auto w-full"} inert={loading} />
+    <div className="flex h-12 items-start justify-center">
+      <div
+        ref={button}
+        className={`flex w-5/6 max-w-[400px] origin-top scale-[1.2] justify-center ${loading ? "pointer-events-none opacity-50" : ""}`}
+        inert={loading}
+      />
+    </div>
     {loading && <p role="status">Signing in with Google…</p>}
     {failed && <button type="button" className="min-h-11 underline" onClick={() => setAttempt(current => current + 1)}>Retry Google sign-in</button>}
   </div>;
