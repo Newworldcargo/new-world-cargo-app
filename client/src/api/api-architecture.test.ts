@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fileUploadIntentInputSchema, paymentIntentInputSchema, shipmentDtoSchema, supportCaseInputSchema, uploadedFileDtoSchema, walletDtoSchema } from "./contracts";
+import { shipmentToViewModel } from "./mappers";
 import { customerPortalRepository, portalDataMode } from "./repository";
 
 describe("customer portal API architecture", () => {
@@ -22,6 +23,23 @@ describe("customer portal API architecture", () => {
     expect(parsed.success).toBe(true);
     expect(shipmentDtoSchema.safeParse({ ...parsed.data, customerId: undefined }).success).toBe(false);
     expect(shipmentDtoSchema.safeParse({ ...parsed.data, revision: undefined }).success).toBe(false);
+  });
+
+  it("shows a usable shipment when a legacy route has missing addresses", () => {
+    const shipment = shipmentDtoSchema.parse({
+      id: "shipment-1", customerId: "customer-1", trackingNumber: "NWC-1",
+      carrier: "New World Cargo", transportMode: "air", packageName: "Cargo",
+      origin: " Lusaka, Zambia ", destination: null, etaAt: null,
+      etaLabel: "Pending", status: "in_transit", statusLabel: "In transit",
+      price: { currency: "ZMW", amountMinor: 0 }, progress: 20,
+      events: [], allowedActions: [], revision: 1,
+    });
+    expect(shipmentToViewModel(shipment)).toMatchObject({
+      origin: "Lusaka, Zambia", destination: "Destination unavailable",
+    });
+    expect(shipmentToViewModel({ ...shipment, origin: undefined, destination: "  " })).toMatchObject({
+      origin: "Origin unavailable", destination: "Destination unavailable",
+    });
   });
 
   it("requires idempotency keys for payment, upload, and support writes", () => {
