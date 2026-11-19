@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
 import { StatusBadge, supplierMethodLabels, type SupplierPaymentRecord } from "@/components/supplier-payment-record";
 import { supplierDetailsPath, suppliersPath, supplierWizardPath } from "@/lib/payment-routes";
+import { paymentPageClass, paymentSurfaceClass, primaryPaymentAction, secondaryPaymentAction } from "@/lib/payment-presentation";
 import { useAuth } from "@/contexts/AuthContext";
 import "./supplier-payments.css";
 import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SupplierPaymentMethod, type SupplierPaymentStep } from "@/lib/supplier-payment-draft";
@@ -17,9 +18,7 @@ import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentRetur
 type SavedSupplier = { id: string; name: string; email: string | null };
 
 const inputClass = "h-12 rounded-xl border-ink/20 bg-white text-base md:text-base";
-const primaryClass = "h-12 gap-2 rounded-xl bg-[#012642] px-5 font-semibold text-[#fff]! hover:bg-[#143e57] disabled:opacity-45";
-const secondaryClass = "h-12 gap-2 rounded-xl border-ink/20 px-5 font-semibold";
-const panel = "min-w-0 rounded-[1.5rem] border border-ink/10 bg-white p-4 shadow-sm sm:p-8";
+const panel = paymentSurfaceClass + " p-4 sm:p-7";
 const field = "grid min-w-0 gap-1.5 text-sm font-semibold";
 const money = new Intl.NumberFormat("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const currencies = {
@@ -257,16 +256,16 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
     </fieldset>
   );
 
-  return <div data-keyboard-open={keyboardOpen || undefined} className={dashboard ? "text-ink" : `supplier-payments mx-auto max-w-6xl text-ink sm:px-8 sm:pb-12 sm:pt-6 ${!result ? "supplier-payments--wizard" : ""}`}>
+  return <div data-payments-page={dashboard ? undefined : true} data-keyboard-open={keyboardOpen || undefined} className={dashboard ? "text-ink" : `supplier-payments ${paymentPageClass} max-sm:w-auto sm:pb-8 ${!result ? "supplier-payments--wizard" : ""}`}>
     {dashboard ? <>
       <PaymentBreadcrumb current="Supplier Payments" />
-      <h1 className="text-3xl font-bold sm:text-4xl">Pay a supplier</h1>
+      <h1 className="font-heading text-3xl font-extrabold sm:text-4xl">Pay a supplier</h1>
       <p className="mt-2 text-sm text-ink/75 sm:text-base">Estimate your transfer and request a quote.</p>
     </> : <>
       <div className="hidden sm:block"><PaymentBreadcrumb current="New request" supplierChild /></div>
       <header className="flex items-center gap-2">
         <Link href={suppliersPath} aria-label="Back to Supplier Payments" className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-ink sm:hidden"><ChevronLeft className="size-5" aria-hidden="true" /></Link>
-        <h1 className="text-[1.65rem] font-bold sm:text-[clamp(1.7rem,4vw,2.6rem)]">Pay a Supplier</h1>
+        <h1 className="font-heading text-[1.65rem] font-extrabold sm:text-4xl">Pay a Supplier</h1>
       </header>
       <nav aria-label="Supplier payment views" className="mt-3 inline-flex gap-0.5 rounded-2xl bg-[#dfeaf2] p-1 sm:hidden">
         <Link href={supplierWizardPath} aria-current="page" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-3 text-sm font-bold shadow-sm"><ArrowUpRight className="size-4" aria-hidden="true" />Exchange</Link>
@@ -274,8 +273,8 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
       </nav>
     </>}
     <div className={dashboard ? "mt-4 sm:mt-5" : "mt-5 sm:mt-7"}>
-        <div className={dashboard ? "" : "mx-auto max-w-2xl"}>
-          <section className={dashboard ? undefined : panel + " supplier-wizard-card max-sm:rounded-[1.75rem]"} aria-labelledby="quote-heading">
+        <section className={dashboard ? undefined : panel + " supplier-wizard-card max-sm:rounded-[1.75rem]"} aria-labelledby="quote-heading">
+          <div className={dashboard ? undefined : "mx-auto max-w-3xl"}>
             {!dashboard && <header className={`mb-4 sm:mb-6 ${!result && step === "transfer" ? "max-sm:sr-only" : ""}`}>
               {result && <div className="mb-4 grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-800"><CheckCircle2 className="size-6" aria-hidden="true" /></div>}
               <h2 ref={heading} id="quote-heading" tabIndex={-1} className="scroll-mt-24 text-xl font-bold focus:outline-none sm:text-[1.75rem]">
@@ -290,11 +289,11 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                 <StatusBadge status={result.status} />
               </div>
               <div className="mt-6 grid gap-2.5 sm:flex sm:justify-end">
-                <Button type="button" variant="outline" className={secondaryClass} onClick={newRequest}><Plus className="size-4" /> New request</Button>
-                <Button asChild className={primaryClass}><Link href={supplierDetailsPath(result.reference)}>View request <ArrowRight className="size-4" /></Link></Button>
+                <Button type="button" variant="outline" className={secondaryPaymentAction} onClick={newRequest}><Plus className="size-4" /> New request</Button>
+                <Button asChild className={primaryPaymentAction}><Link href={supplierDetailsPath(result.reference)}>View request <ArrowRight className="size-4" /></Link></Button>
               </div>
             </> : step === "transfer" ? <form key="transfer" className={dashboard ? "grid items-start gap-3.5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] lg:gap-4" : "supplier-wizard-stage"} onSubmit={continueTransfer} noValidate>
-              <div className={dashboard ? "min-w-0 rounded-3xl border border-ink/10 bg-white p-4 shadow-sm sm:p-5" : "min-w-0"}>
+              <div className={dashboard ? paymentSurfaceClass + " p-4 sm:p-5" : "min-w-0"}>
                 {dashboard && <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h2 id="quote-heading" className="text-lg font-bold sm:text-xl">International transfer</h2>
                   <span className="rounded-full bg-[#edf3f8] px-2.5 py-1 text-xs font-semibold text-ink">Quote-based</span>
@@ -321,7 +320,7 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                 </div>
                 {dashboard && routePicker}
               </div>
-              <div className={dashboard ? "min-w-0 rounded-3xl border border-ink/10 bg-white p-4 shadow-sm sm:p-5" : "min-w-0"}>
+              <div className={dashboard ? paymentSurfaceClass + " p-4 sm:p-5" : "min-w-0"}>
                 {dashboard ? <h2 className="text-lg font-bold sm:text-xl">Estimated bill</h2> : routePicker}
                 <dl className={dashboard ? "mt-3 space-y-2 text-sm" : "mt-4 border-t border-ink/10 pt-3 text-sm sm:mt-5 sm:pt-4"}>
                   {dashboard && <div className="flex flex-wrap justify-between gap-x-2 gap-y-1">
@@ -337,9 +336,9 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                   </div>
                 </dl>
                 <div className={dashboard ? "mt-3" : "supplier-wizard-actions mt-5"}>
-                  {dashboard && locked ? <Button asChild className={primaryClass + " w-full"}>
+                  {dashboard && locked ? <Button asChild className={primaryPaymentAction + " w-full"}>
                     <Link href={supplierWizardPath}>Resume quote request <ArrowRight className="size-4" /></Link>
-                  </Button> : <Button className={primaryClass + " w-full"} disabled={!amountValid}>Continue to supplier <ArrowRight className="size-4" /></Button>}
+                  </Button> : <Button className={primaryPaymentAction + " w-full"} disabled={!amountValid}>Continue to supplier <ArrowRight className="size-4" /></Button>}
                 </div>
                 {dashboard && <p className="mt-2 text-xs text-ink/75">Your quote will confirm the rate, fees and total.</p>}
               </div>
@@ -390,8 +389,8 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
                 </label>
               </div>
               <div className="supplier-wizard-actions mt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 sm:flex sm:justify-between">
-                <Button type="button" variant="outline" className={secondaryClass} onClick={() => goTo("transfer")}><ChevronLeft className="size-4" /> Back</Button>
-                <Button className={primaryClass + " px-2 sm:px-5"} disabled={!supplierValid}>Continue to review <ArrowRight className="size-4" /></Button>
+                <Button type="button" variant="outline" className={secondaryPaymentAction} onClick={() => goTo("transfer")}><ChevronLeft className="size-4" /> Back</Button>
+                <Button className={primaryPaymentAction + " px-2 sm:px-5"} disabled={!supplierValid}>Continue to review <ArrowRight className="size-4" /></Button>
               </div>
             </form> : <div key="review" className="supplier-wizard-stage">
               <div className="flex flex-wrap items-baseline justify-between gap-2 rounded-xl bg-[#edf3f6] p-4">
@@ -421,16 +420,16 @@ export default function SupplierPayments({ dashboard = false }: { dashboard?: bo
               </div>
               <p className="mt-4 flex items-start gap-2 rounded-xl bg-[#f3f6f8] p-3 text-sm text-ink/75"><ShieldCheck className="size-4 shrink-0" aria-hidden="true" /> We’ll confirm your rate and fees before you pay.</p>
               <div className="supplier-wizard-actions mt-5 flex gap-2.5 sm:justify-between">
-                {!locked && <Button type="button" aria-label="Back to supplier" variant="outline" className={secondaryClass} disabled={submitting} onClick={() => goTo("supplier")}><ChevronLeft className="size-4" /><span className="sm:hidden">Back</span><span className="hidden sm:inline">Back to supplier</span></Button>}
-                <Button type="button" className={primaryClass + " min-w-0 flex-1 px-2 sm:ml-auto sm:flex-none sm:px-5"} disabled={submitting} onClick={submit}>
+                {!locked && <Button type="button" aria-label="Back to supplier" variant="outline" className={secondaryPaymentAction} disabled={submitting} onClick={() => goTo("supplier")}><ChevronLeft className="size-4" /><span className="sm:hidden">Back</span><span className="hidden sm:inline">Back to supplier</span></Button>}
+                <Button type="button" className={primaryPaymentAction + " min-w-0 flex-1 px-2 sm:ml-auto sm:flex-none sm:px-5"} disabled={submitting} onClick={submit}>
                   {submitting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
                   {submitting ? "Requesting quote…" : locked ? "Retry request" : "Request Quote"}
                   {!submitting && <ArrowRight className="size-4" aria-hidden="true" />}
                 </Button>
               </div>
             </div>}
-          </section>
-        </div>
+          </div>
+        </section>
     </div>
   </div>;
 }

@@ -10,14 +10,16 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 export type PaymentMethodKind = "mobile_money" | "card";
 export type PaymentConfirmation = { kind: PaymentMethodKind; label: string };
 type PaymentModalProps = {
+  actionClassName?: string;
   open: boolean; amount: string; reference: string; invoiceId?: string; unavailableMessage?: string;
   onClose: () => void; onSuccess: (payment: PaymentConfirmation) => void;
 };
 
 const inputClass = "mt-1 h-11 w-full rounded-lg border border-ink/25 bg-white px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-cargo-yellow";
-const actionClass = "flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-cargo-yellow px-4 py-3 text-sm font-bold text-ink hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+const defaultActionClass = "flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-cargo-yellow px-4 py-3 text-sm font-bold text-ink hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
-export function PaymentModal({ open, amount, reference, invoiceId, unavailableMessage, onClose, onSuccess }: PaymentModalProps) {
+export function PaymentModal({ open, amount, reference, invoiceId, unavailableMessage, onClose, onSuccess, actionClassName }: PaymentModalProps) {
+  const actionClass = actionClassName ?? defaultActionClass;
   const [method, setMethod] = useState<PaymentMethodKind>("mobile_money");
   const [phone, setPhone] = useState("");
   const [billing, setBilling] = useState({ firstName: "", lastName: "", email: "", city: "", country: "ZM", address: "", zip: "" });
