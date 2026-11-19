@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import "./supplier-payments.css";
 import { clearSupplierForm, clearSupplierPaymentDraft, clearSupplierPaymentReturn, isSupplierAmount, readSupplierForm, readSupplierPaymentDraft, rememberSupplierForm, supplierCurrencies, supplierCurrencyForRoute, type SupplierPaymentMethod, type SupplierPaymentStep } from "@/lib/supplier-payment-draft";
 
 type PaymentRequest = { reference: string; supplierName: string; route: string; currency: string; amount: string; receivingCurrency?: string; createdAt?: string; paymentMethod?: SupplierPaymentMethod | null; status: "under_review" | "pending_confirmation" | "paid" };
@@ -89,6 +90,22 @@ function CurrencyPicker({ label, value, onChange }: { label: string; value: stri
   </Select>;
 }
 
+function useMobileKeyboard() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => {
+      // The keyboard shrinks the visual viewport while the layout viewport stays in place.
+      setOpen(viewport.scale === 1 && window.innerHeight - viewport.height > 120);
+    };
+    viewport.addEventListener("resize", update);
+    update();
+    return () => viewport.removeEventListener("resize", update);
+  }, []);
+  return open;
+}
+
 function StatusBadge({ status }: { status: PaymentRequest["status"] }) {
   const display = statuses[status];
   if (!display) return null;
@@ -108,6 +125,7 @@ function SummaryRows({ rows }: { rows: string[][] }) {
 
 export default function SupplierPayments() {
   const { user } = useAuth();
+  const keyboardOpen = useMobileKeyboard();
   const [estimate] = useState(readSupplierPaymentDraft);
   const [savedForm] = useState(() => readSupplierForm(user?.id));
   const [payment, setPayment] = useState(savedForm?.payment ?? {
@@ -252,31 +270,31 @@ export default function SupplierPayments() {
     goTo("transfer");
   }
 
-  return <div className="mx-auto max-w-6xl px-4 pb-12 pt-6 text-ink sm:px-8 sm:pt-10">
+  return <div data-keyboard-open={keyboardOpen || undefined} className={`supplier-payments mx-auto max-w-6xl text-ink sm:px-8 sm:pb-12 sm:pt-10 ${tab === "quote" && !result ? "supplier-payments--wizard" : ""}`}>
     <header>
-      <h1 className="text-[clamp(1.7rem,4vw,2.6rem)] font-bold">Supplier payments</h1>
+      <h1 className="text-[1.65rem] font-bold sm:text-[clamp(1.7rem,4vw,2.6rem)]">Supplier payments</h1>
     </header>
-    <Tabs value={tab} onValueChange={selectTab} className="mt-5 gap-0">
-      <TabsList aria-label="Supplier payment views" className="h-auto w-full justify-start gap-4 rounded-none border-b border-ink/10 bg-transparent p-0 sm:gap-7">
-        <TabsTrigger value="quote" className="relative min-h-11 flex-none rounded-none border-0 px-1 text-ink/65 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:font-bold data-[state=active]:text-ink data-[state=active]:shadow-none data-[state=active]:after:bg-[#012642]">
-          <ArrowUpRight className="size-4" aria-hidden="true" /> Request a quote
+    <Tabs value={tab} onValueChange={selectTab} className="mt-3 gap-0 sm:mt-5">
+      <TabsList aria-label="Supplier payment views" className="h-auto w-fit justify-start gap-0.5 rounded-2xl bg-[#dfeaf2] p-1 sm:w-full sm:gap-7 sm:rounded-none sm:border-b sm:border-ink/10 sm:bg-transparent sm:p-0">
+        <TabsTrigger value="quote" className="relative min-h-11 flex-none rounded-xl border-0 px-3 text-ink/75 data-[state=active]:bg-white data-[state=active]:font-bold data-[state=active]:text-ink sm:rounded-none sm:px-1 sm:after:absolute sm:after:inset-x-0 sm:after:-bottom-px sm:after:h-0.5 sm:data-[state=active]:bg-transparent sm:data-[state=active]:shadow-none sm:data-[state=active]:after:bg-[#012642]">
+          <ArrowUpRight className="size-4" aria-hidden="true" /><span className="sm:hidden">Exchange</span><span className="hidden sm:inline">Request a quote</span>
         </TabsTrigger>
-        <TabsTrigger value="transfers" className="relative min-h-11 flex-none rounded-none border-0 px-1 text-ink/65 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 data-[state=active]:bg-transparent data-[state=active]:font-bold data-[state=active]:text-ink data-[state=active]:shadow-none data-[state=active]:after:bg-[#012642]">
+        <TabsTrigger value="transfers" className="relative min-h-11 flex-none rounded-xl border-0 px-3 text-ink/75 data-[state=active]:bg-white data-[state=active]:font-bold data-[state=active]:text-ink sm:rounded-none sm:px-1 sm:after:absolute sm:after:inset-x-0 sm:after:-bottom-px sm:after:h-0.5 sm:data-[state=active]:bg-transparent sm:data-[state=active]:shadow-none sm:data-[state=active]:after:bg-[#012642]">
           <History className="size-4" aria-hidden="true" /> Transfers
         </TabsTrigger>
       </TabsList>
-      <TabsContent value="quote" className="mt-6 sm:mt-9">
+      <TabsContent value="quote" className="mt-5 sm:mt-9">
         <div className="mx-auto max-w-2xl">
-          {!result && <ol aria-label="Request progress" className="mb-5 grid grid-cols-3 gap-2 sm:mb-7 sm:gap-4">
+          {!result && <ol aria-label="Request progress" className="mb-4 grid grid-cols-3 gap-2 sm:mb-7 sm:gap-4">
             {steps.map((item, index) => <li key={item.id} aria-current={item.id === step ? "step" : undefined} className={`relative flex min-w-0 items-center gap-1.5 pt-3 text-xs before:absolute before:inset-x-0 before:top-0 before:h-0.5 sm:gap-2 sm:pt-4 sm:text-sm ${index <= currentStep ? "text-ink before:bg-[#012642]" : "text-ink/60 before:bg-ink/10"}`}>
               <span className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-medium ${item.id === step ? "bg-[#012642] text-[#fff]" : "bg-[#f1f4f6]"}`} aria-hidden="true">{index < currentStep ? <Check className="size-3.5" /> : index + 1}</span>
               <span className={item.id === step ? "font-bold" : "font-medium"}>{item.label}</span>
             </li>)}
           </ol>}
-          <section className={panel} aria-labelledby="quote-heading">
-            <header className="mb-5 sm:mb-6">
+          <section className={panel + " supplier-wizard-card max-sm:rounded-[1.75rem]"} aria-labelledby="quote-heading">
+            <header className={`mb-4 sm:mb-6 ${!result && step === "transfer" ? "max-sm:sr-only" : ""}`}>
               {result && <div className="mb-4 grid size-12 place-items-center rounded-full bg-emerald-50 text-emerald-800"><CheckCircle2 className="size-6" aria-hidden="true" /></div>}
-              <h2 ref={heading} id="quote-heading" tabIndex={-1} className="text-2xl font-bold focus:outline-none sm:text-[1.75rem]">
+              <h2 ref={heading} id="quote-heading" tabIndex={-1} className="scroll-mt-24 text-xl font-bold focus:outline-none sm:text-[1.75rem]">
                 {result ? "Quote request received" : steps[currentStep].title}
               </h2>
               {result && <p className="mt-2 text-sm text-ink/70">We’ll review your request and contact you with the confirmed quote and payment instructions.</p>}
@@ -294,39 +312,41 @@ export default function SupplierPayments() {
                   requestAnimationFrame(() => transfersHeading.current?.focus());
                 }}>View transfers <ArrowRight className="size-4" /></Button>
               </div>
-            </> : step === "transfer" ? <form onSubmit={continueTransfer} noValidate>
-              <div className="flex min-w-0 items-center gap-2 rounded-xl border border-transparent bg-[#f3f6f8] px-3 py-3 focus-within:border-ink/35 sm:gap-4 sm:px-4">
+            </> : step === "transfer" ? <form key="transfer" className="supplier-wizard-stage" onSubmit={continueTransfer} noValidate>
+              <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-transparent bg-[#edf3f8] px-3 py-2.5 sm:rounded-xl sm:py-3 focus-within:border-ink/35 sm:gap-4 sm:px-4">
                 <label className="grid min-w-0 flex-1 gap-1 text-sm font-medium text-ink/75">Amount to send
-                  <input required inputMode="decimal" maxLength={13} aria-invalid={Boolean(touched.amount && !amountValid)} aria-describedby={touched.amount && !amountValid ? "quote-amount-error" : undefined} className="w-full min-w-0 rounded-sm bg-transparent py-0.5 text-2xl font-bold tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/75 sm:text-3xl" placeholder="0.00" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} onBlur={() => markTouched("amount")} />
+                  <input required inputMode="decimal" maxLength={13} aria-invalid={Boolean(touched.amount && !amountValid)} aria-describedby={touched.amount && !amountValid ? "quote-amount-error" : undefined} className="w-full min-w-0 rounded-sm bg-transparent py-0.5 text-[1.75rem] font-bold tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/75 sm:text-3xl" placeholder="0.00" value={payment.amount} onChange={e => setPayment({ ...payment, amount: e.target.value })} onBlur={() => markTouched("amount")} />
                 </label>
                 <CurrencyPicker label="Sending currency" value={payment.currency} onChange={currency => setPayment({ ...payment, currency })} />
               </div>
               {touched.amount && !amountValid && <p id="quote-amount-error" className="mt-2 text-sm text-red-700">Enter an amount greater than zero, with up to two decimal places.</p>}
-              <div className="ml-5 flex min-h-11 items-center gap-2 border-l border-dashed border-ink/25 pl-3 text-xs font-medium text-ink/75 sm:ml-6" role="status">
+              <div className="ml-5 flex min-h-9 items-center sm:min-h-11 gap-2 border-l border-dashed border-ink/25 pl-3 text-xs font-medium text-ink/75 sm:ml-6" role="status">
                 <ArrowDown className="size-3.5 shrink-0" aria-hidden="true" />
                 {rate ? `Estimated rate: 1 ${payment.currency} = ${Number(rate).toLocaleString("en-ZM", { maximumFractionDigits: 12 })} ${payment.supplier_currency}` : rates.isPending ? "Checking exchange rate…" : "Exchange rate awaiting quote"}
               </div>
-              <div className="flex min-w-0 items-center gap-2 rounded-xl border border-transparent bg-[#f3f6f8] px-3 py-3 sm:gap-4 sm:px-4">
+              <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-transparent bg-[#edf3f8] px-3 py-2.5 sm:rounded-xl sm:py-3 sm:gap-4 sm:px-4">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-ink/75" id="receiving-amount-label">Supplier receives</p>
-                  <output aria-labelledby="receiving-amount-label" className="block break-words pt-1 text-2xl font-bold tabular-nums sm:text-3xl">{amountValid ? receivingAmount ?? "—" : "0.00"}</output>
+                  <output aria-labelledby="receiving-amount-label" className={`block break-words pt-0.5 font-bold tabular-nums ${amountValid && !receivingAmount ? "text-base" : "text-[1.75rem] sm:text-3xl"}`}>{amountValid ? receivingAmount ?? "Awaiting quote" : "0.00"}</output>
                 </div>
                 <CurrencyPicker label="Receiving currency" value={payment.supplier_currency} onChange={supplier_currency => setPayment({ ...payment, supplier_currency })} />
               </div>
-              <fieldset className="mt-5">
+              <fieldset className="mt-4 sm:mt-5">
                 <legend className="mb-2 text-sm font-semibold">Payment route</legend>
                 <div className="grid grid-cols-2 gap-2.5">
                   {["China", "Dubai"].map(route => <label key={route} className={`flex min-h-12 cursor-pointer items-center justify-between gap-2 rounded-xl border px-3 text-sm font-semibold focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink sm:px-4 ${payment.route === route ? "border-[#012642] bg-[#eef4f7]" : "border-ink/15 hover:bg-ink/5"}`}>
-                    {route}<input className="size-4 shrink-0 accent-[#012642]" type="radio" name="payment-route" value={route} checked={payment.route === route} onChange={() => selectRoute(route)} />
+                    <span className="flex items-center gap-2"><CurrencyFlag code={supplierCurrencyForRoute(route) === "CNY" ? "CNY" : "AED"} />{route}</span><input className="size-4 shrink-0 accent-[#012642]" type="radio" name="payment-route" value={route} checked={payment.route === route} onChange={() => selectRoute(route)} />
                   </label>)}
                 </div>
               </fieldset>
-              <dl className="mt-5 border-t border-ink/10 pt-4 text-sm">
-                <div className="flex flex-wrap justify-between gap-2"><dt className="text-ink/75">Estimated {feeLabel.toLowerCase()}</dt><dd className="font-medium tabular-nums">{estimatedFee}</dd></div>
-                <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1"><dt className="font-semibold">Estimated total payable</dt><dd className="text-xl font-bold tabular-nums sm:text-2xl">{estimatedTotal}</dd></div>
+              <dl className="mt-4 border-t border-ink/10 pt-3 text-sm sm:mt-5 sm:pt-4">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2"><dt className="text-ink/75">Estimated {feeLabel.toLowerCase()}</dt><dd className="text-right font-medium tabular-nums">{estimatedFee}</dd></div>
+                <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2"><dt className="font-semibold"><span className="sm:hidden">Estimated total</span><span className="hidden sm:inline">Estimated total payable</span></dt><dd className="text-right text-lg font-bold tabular-nums sm:text-2xl">{estimatedTotal}</dd></div>
               </dl>
-              <Button className={primaryClass + " mt-5 w-full"} disabled={!amountValid}>Continue to supplier <ArrowRight className="size-4" /></Button>
-            </form> : step === "supplier" ? <form onSubmit={review} noValidate>
+              <div className="supplier-wizard-actions mt-5">
+                <Button className={primaryClass + " w-full"} disabled={!amountValid}>Continue to supplier <ArrowRight className="size-4" /></Button>
+              </div>
+            </form> : step === "supplier" ? <form key="supplier" className="supplier-wizard-stage" onSubmit={review} noValidate>
               <div className="grid gap-4">
                 <div className="grid gap-1.5">
                   <label htmlFor="saved-supplier" className="text-sm font-semibold">Supplier</label>
@@ -372,11 +392,11 @@ export default function SupplierPayments() {
                   <textarea maxLength={600} rows={2} className="min-h-16 rounded-xl border border-ink/20 px-3 py-2 text-base font-normal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" placeholder="Add a note for our team" value={supplier.notes} onChange={e => updateSupplier("notes", e.target.value)} />
                 </label>
               </div>
-              <div className="mt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 sm:flex sm:justify-between">
+              <div className="supplier-wizard-actions mt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 sm:flex sm:justify-between">
                 <Button type="button" variant="outline" className={secondaryClass} onClick={() => goTo("transfer")}><ChevronLeft className="size-4" /> Back</Button>
                 <Button className={primaryClass + " px-2 sm:px-5"} disabled={!supplierValid}>Continue to review <ArrowRight className="size-4" /></Button>
               </div>
-            </form> : <>
+            </form> : <div key="review" className="supplier-wizard-stage">
               <div className="flex flex-wrap items-baseline justify-between gap-2 rounded-xl bg-[#edf3f6] p-4">
                 <span className="text-sm font-semibold">Estimated total payable</span><span className="text-xl font-bold tabular-nums sm:text-2xl">{estimatedTotal}</span>
               </div>
@@ -403,19 +423,19 @@ export default function SupplierPayments() {
                 </div>
               </div>
               <p className="mt-4 flex items-start gap-2 rounded-xl bg-[#f3f6f8] p-3 text-sm text-ink/75"><ShieldCheck className="size-4 shrink-0" aria-hidden="true" /> We’ll confirm your rate and fees before you pay.</p>
-              <div className="mt-5 grid gap-2.5 sm:flex sm:justify-between">
-                {!locked && <Button type="button" variant="outline" className={secondaryClass} disabled={submitting} onClick={() => goTo("supplier")}><ChevronLeft className="size-4" /> Back to supplier</Button>}
-                <Button type="button" className={primaryClass + " sm:ml-auto"} disabled={submitting} onClick={submit}>
+              <div className="supplier-wizard-actions mt-5 flex gap-2.5 sm:justify-between">
+                {!locked && <Button type="button" aria-label="Back to supplier" variant="outline" className={secondaryClass} disabled={submitting} onClick={() => goTo("supplier")}><ChevronLeft className="size-4" /><span className="sm:hidden">Back</span><span className="hidden sm:inline">Back to supplier</span></Button>}
+                <Button type="button" className={primaryClass + " min-w-0 flex-1 px-2 sm:ml-auto sm:flex-none sm:px-5"} disabled={submitting} onClick={submit}>
                   {submitting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
                   {submitting ? "Requesting quote…" : locked ? "Retry request" : "Request Quote"}
                   {!submitting && <ArrowRight className="size-4" aria-hidden="true" />}
                 </Button>
               </div>
-            </>}
+            </div>}
           </section>
         </div>
       </TabsContent>
-      <TabsContent value="transfers" className="mt-6 sm:mt-9">
+      <TabsContent value="transfers" className="mt-5 sm:mt-9">
         <section aria-labelledby="transfers-heading" className={panel}>
           <header className="flex items-center gap-3">
             <h2 ref={transfersHeading} id="transfers-heading" tabIndex={-1} className="text-xl font-bold focus:outline-none">Recent transfers</h2>
