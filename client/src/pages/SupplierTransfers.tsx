@@ -1,4 +1,5 @@
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiRequest } from "@/api/http";
@@ -7,7 +8,8 @@ import { ContentSkeleton } from "@/components/loading-skeleton";
 import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
 import { StatusBadge, supplierMethodLabels, type SupplierPaymentRecord } from "@/components/supplier-payment-record";
 import { useAuth } from "@/contexts/AuthContext";
-import { supplierDetailsPath, supplierWizardPath } from "@/lib/payment-routes";
+import { supplierDetailsPath } from "@/lib/payment-routes";
+import SupplierPayments from "./SupplierPayments";
 
 const money = new Intl.NumberFormat("en-ZM", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const date = new Intl.DateTimeFormat("en-ZM", { dateStyle: "medium", timeZone: "Africa/Lusaka" });
@@ -20,10 +22,24 @@ function paymentAmount(record: SupplierPaymentRecord) {
   return `${record.currency} ${money.format(Number(record.amount))}`;
 }
 
+const statusOptions = [
+  { value: "all", label: "All statuses" },
+  { value: "under_review", label: "Under review" },
+  { value: "pending_confirmation", label: "Pending confirmation" },
+  { value: "paid", label: "Paid" },
+] as const;
+
 const card = "rounded-3xl border border-ink/10 bg-white p-4 shadow-sm sm:p-6";
 
 export default function SupplierTransfers({ reference }: { reference?: string }) {
   const { user } = useAuth();
+  const [status, setStatus] = useState("all");
+  const transfersSection = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!reference && window.location.hash === "#transfers") {
+      transfersSection.current?.scrollIntoView({ block: "start" });
+    }
+  }, [reference]);
   const transfers = useQuery({
     queryKey: ["customer", user?.id, "supplier-payment-requests"],
     queryFn: () => apiRequest<SupplierPaymentRecord[]>("/supplier-payment-requests"),
@@ -71,20 +87,30 @@ export default function SupplierTransfers({ reference }: { reference?: string })
     </div>;
   }
 
+  const visibleTransfers = transfers.data?.filter(record => status === "all" || record.status === status) ?? [];
+
   return <div className="mx-auto max-w-5xl text-ink sm:py-4">
-    <PaymentBreadcrumb current="Supplier Payments" />
-    <header className="flex flex-wrap items-center justify-between gap-4">
-      <h1 className="text-3xl font-bold sm:text-4xl">Supplier Payments</h1>
-      <Link href={supplierWizardPath} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#012642] px-5 text-sm font-semibold text-[#fff]! hover:bg-[#143e57]"><Plus className="size-4" aria-hidden="true" />Pay a Supplier</Link>
-    </header>
-    <section className={card + " mt-6"} aria-labelledby="transfers-heading">
-      <h2 id="transfers-heading" className="text-xl font-bold">Recent transfers</h2>
+    <SupplierPayments dashboard />
+    <section id="transfers" ref={transfersSection} className={card + " mt-7 scroll-mt-24"} aria-labelledby="transfers-heading">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 id="transfers-heading" className="text-xl font-bold">Recent transfers</h2>
+          <p className="mt-1 text-sm text-ink/75">Payment requests and transfers</p>
+        </div>
+        <select aria-label="Filter transfers by status" value={status} onChange={event => setStatus(event.target.value)} className="min-h-11 max-w-full rounded-xl border border-ink/20 bg-white px-3 text-sm font-medium text-ink">
+          {statusOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </div>
       {transfers.isPending ? <ContentSkeleton label="Loading transfers" /> : transfers.isError ? <>
         <p role="status" className="mt-4 text-sm text-ink/75">We couldn’t load your transfers.</p>
         <button type="button" className="mt-2 min-h-11 font-semibold underline" onClick={() => void transfers.refetch()}>Try again</button>
-      </> : transfers.data?.length ? <ul className="mt-3 divide-y divide-ink/10">
-        {transfers.data.map(record => <li key={record.reference}>
-          <Link aria-label={`View ${record.reference} for ${record.supplierName}`} href={supplierDetailsPath(record.reference)} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-xl px-2 py-4 hover:bg-ink/5 sm:grid-cols-[minmax(0,1fr)_minmax(0,.75fr)_auto_auto]">
+      </> : visibleTransfers.length ? <>
+        <div aria-hidden="true" className="mt-5 hidden grid-cols-[minmax(0,1fr)_minmax(0,.8fr)_minmax(0,.65fr)_10rem] gap-3 border-b border-ink/10 px-2 pb-2 text-xs font-semibold text-ink/70 sm:grid">
+          <span>Supplier</span><span>Route</span><span className="text-right">Amount</span><span className="text-right">Status</span>
+        </div>
+        <ul className="mt-3 divide-y divide-ink/10 sm:mt-0">
+        {visibleTransfers.map(record => <li key={record.reference}>
+          <Link aria-label={`View ${record.reference} for ${record.supplierName}`} href={supplierDetailsPath(record.reference)} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-xl px-2 py-4 hover:bg-ink/5 sm:grid-cols-[minmax(0,1fr)_minmax(0,.8fr)_minmax(0,.65fr)_10rem]">
             <div className="min-w-0">
               <p className="break-words font-bold">{record.supplierName}</p>
               <p className="text-xs text-ink/75">{record.reference}</p>
@@ -103,7 +129,7 @@ export default function SupplierTransfers({ reference }: { reference?: string })
             </span>
           </Link>
         </li>)}
-      </ul> : <p role="status" className="mt-4 rounded-xl bg-[#f3f6f8] p-4 text-sm text-ink/75">Your quote requests and transfers will appear here.</p>}
+      </ul></> : <p role="status" className="mt-4 rounded-xl bg-[#f3f6f8] p-4 text-sm text-ink/75">{status === "all" ? "Your quote requests and transfers will appear here." : "No recent transfers match this status."}</p>}
     </section>
   </div>;
 }
