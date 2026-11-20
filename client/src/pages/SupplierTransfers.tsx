@@ -11,7 +11,7 @@ import { PaymentBreadcrumb } from "@/components/payment-breadcrumb";
 import { PaymentModal } from "@/components/payment-modal";
 import { StatusBadge, supplierMethodLabels, type SupplierPaymentRecord } from "@/components/supplier-payment-record";
 import { useAuth } from "@/contexts/AuthContext";
-import { supplierDetailsPath } from "@/lib/payment-routes";
+import { supplierPaymentsEnabled, supplierDetailsPath } from "@/lib/payment-routes";
 import { paymentControlClass, paymentPageClass, paymentSurfaceClass, primaryPaymentAction, secondaryPaymentAction } from "@/lib/payment-presentation";
 import SupplierPayments from "./SupplierPayments";
 
@@ -172,7 +172,7 @@ export default function SupplierTransfers({ reference }: { reference?: string })
   const visibleTransfers = transfers.data?.filter(record => status === "all" || record.status === status) ?? [];
 
   return <div data-payments-page className={paymentPageClass}>
-    <SupplierPayments dashboard />
+    {supplierPaymentsEnabled && <SupplierPayments dashboard />}
     <section id="transfers" ref={transfersSection} className={card + " mt-5 scroll-mt-24"} aria-labelledby="transfers-heading">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>

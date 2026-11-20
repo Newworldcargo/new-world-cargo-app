@@ -1,3 +1,4 @@
+export const supplierPaymentsEnabled = false;
 export const paymentsPath = "/payments";
 export const invoicesPath = "/payments/invoices";
 export const suppliersPath = "/payments/suppliers";

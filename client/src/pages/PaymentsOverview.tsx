@@ -1,6 +1,6 @@
 import { ArrowRight, Globe2, ReceiptText } from "lucide-react";
 import { Link } from "wouter";
-import { invoicesPath, suppliersPath } from "@/lib/payment-routes";
+import { invoicesPath, suppliersPath, supplierPaymentsEnabled } from "@/lib/payment-routes";
 import { paymentPageClass, paymentSurfaceClass, primaryPaymentAction, secondaryPaymentAction } from "@/lib/payment-presentation";
 
 const destinations = [
@@ -30,10 +30,10 @@ export default function PaymentsOverview() {
   return <div data-payments-page className={paymentPageClass}>
     <header>
       <h1 className="font-heading text-3xl font-extrabold sm:text-4xl">Payments</h1>
-      <p className="mt-2 text-sm text-ink/75 sm:text-base">Manage your invoices and international supplier payments.</p>
+      <p className="mt-2 text-sm text-ink/75 sm:text-base">{supplierPaymentsEnabled ? "Manage your invoices and international supplier payments." : "Manage your cargo invoices and payments."}</p>
     </header>
     <div className="mt-6 grid gap-4 sm:mt-8 sm:grid-cols-2 sm:gap-5">
-      {destinations.map(({ title, description, action, href, icon: Icon, surface, iconStyle, actionStyle }) =>
+      {destinations.filter(({ href }) => supplierPaymentsEnabled || href !== suppliersPath).map(({ title, description, action, href, icon: Icon, surface, iconStyle, actionStyle }) =>
         <Link key={href} href={href} className={`group flex flex-col items-start ${paymentSurfaceClass} ${surface} p-4 transition-colors hover:border-[#a9bfce] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#012642] sm:p-7`}>
           <span className={`grid size-10 place-items-center rounded-xl sm:size-12 border border-ink/5 ${iconStyle}`}><Icon className="size-5" aria-hidden="true" /></span>
           <h2 className="mt-3 text-xl font-bold sm:mt-4 sm:text-2xl">{title}</h2>
